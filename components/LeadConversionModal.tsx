@@ -10,7 +10,7 @@ interface LeadConversionModalProps {
 }
 
 const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose }) => {
-  const { clients, addSite, addPrestation, deleteLead, addClient } = useData();
+  const { clients, addSite, addPrestation, deleteLead, addClient, company } = useData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'type' | 'client'>('type');
   const [selectedType, setSelectedType] = useState<'site' | 'prestation' | null>(null);
@@ -20,10 +20,17 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
 
   if (!lead) return null;
 
+  // Get the first status from configured site statuses or default to 'NOUVEAU'
+  const getFirstSiteStatus = () => {
+    return company?.siteStatuses && company.siteStatuses.length > 0
+      ? company.siteStatuses[0]
+      : 'NOUVEAU';
+  };
+
   const handleConvert = async () => {
     if (!selectedType || !selectedClientId) return;
     setIsSubmitting(true);
-    
+
     const commonData = {
       name: lead.project,
       address: lead.address,
@@ -33,7 +40,7 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
       startTime: '08:00',
       endTime: '17:30',
       budget: lead.budget,
-      status: 'NOUVEAU' as any,
+      status: getFirstSiteStatus() as any,
       pipelineStage: 'Nouveau' as any,
       color: selectedType === 'site' ? 'bg-emerald-700' : 'bg-blue-600',
       coordinates: (lead as any).coordinates || [45.75, 4.85] // Transmission des coordonnées
