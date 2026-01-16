@@ -344,12 +344,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const authorName = getCurrentUserName();
 
     const batch = writeBatch(db);
-    targetUserIds.forEach(uid => {
-      if (uid.toLowerCase() === currentEmail) return;
+    targetUserIds.forEach(userId => {
+      // Convert user ID to email by finding the user in the users list
+      const user = users.find(u => u.id === userId);
+      if (!user) return; // User not found, skip
+
+      const userEmail = user.email.toLowerCase();
+      if (userEmail === currentEmail) return; // Don't notify self
 
       const newNotifRef = doc(collection(db, 'companies', companyId, 'notifications'));
       batch.set(newNotifRef, {
-        recipientId: uid.toLowerCase(),
+        recipientId: userEmail,
         title,
         message,
         type,
