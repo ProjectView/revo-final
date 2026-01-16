@@ -84,7 +84,7 @@ const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under_fr/{z}/{x}/{y}{r}.png"
         />
         
         <ChangeView sites={sites} />
