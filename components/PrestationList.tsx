@@ -11,7 +11,7 @@ import { useData } from '../context/DataContext';
 type ViewMode = 'list' | 'kanban' | 'map';
 
 const PrestationList: React.FC = () => {
-  const { prestations, clients } = useData();
+  const { prestations, clients, updatePrestation } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedPrestationId, setSelectedPrestationId] = useState<string | null>(null);
@@ -210,7 +210,7 @@ const PrestationList: React.FC = () => {
               </div>
             )}
 
-            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
+            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} onStatusChange={async (prestationId, newStatus) => await updatePrestation(prestationId, { status: newStatus })} />}
             {viewMode === 'map' && <MapView sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
           </>
         )}

@@ -63,7 +63,7 @@ interface DataContextType {
   deleteChecklistTemplate: (id: string) => Promise<void>;
   assignChecklistToSite: (siteId: string, checklist: ChecklistTemplate) => Promise<void>;
   updateCompany: (updates: Partial<Company>) => Promise<void>;
-  saveUser: (userData: Omit<User, 'id' | 'companyId'>) => Promise<void>;
+  saveUser: (userData: Omit<User, 'id' | 'companyId'>, explicitCompanyId?: string) => Promise<void>;
   deleteUser: (userEmail: string) => Promise<void>;
   uploadCompanyLogo: (file: File) => Promise<string>;
   uploadUserAvatar: (file: File) => Promise<string>;
@@ -98,6 +98,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const TOTAL_STREAMS = 9; 
 
   const setCompanyId = (id: string | null) => {
+    // Ignore redundant calls with the same ID to prevent re-initialization loops
+    if (companyId === id) return;
+
     if (id) localStorage.setItem('revo_company_id', id);
     else localStorage.removeItem('revo_company_id');
     setCompanyIdState(id);
@@ -108,7 +111,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const markStreamReady = () => {
     responsesReceived.current += 1;
-    if (responsesReceived.current >= TOTAL_STREAMS - 1) {
+    if (responsesReceived.current >= TOTAL_STREAMS) {
       setLoading(false);
     }
   };
@@ -241,7 +244,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const currentEmail = localStorage.getItem('revo_auth')?.toLowerCase();
+    const currentUser = auth.currentUser;
+    const currentEmail = currentUser?.email?.toLowerCase();
+
+    // Safety timeout - force loading to false after 10 seconds max
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 10000);
 
     const unsubCompany = onSnapshot(doc(db, 'companies', companyId), (snapshot) => {
       if (snapshot.exists()) setCompany({ ...snapshot.data(), id: snapshot.id } as Company);
@@ -302,21 +311,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubNotifs = currentEmail ? onSnapshot(
       query(
-        collection(db, 'companies', companyId, 'notifications'), 
+        collection(db, 'companies', companyId, 'notifications'),
         where('recipientId', '==', currentEmail),
         orderBy('createdAt', 'desc'),
         limit(50)
-      ), 
+      ),
       (snapshot) => {
         setUserNotifications(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as UserNotification)));
         markStreamReady();
-      }, 
+      },
       (error) => {
         markStreamReady();
       }
     ) : (() => { markStreamReady(); return () => {}; })();
 
     return () => {
+      clearTimeout(timeoutId);
       unsubCompany(); unsubSites(); unsubPrestations(); unsubLeads(); unsubClients(); unsubTodos(); unsubChecklists(); unsubUsers(); unsubNotifs();
     };
   }, [companyId]);
@@ -623,14 +633,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, 'companies', companyId), updates);
   };
 
-  const saveUser = async (userData: Omit<User, 'id' | 'companyId'>) => {
-    if (!companyId) return;
+  const saveUser = async (userData: Omit<User, 'id' | 'companyId'>, explicitCompanyId?: string) => {
+    const targetCompanyId = explicitCompanyId || companyId;
+    if (!targetCompanyId) return;
     const emailKey = userData.email.toLowerCase();
     await setDoc(doc(db, 'users', emailKey), {
       ...userData,
       id: emailKey,
       email: emailKey,
-      companyId: companyId
+      companyId: targetCompanyId
     });
   };
 

@@ -108,9 +108,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           email: invitationData.email.toLowerCase(),
           name: userName,
           role: invitationData.role,
-          companyId: invitationData.companyId,
           avatar: avatarUrl || undefined
-        });
+        }, invitationData.companyId);
 
         // 4. Update Invitation
         const urlParams = new URLSearchParams(window.location.search);

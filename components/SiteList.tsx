@@ -11,7 +11,7 @@ import { useData } from '../context/DataContext';
 type ViewMode = 'list' | 'kanban' | 'map';
 
 const SiteList: React.FC = () => {
-  const { sites, clients, addSite } = useData();
+  const { sites, clients, addSite, updateSite } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
@@ -221,7 +221,7 @@ const SiteList: React.FC = () => {
               </div>
             )}
 
-            {viewMode === 'kanban' && <KanbanBoard sites={filteredSites} onSiteClick={(s) => setSelectedSiteId(s.id)} />}
+            {viewMode === 'kanban' && <KanbanBoard sites={filteredSites} onSiteClick={(s) => setSelectedSiteId(s.id)} onStatusChange={async (siteId, newStatus) => await updateSite(siteId, { status: newStatus })} />}
             {viewMode === 'map' && <MapView sites={filteredSites} onSiteClick={(s) => setSelectedSiteId(s.id)} />}
           </>
         )}

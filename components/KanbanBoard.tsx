@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Site, Status, User } from '../types';
 import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon } from 'lucide-react';
 import { useData } from '../context/DataContext';
@@ -7,11 +7,14 @@ import { useData } from '../context/DataContext';
 interface KanbanBoardProps {
   sites: Site[];
   onSiteClick: (site: Site) => void;
+  onStatusChange?: (siteId: string, newStatus: Status) => Promise<void>;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange }) => {
   const { clients, users } = useData();
   const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
+  const [draggedFromStatus, setDraggedFromStatus] = useState<Status | null>(null);
 
   const getStatusColor = (status: Status) => {
     switch (status) {
@@ -33,6 +36,41 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick }) => {
 
   const getInitials = (name: string = '') => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, siteId: string, status: Status) => {
+    setDraggedItem(siteId);
+    setDraggedFromStatus(status);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', siteId);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetStatus: Status) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const siteId = e.dataTransfer.getData('text/plain');
+
+    if (siteId && draggedFromStatus && draggedFromStatus !== targetStatus && onStatusChange) {
+      try {
+        await onStatusChange(siteId, targetStatus);
+      } catch (error) {
+        console.error('Failed to update status:', error);
+      }
+    }
+
+    setDraggedItem(null);
+    setDraggedFromStatus(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDraggedFromStatus(null);
   };
 
   return (
@@ -67,16 +105,23 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick }) => {
             </div>
 
             {/* Cards Container */}
-            <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1 scrollbar-hide px-1 pb-4">
+            <div
+              className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1 scrollbar-hide px-1 pb-4 rounded-xl transition-colors"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, status)}
+            >
               {sitesInStatus.map((site) => {
                 const client = clients.find(c => c.id === site.clientId);
                 const assignedUsers = users.filter(u => site.assignedUserIds?.includes(u.id));
 
                 return (
-                  <div 
+                  <div
                     key={site.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, site.id, status)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => onSiteClick(site)}
-                    className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-200 hover:-translate-y-1 transition-all cursor-pointer group animate-in fade-in slide-in-from-bottom-2 duration-300"
+                    className={`bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-200 hover:-translate-y-1 transition-all cursor-move group animate-in fade-in slide-in-from-bottom-2 duration-300 ${draggedItem === site.id ? 'opacity-50 scale-95' : ''}`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">

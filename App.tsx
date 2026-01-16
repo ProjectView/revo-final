@@ -22,9 +22,13 @@ const AppContent: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = check en cours
   const { loading, permissionError, setCompanyId, loginWithEmail } = useData();
   const [showErrorBanner, setShowErrorBanner] = useState(true);
+  const authCheckRef = React.useRef(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Only process auth state once on initial load
+      if (authCheckRef.current) return;
+
       if (user && user.email) {
         // L'utilisateur est connecté à Auth, vérifions son rattachement Firestore
         const compId = await loginWithEmail(user.email);
@@ -32,12 +36,15 @@ const AppContent: React.FC = () => {
           localStorage.setItem('revo_auth', user.email);
           setCompanyId(compId);
           setIsAuthenticated(true);
+          authCheckRef.current = true;
         } else {
           // Cas où le compte Auth existe mais pas le profil (ex: suppression manuelle Firestore)
           setIsAuthenticated(false);
+          authCheckRef.current = true;
         }
       } else {
         setIsAuthenticated(false);
+        authCheckRef.current = true;
       }
     });
     return () => unsubscribe();
@@ -51,6 +58,7 @@ const AppContent: React.FC = () => {
   const handleLogout = async () => {
     await signOut(auth);
     localStorage.removeItem('revo_auth');
+    authCheckRef.current = false;
     setCompanyId(null);
     setIsAuthenticated(false);
   };
