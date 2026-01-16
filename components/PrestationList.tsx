@@ -55,7 +55,7 @@ const PrestationList: React.FC = () => {
 
   return (
     <>
-      <div className="w-full px-6 lg:px-12 py-8 lg:py-10 space-y-6 lg:space-y-8 animate-in fade-in duration-500 pb-24 lg:pb-12">
+      <div className="w-full h-screen flex flex-col px-6 lg:px-12 py-8 lg:py-10 animate-in fade-in duration-500 pb-24 lg:pb-12 gap-6 lg:gap-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div>
             <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Prestations</h1>
@@ -134,6 +134,7 @@ const PrestationList: React.FC = () => {
         </div>
 
         {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
         {prestations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-40 px-6 bg-white rounded-[4rem] border border-dashed border-slate-200 shadow-inner group animate-in zoom-in-95 duration-700">
             <div className="relative mb-10">
@@ -214,6 +215,7 @@ const PrestationList: React.FC = () => {
             {viewMode === 'map' && <MapView sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
           </>
         )}
+        </div>
       </div>
       <PrestationDetailModal prestationId={selectedPrestationId} onClose={() => setSelectedPrestationId(null)} />
       <NewPrestationModal isOpen={isNewPrestationModalOpen} onClose={() => setIsNewPrestationModalOpen(false)} />

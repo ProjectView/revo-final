@@ -67,10 +67,10 @@ const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
     setMapReady(true);
   }, []);
 
-  if (!mapReady) return <div className="w-full h-[600px] bg-slate-50 rounded-[2rem] animate-pulse"></div>;
+  if (!mapReady) return <div className="w-full h-full min-h-[600px] bg-slate-50 rounded-[2rem] animate-pulse"></div>;
 
   return (
-    <div className="w-full h-[600px] rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl relative animate-in fade-in duration-700">
+    <div className="w-full h-full min-h-[600px] rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl relative animate-in fade-in duration-700">
       <MapContainer 
         center={[45.75, 4.85]} 
         zoom={12} 
