@@ -29,6 +29,9 @@ const CalendarView: React.FC = () => {
     setSelectedStatuses(statuses);
   }, [statuses]);
 
+  // State for resize handling
+  const [resizing, setResizing] = useState<{ siteId: string; direction: 'start' | 'end' } | null>(null);
+
   const getStatusStyle = (status: Status) => {
     switch (status) {
       case 'EN RÉVISION': return { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' };
@@ -177,7 +180,7 @@ const CalendarView: React.FC = () => {
       const durationMs = new Date(site.endDate).getTime() - originalStart.getTime();
       const newStart = new Date(targetDate.getTime() - offsetMs);
       const newEnd = new Date(newStart.getTime() + durationMs);
-      
+
       const newStartStr = toLocalISOString(newStart);
       const newEndStr = toLocalISOString(newEnd);
 
@@ -195,6 +198,67 @@ const CalendarView: React.FC = () => {
       });
     }
   };
+
+  const onResizeStart = (e: React.MouseEvent, siteId: string, direction: 'start' | 'end') => {
+    e.stopPropagation();
+    setResizing({ siteId, direction });
+  };
+
+  React.useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseUp = (e: MouseEvent) => {
+      const site = sites.find(s => s.id === resizing.siteId);
+      if (!site) return;
+
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      if (!target) {
+        setResizing(null);
+        return;
+      }
+
+      // Find the day cell that was dropped on
+      let dayCell = target as HTMLElement;
+      while (dayCell && !dayCell.dataset.date) {
+        dayCell = dayCell.parentElement as HTMLElement;
+      }
+
+      if (dayCell && dayCell.dataset.date) {
+        const newDate = dayCell.dataset.date;
+        const updates: Partial<Site> = {};
+
+        if (resizing.direction === 'start') {
+          // Check if new start date is before end date
+          if (newDate <= site.endDate) {
+            updates.startDate = newDate;
+          }
+        } else {
+          // Check if new end date is after start date
+          if (newDate >= site.startDate) {
+            updates.endDate = newDate;
+          }
+        }
+
+        if (Object.keys(updates).length > 0) {
+          const newStartStr = updates.startDate || site.startDate;
+          const newEndStr = updates.endDate || site.endDate;
+          const capacity = checkCapacity(newStartStr, newEndStr, resizing.siteId);
+          if (capacity.exceeds) {
+            addNotification(
+              `Alerte Capacité : Ce changement place ${capacity.maxCount + 1} chantiers en simultané (seuil : ${company?.maxSimultaneousSites}).`,
+              'warning'
+            );
+          }
+          updateSite(resizing.siteId, updates);
+        }
+      }
+
+      setResizing(null);
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, [resizing, sites, updateSite, checkCapacity, company, addNotification]);
 
   const renderYearView = () => {
     const year = currentDate.getFullYear();
@@ -273,12 +337,13 @@ const CalendarView: React.FC = () => {
                 const isOverLimit = daySites.length > limit;
 
                 return (
-                  <div 
-                    key={i} 
-                    onDragOver={onDayDragOver} 
-                    onDrop={(e) => onDayDrop(e, day)} 
-                    className={`border-r border-b border-slate-100 flex flex-col relative min-h-[140px] transition-colors group 
-                      ${!isCurrentMonth ? 'bg-slate-50/40 opacity-40' : 'bg-white'} 
+                  <div
+                    key={i}
+                    data-date={dStr}
+                    onDragOver={onDayDragOver}
+                    onDrop={(e) => onDayDrop(e, day)}
+                    className={`border-r border-b border-slate-100 flex flex-col relative min-h-[140px] transition-colors group
+                      ${!isCurrentMonth ? 'bg-slate-50/40 opacity-40' : 'bg-white'}
                       ${isOverLimit ? 'bg-rose-50/50 ring-2 ring-inset ring-rose-100/50' : 'hover:bg-slate-50/80'}
                     `}
                   >
@@ -299,16 +364,32 @@ const CalendarView: React.FC = () => {
                       {filteredSites.map(site => {
                         if (dStr < site.startDate || dStr > site.endDate) return null;
                         const slotIndex = siteSlots[site.id] || 0;
+                        const isStart = dStr === site.startDate;
+                        const isEnd = dStr === site.endDate;
                         return (
-                          <div 
-                            key={site.id} 
-                            draggable 
-                            onDragStart={(e) => onSiteDragStart(e, site.id, dStr)} 
-                            onClick={() => setSelectedSite(site)} 
-                            style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }} 
-                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 cursor-grab active:cursor-grabbing transition-all hover:brightness-110 z-10 text-white shadow-sm font-black ${site.color || 'bg-blue-600'} ${dStr === site.startDate ? 'rounded-l-xl ml-2' : ''} ${dStr === site.endDate ? 'rounded-r-xl mr-2' : ''}`}
+                          <div
+                            key={site.id}
+                            draggable={!resizing}
+                            onDragStart={(e) => onSiteDragStart(e, site.id, dStr)}
+                            onClick={() => setSelectedSite(site)}
+                            style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }}
+                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 cursor-grab active:cursor-grabbing transition-all hover:brightness-110 z-10 text-white shadow-sm font-black ${site.color || 'bg-blue-600'} ${isStart ? 'rounded-l-xl ml-2' : ''} ${isEnd ? 'rounded-r-xl mr-2' : ''} group`}
                           >
-                            {(dStr === site.startDate || day.getDay() === 1) && <p className="text-[11px] truncate uppercase tracking-tight">{site.name}</p>}
+                            {isStart && (
+                              <div
+                                onMouseDown={(e) => onResizeStart(e, site.id, 'start')}
+                                className="absolute -left-1 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/30 rounded-l-xl group-hover:opacity-100 opacity-0 transition-opacity"
+                                title="Redimensionner le début"
+                              />
+                            )}
+                            {(isStart || day.getDay() === 1) && <p className="text-[11px] truncate uppercase tracking-tight pointer-events-none">{site.name}</p>}
+                            {isEnd && (
+                              <div
+                                onMouseDown={(e) => onResizeStart(e, site.id, 'end')}
+                                className="absolute -right-1 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/30 rounded-r-xl group-hover:opacity-100 opacity-0 transition-opacity"
+                                title="Redimensionner la fin"
+                              />
+                            )}
                           </div>
                         );
                       })}
