@@ -287,72 +287,72 @@ const CalendarView: React.FC = () => {
     );
   };
 
-  const renderWeekView = () => (
-    <div className="flex-1 min-h-0 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 w-full">
-      <div className="overflow-x-auto scrollbar-hide">
-        <div className="min-w-[1200px] flex flex-col">
-          <div className="flex border-b border-emerald-800 bg-emerald-900 sticky top-0 z-40">
-            <div className="w-24 border-r border-emerald-800/50"></div>
-            {currentWeekDays.map((date, i) => (
-              <div key={i} className="flex-1 py-6 text-center">
-                <p className="text-[10px] font-black text-emerald-100/70 uppercase tracking-[0.2em]">{weekDays[i]}</p>
-                <p className="text-2xl font-black mt-1 text-white">{date.getDate()}</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex min-h-[800px] relative">
-            <div className="w-24 border-r border-slate-100 bg-slate-50/30 sticky left-0 z-30">
-              {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR).map(h => (
-                <div key={h} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 flex items-start justify-center pt-3"><span className="text-[10px] font-black text-slate-400">{h}:00</span></div>
-              ))}
-            </div>
-            <div className="flex-1 flex">
-              {currentWeekDays.map((date, dayIdx) => (
-                <div key={dayIdx} className="flex-1 border-r border-slate-100 relative group">
-                  {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
-                  {sites.map(site => {
-                    const dStr = toLocalISOString(date);
-                    if (dStr < site.startDate || dStr > site.endDate) return null;
-                    const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
-                    const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
-                    const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
-                    if (cStart >= cEnd) return null;
+  const renderWeekView = () => {
+    // Calculate max concurrent slots across entire week
+    const maxSlots = Math.max(...Object.values(siteSlots), 0) + 1; // +1 because slots are 0-indexed
 
-                    // Get concurrent sites for this day
-                    const concurrentSites = getSimultaneousSites(dStr, site.id);
-                    const totalSimultaneous = concurrentSites.length + 1; // +1 for current site
-                    const sitesOnThisDay = sites.filter(s => dStr >= s.startDate && dStr <= s.endDate);
-
-                    // Calculate position and width for this site
-                    const itemWidth = 100 / totalSimultaneous;
-                    const itemIndex = sitesOnThisDay.indexOf(site);
-                    const itemLeft = itemIndex * itemWidth;
-
-                    return (
-                      <div
-                        key={site.id}
-                        onClick={() => setSelectedSite(site)}
-                        style={{
-                          top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
-                          height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
-                          width: `${itemWidth}%`,
-                          left: `${itemLeft}%`
-                        }}
-                        className={`absolute p-4 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30`}
-                      >
-                        <p className="text-sm font-black truncate uppercase tracking-tight">{site.name}</p>
-                        <div className="mt-2 flex items-center gap-2 text-[10px] font-bold opacity-80"><Clock size={12} /> {dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</div>
-                      </div>
-                    );
-                  })}
+    return (
+      <div className="flex-1 min-h-0 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 w-full">
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="min-w-[1200px] flex flex-col">
+            <div className="flex border-b border-emerald-800 bg-emerald-900 sticky top-0 z-40">
+              <div className="w-24 border-r border-emerald-800/50"></div>
+              {currentWeekDays.map((date, i) => (
+                <div key={i} className="flex-1 py-6 text-center">
+                  <p className="text-[10px] font-black text-emerald-100/70 uppercase tracking-[0.2em]">{weekDays[i]}</p>
+                  <p className="text-2xl font-black mt-1 text-white">{date.getDate()}</p>
                 </div>
               ))}
+            </div>
+            <div className="flex min-h-[800px] relative">
+              <div className="w-24 border-r border-slate-100 bg-slate-50/30 sticky left-0 z-30">
+                {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR).map(h => (
+                  <div key={h} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 flex items-start justify-center pt-3"><span className="text-[10px] font-black text-slate-400">{h}:00</span></div>
+                ))}
+              </div>
+              <div className="flex-1 flex">
+                {currentWeekDays.map((date, dayIdx) => (
+                  <div key={dayIdx} className="flex-1 border-r border-slate-100 relative group">
+                    {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
+                    {sites.map(site => {
+                      const dStr = toLocalISOString(date);
+                      if (dStr < site.startDate || dStr > site.endDate) return null;
+                      const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
+                      const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
+                      const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
+                      if (cStart >= cEnd) return null;
+
+                      // Use slot-based positioning across entire duration
+                      const slotIndex = siteSlots[site.id] || 0;
+                      const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
+                      const itemLeft = slotIndex * (100 / maxSlots);
+
+                      return (
+                        <div
+                          key={site.id}
+                          onClick={() => setSelectedSite(site)}
+                          style={{
+                            top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
+                            height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
+                            width: `${itemWidth}%`,
+                            left: `${itemLeft}%`
+                          }}
+                          className={`absolute p-4 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30`}
+                        >
+                          <p className="text-sm font-black truncate uppercase tracking-tight">{site.name}</p>
+                          <div className="mt-2 flex items-center gap-2 text-[10px] font-bold opacity-80"><Clock size={12} /> {dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
