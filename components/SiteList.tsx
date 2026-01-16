@@ -13,7 +13,7 @@ type ViewMode = 'list' | 'kanban' | 'map';
 const SiteList: React.FC = () => {
   const { sites, clients, addSite, updateSite } = useData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [isNewSiteModalOpen, setIsNewSiteModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);

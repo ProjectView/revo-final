@@ -13,7 +13,7 @@ type ViewMode = 'list' | 'kanban' | 'map';
 const PrestationList: React.FC = () => {
   const { prestations, clients, updatePrestation } = useData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedPrestationId, setSelectedPrestationId] = useState<string | null>(null);
   const [isNewPrestationModalOpen, setIsNewPrestationModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);

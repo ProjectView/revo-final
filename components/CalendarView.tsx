@@ -9,7 +9,7 @@ type CalendarMode = 'Semaine' | 'Mois' | 'Année';
 
 const CalendarView: React.FC = () => {
   const { sites, updateSite, checkCapacity, company, addNotification } = useData();
-  const [viewMode, setViewMode] = useState<CalendarMode>('Semaine');
+  const [viewMode, setViewMode] = useState<CalendarMode>('Mois');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
 
