@@ -12,9 +12,22 @@ const CalendarView: React.FC = () => {
   const [viewMode, setViewMode] = useState<CalendarMode>('Mois');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>(['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ']);
 
-  const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  // Statuts par défaut
+  const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const statuses = useMemo(
+    () => (company?.siteStatuses && company.siteStatuses.length > 0
+      ? company.siteStatuses as Status[]
+      : DEFAULT_STATUSES),
+    [company?.siteStatuses]
+  );
+
+  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([]);
+
+  // Initialiser selectedStatuses avec tous les statuts disponibles
+  useMemo(() => {
+    setSelectedStatuses(statuses);
+  }, [statuses]);
 
   const getStatusStyle = (status: Status) => {
     switch (status) {
