@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Site, Status } from '../types';
-import { MOCK_CLIENTS } from '../constants';
 import { Briefcase, MapPin, ChevronRight } from 'lucide-react';
+import { useData } from '../context/DataContext';
 
 interface MapViewProps {
   sites: Site[];
@@ -15,6 +15,12 @@ interface MapViewProps {
 const ChangeView: React.FC<{ sites: Site[] }> = ({ sites }) => {
   const map = useMap();
   useEffect(() => {
+    // CRITIQUE : Force Leaflet à recalculer sa taille de conteneur
+    // (Nécessaire quand le mode vue change de liste à carte)
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
     if (sites.length > 0) {
       const validCoords = sites
         .filter(s => s.coordinates)
@@ -22,7 +28,8 @@ const ChangeView: React.FC<{ sites: Site[] }> = ({ sites }) => {
       
       if (validCoords.length > 0) {
         const bounds = L.latLngBounds(validCoords);
-        map.fitBounds(bounds, { padding: [50, 50] });
+        // Ajout de maxZoom pour éviter un zoom excessif si un seul point est présent
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
       }
     }
   }, [sites, map]);
@@ -53,6 +60,7 @@ const createCustomIcon = (status: Status) => {
 };
 
 const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
+  const { clients } = useData();
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
@@ -78,7 +86,8 @@ const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
 
         {sites.map(site => {
           if (!site.coordinates) return null;
-          const client = MOCK_CLIENTS.find(c => c.id === site.clientId);
+          // Correction : Utilisation des clients du contexte au lieu des mocks
+          const client = clients.find(c => c.id === site.clientId);
           
           return (
             <Marker 
@@ -89,12 +98,12 @@ const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
               <Popup>
                 <div className="p-4 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg ${client?.color} flex items-center justify-center text-white text-[10px] font-black shadow-sm`}>
-                      {client?.initials}
+                    <div className={`w-8 h-8 rounded-lg ${client?.color || 'bg-slate-400'} flex items-center justify-center text-white text-[10px] font-black shadow-sm`}>
+                      {client?.initials || '?'}
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-slate-800 leading-tight">{site.name}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">{client?.name}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">{client?.name || 'Inconnu'}</p>
                     </div>
                   </div>
                   
@@ -123,7 +132,6 @@ const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
         })}
       </MapContainer>
       
-      {/* Overlay controls mockup */}
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
         <button className="bg-white p-3 rounded-2xl shadow-xl border border-slate-100 text-slate-600 hover:text-emerald-600 transition-colors">
           <MapPin size={20} />

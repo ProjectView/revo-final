@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, HardHat, MapPin, Users, Calendar as CalendarIcon, DollarSign, Layout, Clock, Loader2, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, HardHat, MapPin, Users, Calendar as CalendarIcon, DollarSign, Layout, Clock, Loader2, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Status, PipelineStage } from '../types';
 
@@ -249,7 +249,7 @@ const CustomTimePicker: React.FC<{
 };
 
 const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
-  const { clients, addSite } = useData();
+  const { clients, addSite, checkCapacity, company, addNotification } = useData();
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -270,6 +270,14 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const suggestionRef = useRef<HTMLDivElement>(null);
+
+  const capacityWarning = useMemo(() => {
+    if (formData.startDate && formData.endDate) {
+      const result = checkCapacity(formData.startDate, formData.endDate);
+      return result.exceeds ? result.maxCount : null;
+    }
+    return null;
+  }, [formData.startDate, formData.endDate, checkCapacity]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -334,13 +342,20 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    if (capacityWarning !== null) {
+      addNotification(
+        `Chantier créé malgré le dépassement de capacité (${capacityWarning + 1} chantiers en simultané).`,
+        'warning'
+      );
+    }
+
     try {
       await addSite({
         ...formData,
         budget: parseInt(formData.budget) || 0
       });
       onClose();
-      // Reset form
       setFormData({
         name: '', address: '', clientId: '', startDate: '', endDate: '',
         startTime: '08:00', endTime: '17:30', budget: '', status: 'NOUVEAU',
@@ -388,6 +403,21 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
               <Loader2 className="animate-spin text-emerald-600" size={32} />
             </div>
           )}
+
+          {capacityWarning !== null && (
+            <div className="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-[2rem] flex gap-4 animate-in slide-in-from-top-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-amber-900 uppercase tracking-tight">Alerte Surcharge Planning</h4>
+                <p className="text-xs text-amber-700 font-bold mt-1 leading-relaxed">
+                  Attention : vous dépassez votre seuil de {company?.maxSimultaneousSites} chantiers simultanés sur cette période. ({capacityWarning + 1} chantiers prévus).
+                </p>
+              </div>
+            </div>
+          )}
+
           <form id="new-site-form" onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-4">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Relation Client</label>

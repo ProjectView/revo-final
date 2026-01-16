@@ -1,7 +1,25 @@
 
 export type Status = 'NOUVEAU' | 'EN RÉVISION' | 'EN COURS' | 'TERMINÉ';
 
-export type PipelineStage = 'Nouveau' | 'Qualifié' | 'Devis envoyé' | 'Négociation';
+export type PipelineStage = string; // Devient dynamique
+
+export interface AppNotification {
+  id: string;
+  message: string;
+  type: 'warning' | 'info' | 'success' | 'error';
+}
+
+export interface UserNotification {
+  id: string;
+  recipientId: string; // ID de l'utilisateur qui reçoit la notification
+  title: string;
+  message: string;
+  type: 'site_update' | 'prestation_update' | 'assignment';
+  relatedId: string; // ID du chantier ou de la prestation
+  authorName: string; // Qui a fait le changement
+  createdAt: string;
+  read: boolean;
+}
 
 export interface Company {
   id: string;
@@ -9,6 +27,8 @@ export interface Company {
   siret?: string;
   logo?: string;
   website?: string;
+  pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
+  maxSimultaneousSites?: number; // Limite de chantiers en parallèle
 }
 
 export interface User {
@@ -17,6 +37,8 @@ export interface User {
   email: string;
   companyId: string;
   role: 'Administrateur' | 'Conducteur de travaux' | 'Technicien';
+  avatar?: string;
+  habilitations?: string[]; // Liste des habilitations détenues
 }
 
 export interface Client {
@@ -38,6 +60,13 @@ export interface SiteTask {
   isCritical?: boolean;
 }
 
+export interface SiteComment {
+  id: string;
+  text: string;
+  user: string;
+  timestamp: string;
+}
+
 export interface Site {
   id: string;
   name: string;
@@ -56,6 +85,10 @@ export interface Site {
   assignedUserIds?: string[];
 }
 
+export interface Prestation extends Site {
+  category?: string;
+}
+
 export interface SiteDocument {
   id: string;
   name: string;
@@ -64,6 +97,21 @@ export interface SiteDocument {
   size: string;
   createdAt: string;
   uploadedBy: string;
+}
+
+export interface LeadActivity {
+  id: string;
+  type: 'stage_change' | 'field_update' | 'creation';
+  description: string;
+  user: string;
+  timestamp: string;
+}
+
+export interface LeadComment {
+  id: string;
+  text: string;
+  user: string;
+  timestamp: string;
 }
 
 export interface Lead {
@@ -102,4 +150,4 @@ export interface TodoTask {
   completed: boolean;
 }
 
-export type View = 'dashboard' | 'pipeline' | 'calendar' | 'sites' | 'clients' | 'checklists' | 'settings';
+export type View = 'dashboard' | 'pipeline' | 'calendar' | 'sites' | 'prestations' | 'clients' | 'checklists' | 'settings';

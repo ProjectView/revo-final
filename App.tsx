@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Pipeline from './components/Pipeline';
 import CalendarView from './components/CalendarView';
 import SiteList from './components/SiteList';
+import PrestationList from './components/PrestationList';
 import ClientGrid from './components/ClientGrid';
 import ChecklistManager from './components/ChecklistManager';
 import SettingsView from './components/SettingsView';
@@ -11,29 +13,56 @@ import Login from './components/Login';
 import { View } from './types';
 import { Menu, Loader2, AlertTriangle, X } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './lib/firebase';
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { loading, permissionError, setCompanyId } = useData();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = check en cours
+  const { loading, permissionError, setCompanyId, loginWithEmail } = useData();
   const [showErrorBanner, setShowErrorBanner] = useState(true);
 
   useEffect(() => {
-    const savedAuth = localStorage.getItem('revo_auth');
-    if (savedAuth) setIsAuthenticated(true);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && user.email) {
+        // L'utilisateur est connecté à Auth, vérifions son rattachement Firestore
+        const compId = await loginWithEmail(user.email);
+        if (compId) {
+          localStorage.setItem('revo_auth', user.email);
+          setCompanyId(compId);
+          setIsAuthenticated(true);
+        } else {
+          // Cas où le compte Auth existe mais pas le profil (ex: suppression manuelle Firestore)
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleLogin = (email: string) => {
-    localStorage.setItem('revo_auth', email);
+    // onAuthStateChanged prendra le relais automatiquement
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut(auth);
     localStorage.removeItem('revo_auth');
-    setCompanyId(null); // Réinitialise la société
+    setCompanyId(null);
     setIsAuthenticated(false);
   };
+
+  // État initial de branchement
+  if (isAuthenticated === null) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-emerald-900" size={32} />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
@@ -51,7 +80,7 @@ const AppContent: React.FC = () => {
              <Loader2 className="animate-spin text-emerald-600" size={20} />
              <p className="text-sm font-black text-slate-800 uppercase tracking-widest">Synchronisation Société</p>
            </div>
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Récupération de vos chantiers...</p>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Récupération de vos données...</p>
         </div>
       </div>
     );
@@ -63,6 +92,7 @@ const AppContent: React.FC = () => {
       case 'pipeline': return <Pipeline />;
       case 'calendar': return <CalendarView />;
       case 'sites': return <SiteList />;
+      case 'prestations': return <PrestationList />;
       case 'clients': return <ClientGrid />;
       case 'checklists': return <ChecklistManager />;
       case 'settings': return <SettingsView />;
@@ -76,7 +106,7 @@ const AppContent: React.FC = () => {
         <div className="fixed top-0 inset-x-0 z-[200] bg-rose-600 text-white p-4 shadow-2xl flex items-center justify-center gap-4 animate-in slide-in-from-top duration-500">
           <AlertTriangle size={24} className="shrink-0" />
           <div className="flex-1 text-sm font-bold">
-            Erreur de Permission : Veuillez vérifier les règles de votre Realtime Database.
+            Erreur de Permission : Accès restreint ou problème de base de données.
           </div>
           <button onClick={() => setShowErrorBanner(false)} className="p-2 hover:bg-white/10 rounded-full">
             <X size={20} />

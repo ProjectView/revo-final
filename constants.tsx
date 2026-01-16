@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, BarChart3, Calendar, HardHat, Users, CheckSquare, Settings } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Calendar, HardHat, Users, CheckSquare, Settings, Wrench } from 'lucide-react';
 import { Client, Site, TodoTask, View, ChecklistTemplate } from './types';
 
 export const NAV_ITEMS = [
@@ -8,9 +8,10 @@ export const NAV_ITEMS = [
   { id: 'pipeline' as View, label: 'Pipeline Commerciale', icon: <BarChart3 size={20} /> },
   { id: 'calendar' as View, label: 'Calendrier', icon: <Calendar size={20} /> },
   { id: 'sites' as View, label: 'Chantiers', icon: <HardHat size={20} /> },
+  { id: 'prestations' as View, label: 'Prestations', icon: <Wrench size={20} /> },
   { id: 'clients' as View, label: 'Clients', icon: <Users size={20} /> },
   { id: 'checklists' as View, label: 'Checklist', icon: <CheckSquare size={20} /> },
-  { id: 'settings' as View, label: 'Société', icon: <Settings size={20} /> },
+  { id: 'settings' as View, label: 'Réglages', icon: <Settings size={20} /> },
 ];
 
 export const MOCK_CLIENTS: Client[] = [

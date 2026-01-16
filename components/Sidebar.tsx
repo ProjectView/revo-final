@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
-import { LogOut, ChevronLeft, ChevronRight, X, Building2 } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, X, Building2, Bell } from 'lucide-react';
 import { NAV_ITEMS } from '../constants';
 import { View } from '../types';
 import { useData } from '../context/DataContext';
+import NotificationPanel from './NotificationPanel';
 
 interface SidebarProps {
   currentView: View;
@@ -13,8 +15,18 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOpen, onCloseMobile, onLogout }) => {
-  const { company } = useData();
+  const { company, users, userNotifications } = useData();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
+
+  const currentUserEmail = localStorage.getItem('revo_auth');
+  const currentUser = users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase());
+  const unreadCount = userNotifications.filter(n => !n.read).length;
+
+  const getUserInitials = (name: string = '') => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
 
   return (
     <>
@@ -97,14 +109,36 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
         {/* Bottom Section */}
         <div className={`px-4 pb-8 mt-auto ${isCollapsed && !isMobileOpen ? 'items-center' : ''}`}>
           <div className="pt-6 border-t border-slate-100">
+            {/* Notification Bell Button */}
+            <button 
+              onClick={() => setIsNotifPanelOpen(true)}
+              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl mb-2 group relative overflow-hidden text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-bold transition-all ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
+            >
+              <div className="relative">
+                <Bell size={22} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white shadow-sm ring-1 ring-rose-200">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
+              {(!isCollapsed || isMobileOpen) && (
+                <span className="text-[15px] flex-1 text-left">Centre d'alertes</span>
+              )}
+            </button>
+
             <div className={`flex items-center gap-4 px-2 ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}>
-              <div className="min-w-[48px] w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 font-black text-sm border border-slate-200 shadow-sm flex-shrink-0">
-                AH
+              <div className="min-w-[48px] w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 font-black text-sm border border-slate-200 shadow-sm flex-shrink-0 overflow-hidden">
+                {currentUser?.avatar ? (
+                  <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                ) : (
+                  getUserInitials(currentUser?.name)
+                )}
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] font-black text-slate-800 truncate">Adelin Hugot</p>
-                  <p className="text-xs text-slate-500 truncate font-semibold">adelin@revo.fr</p>
+                  <p className="text-[15px] font-black text-slate-800 truncate">{currentUser?.name || 'Chargement...'}</p>
+                  <p className="text-xs text-slate-500 truncate font-semibold">{currentUser?.email || currentUserEmail}</p>
                 </div>
               )}
             </div>
@@ -119,6 +153,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
           </div>
         </div>
       </aside>
+
+      {/* Notification Panel Component */}
+      <NotificationPanel isOpen={isNotifPanelOpen} onClose={() => setIsNotifPanelOpen(false)} />
     </>
   );
 };

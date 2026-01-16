@@ -1,39 +1,39 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Plus, List, Kanban, Map, HardHat, Ghost, FilterX, Construction, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { Status, Site } from '../types';
-import SiteDetailModal from './SiteDetailModal';
-import NewSiteModal from './NewSiteModal';
+import { Search, Filter, Plus, List, Kanban, Map, Wrench, Ghost, FilterX, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Status, Prestation } from '../types';
+import PrestationDetailModal from './PrestationDetailModal';
+import NewPrestationModal from './NewPrestationModal';
 import KanbanBoard from './KanbanBoard';
 import MapView from './MapView';
 import { useData } from '../context/DataContext';
 
 type ViewMode = 'list' | 'kanban' | 'map';
 
-const SiteList: React.FC = () => {
-  const { sites, clients, addSite } = useData();
+const PrestationList: React.FC = () => {
+  const { prestations, clients } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [isNewSiteModalOpen, setIsNewSiteModalOpen] = useState(false);
+  const [selectedPrestationId, setSelectedPrestationId] = useState<string | null>(null);
+  const [isNewPrestationModalOpen, setIsNewPrestationModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   
   // États des filtres
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
 
-  const filteredSites = useMemo(() => {
-    return sites.filter(s => {
-      const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          s.address.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPrestations = useMemo(() => {
+    return prestations.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          p.address.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const siteDate = new Date(s.startDate);
-      const matchesStart = !dateStart || siteDate >= new Date(dateStart);
-      const matchesEnd = !dateEnd || siteDate <= new Date(dateEnd);
+      const pDate = new Date(p.startDate);
+      const matchesStart = !dateStart || pDate >= new Date(dateStart);
+      const matchesEnd = !dateEnd || pDate <= new Date(dateEnd);
 
       return matchesSearch && matchesStart && matchesEnd;
     });
-  }, [sites, searchTerm, dateStart, dateEnd]);
+  }, [prestations, searchTerm, dateStart, dateEnd]);
 
   const activeFiltersCount = [dateStart, dateEnd].filter(Boolean).length;
 
@@ -41,14 +41,6 @@ const SiteList: React.FC = () => {
     setDateStart('');
     setDateEnd('');
     setSearchTerm('');
-  };
-
-  const setThisMonth = () => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    setDateStart(firstDay);
-    setDateEnd(lastDay);
   };
 
   const getStatusStyle = (status: Status) => {
@@ -66,8 +58,8 @@ const SiteList: React.FC = () => {
       <div className="w-full px-6 lg:px-12 py-8 lg:py-10 space-y-6 lg:space-y-8 animate-in fade-in duration-500 pb-24 lg:pb-12">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Chantiers</h1>
-            <p className="text-slate-500 text-base font-semibold mt-1">Vue d'ensemble et suivi de production.</p>
+            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Prestations</h1>
+            <p className="text-slate-500 text-base font-semibold mt-1">Suivi des interventions et services.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="flex bg-white rounded-2xl border border-slate-200 p-1.5 shadow-sm w-full sm:w-auto">
@@ -79,9 +71,9 @@ const SiteList: React.FC = () => {
                 </button>
               ))}
             </div>
-            <button onClick={() => setIsNewSiteModalOpen(true)}
+            <button onClick={() => setIsNewPrestationModalOpen(true)}
               className="w-full sm:w-auto bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
-              <Plus size={20} /> Nouveau chantier
+              <Plus size={20} /> Nouvelle prestation
             </button>
           </div>
         </div>
@@ -91,7 +83,7 @@ const SiteList: React.FC = () => {
           <div className="bg-white p-3 lg:p-3.5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-row gap-3 items-center w-full">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input type="text" placeholder="Rechercher un chantier..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              <input type="text" placeholder="Rechercher une prestation..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl pl-12 pr-6 py-2.5 text-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all font-medium"/>
             </div>
             <button 
@@ -112,7 +104,7 @@ const SiteList: React.FC = () => {
             <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Calendar size={12} /> Début après le
+                  <Calendar size={12} /> Après le
                 </label>
                 <input 
                   type="date" 
@@ -123,7 +115,7 @@ const SiteList: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Calendar size={12} /> Fin avant le
+                  <Calendar size={12} /> Avant le
                 </label>
                 <input 
                   type="date" 
@@ -133,45 +125,42 @@ const SiteList: React.FC = () => {
                 />
               </div>
               <div className="flex flex-col justify-end gap-2">
-                <div className="flex gap-2">
-                  <button onClick={setThisMonth} className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all">Ce mois-ci</button>
-                  <button onClick={resetFilters} className="flex-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all flex items-center justify-center gap-2">
-                    <X size={14} /> Reset
-                  </button>
-                </div>
+                <button onClick={resetFilters} className="bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all flex items-center justify-center gap-2">
+                  <X size={14} /> Réinitialiser
+                </button>
               </div>
             </div>
           )}
         </div>
 
         {/* Main Content Area */}
-        {sites.length === 0 ? (
+        {prestations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-40 px-6 bg-white rounded-[4rem] border border-dashed border-slate-200 shadow-inner group animate-in zoom-in-95 duration-700">
             <div className="relative mb-10">
               <div className="w-36 h-36 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 group-hover:scale-110 transition-transform duration-700">
-                <HardHat size={72} strokeWidth={1} />
+                <Wrench size={72} strokeWidth={1} />
               </div>
               <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-emerald-900 rounded-3xl flex items-center justify-center text-white shadow-2xl rotate-12 group-hover:rotate-0 transition-all duration-500">
                 <Plus size={28} />
               </div>
             </div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight text-center">Aucun chantier actif</h3>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight text-center">Aucune prestation</h3>
             <p className="text-slate-400 text-sm font-semibold mt-4 text-center max-w-sm leading-relaxed uppercase tracking-widest">
-              Votre tableau de production est vide. Commencez par planifier votre première intervention.
+              Gérez vos interventions ponctuelles ou vos forfaits de service ici.
             </p>
             <button 
-              onClick={() => setIsNewSiteModalOpen(true)}
+              onClick={() => setIsNewPrestationModalOpen(true)}
               className="mt-12 bg-emerald-900 text-white px-12 py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 hover:bg-emerald-800 transition-all flex items-center gap-4 group/btn"
             >
               <Plus size={20} className="group-hover/btn:rotate-90 transition-transform duration-300" /> 
-              Créer mon premier chantier
+              Créer ma première prestation
             </button>
           </div>
-        ) : filteredSites.length === 0 ? (
+        ) : filteredPrestations.length === 0 ? (
           <div className="py-32 flex flex-col items-center justify-center text-slate-300 space-y-4 bg-white/50 rounded-[3rem] border border-dashed border-slate-200 animate-in fade-in">
              <FilterX size={48} className="opacity-20" />
-             <p className="text-sm font-black uppercase tracking-widest italic">Aucun chantier ne correspond à votre recherche</p>
-             <button onClick={resetFilters} className="text-xs font-black text-emerald-700 hover:underline">Réinitialiser la recherche</button>
+             <p className="text-sm font-black uppercase tracking-widest italic">Aucune prestation ne correspond</p>
+             <button onClick={resetFilters} className="text-xs font-black text-emerald-700 hover:underline">Réinitialiser</button>
           </div>
         ) : (
           <>
@@ -181,21 +170,21 @@ const SiteList: React.FC = () => {
                   <table className="w-full text-left border-collapse min-w-[1100px]">
                     <thead>
                       <tr className="bg-slate-50/50 border-b border-slate-100">
-                        <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Chantier</th>
+                        <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Prestation</th>
                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Client</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Planning</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Période</th>
                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Budget</th>
                         <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Statut</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {filteredSites.map(site => {
-                        const client = clients.find(c => c.id === site.clientId);
+                      {filteredPrestations.map(prestation => {
+                        const client = clients.find(c => c.id === prestation.clientId);
                         return (
-                          <tr key={site.id} onClick={() => setSelectedSiteId(site.id)} className="hover:bg-emerald-50/40 transition-all cursor-pointer group">
+                          <tr key={prestation.id} onClick={() => setSelectedPrestationId(prestation.id)} className="hover:bg-emerald-50/40 transition-all cursor-pointer group">
                             <td className="px-10 py-8">
-                              <h4 className="font-black text-slate-800 text-base group-hover:text-emerald-900 transition-colors">{site.name}</h4>
-                              <p className="text-xs font-bold text-slate-400 mt-2 tracking-tight flex items-center gap-2 italic">{site.address}</p>
+                              <h4 className="font-black text-slate-800 text-base group-hover:text-emerald-900 transition-colors">{prestation.name}</h4>
+                              <p className="text-xs font-bold text-slate-400 mt-2 tracking-tight flex items-center gap-2 italic">{prestation.address}</p>
                             </td>
                             <td className="px-8 py-8">
                               <div className="flex items-center gap-4">
@@ -204,13 +193,13 @@ const SiteList: React.FC = () => {
                               </div>
                             </td>
                             <td className="px-8 py-8 text-sm text-slate-600 font-bold">
-                              {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
+                              {new Date(prestation.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
                             </td>
                             <td className="px-8 py-8 font-black text-slate-900 text-base">
-                              {site.budget.toLocaleString()} <span className="text-slate-400 text-xs font-bold uppercase ml-1">€</span>
+                              {prestation.budget.toLocaleString()} <span className="text-slate-400 text-xs font-bold uppercase ml-1">€</span>
                             </td>
                             <td className="px-10 py-8 text-right">
-                              <span className={`px-5 py-2 rounded-xl text-xs font-black border tracking-wider shadow-sm inline-block ${getStatusStyle(site.status)}`}>{site.status}</span>
+                              <span className={`px-5 py-2 rounded-xl text-xs font-black border tracking-wider shadow-sm inline-block ${getStatusStyle(prestation.status)}`}>{prestation.status}</span>
                             </td>
                           </tr>
                         );
@@ -221,15 +210,15 @@ const SiteList: React.FC = () => {
               </div>
             )}
 
-            {viewMode === 'kanban' && <KanbanBoard sites={filteredSites} onSiteClick={(s) => setSelectedSiteId(s.id)} />}
-            {viewMode === 'map' && <MapView sites={filteredSites} onSiteClick={(s) => setSelectedSiteId(s.id)} />}
+            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
+            {viewMode === 'map' && <MapView sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
           </>
         )}
       </div>
-      <SiteDetailModal siteId={selectedSiteId} onClose={() => setSelectedSiteId(null)} />
-      <NewSiteModal isOpen={isNewSiteModalOpen} onClose={() => setIsNewSiteModalOpen(false)} />
+      <PrestationDetailModal prestationId={selectedPrestationId} onClose={() => setSelectedPrestationId(null)} />
+      <NewPrestationModal isOpen={isNewPrestationModalOpen} onClose={() => setIsNewPrestationModalOpen(false)} />
     </>
   );
 };
 
-export default SiteList;
+export default PrestationList;
