@@ -93,6 +93,15 @@ const CalendarView: React.FC = () => {
     return slots;
   }, [sites]);
 
+  // Calculate concurrent sites for a given date/time range
+  const getSimultaneousSites = (date: string, siteId: string) => {
+    return sites.filter(s =>
+      s.id !== siteId &&
+      date >= s.startDate &&
+      date <= s.endDate
+    );
+  };
+
   const handlePrev = () => {
     const newDate = new Date(currentDate);
     if (viewMode === 'Année') newDate.setFullYear(newDate.getFullYear() - 1);
@@ -308,8 +317,29 @@ const CalendarView: React.FC = () => {
                     const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
                     const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
                     if (cStart >= cEnd) return null;
+
+                    // Get concurrent sites for this day
+                    const concurrentSites = getSimultaneousSites(dStr, site.id);
+                    const totalSimultaneous = concurrentSites.length + 1; // +1 for current site
+                    const sitesOnThisDay = sites.filter(s => dStr >= s.startDate && dStr <= s.endDate);
+
+                    // Calculate position and width for this site
+                    const itemWidth = 100 / totalSimultaneous;
+                    const itemIndex = sitesOnThisDay.indexOf(site);
+                    const itemLeft = itemIndex * itemWidth;
+
                     return (
-                      <div key={site.id} onClick={() => setSelectedSite(site)} style={{ top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`, height: `${(cEnd - cStart) * HOUR_HEIGHT}px`, width: '100%' }} className={`absolute p-4 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30`}>
+                      <div
+                        key={site.id}
+                        onClick={() => setSelectedSite(site)}
+                        style={{
+                          top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
+                          height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
+                          width: `${itemWidth}%`,
+                          left: `${itemLeft}%`
+                        }}
+                        className={`absolute p-4 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30`}
+                      >
                         <p className="text-sm font-black truncate uppercase tracking-tight">{site.name}</p>
                         <div className="mt-2 flex items-center gap-2 text-[10px] font-bold opacity-80"><Clock size={12} /> {dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</div>
                       </div>

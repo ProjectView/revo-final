@@ -248,6 +248,26 @@ const CustomTimePicker: React.FC<{
   );
 };
 
+// Palette de couleurs (sans rouge pour éviter "invalidé")
+const COLOR_PALETTE = [
+  'bg-blue-600',
+  'bg-emerald-600',
+  'bg-purple-600',
+  'bg-amber-600',
+  'bg-cyan-600',
+  'bg-indigo-600',
+  'bg-teal-600',
+  'bg-orange-600',
+  'bg-pink-600',
+  'bg-lime-600',
+  'bg-sky-600',
+  'bg-slate-700'
+];
+
+const getRandomColor = (): string => {
+  return COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+};
+
 const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const { clients, addSite, checkCapacity, company, addNotification } = useData();
   const [formData, setFormData] = useState({
@@ -261,7 +281,8 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
     budget: '',
     status: 'NOUVEAU' as Status,
     pipelineStage: 'Nouveau' as PipelineStage,
-    coordinates: null as [number, number] | null
+    coordinates: null as [number, number] | null,
+    color: getRandomColor()
   });
 
   const [addressSearch, setAddressSearch] = useState('');
@@ -359,7 +380,7 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
       setFormData({
         name: '', address: '', clientId: '', startDate: '', endDate: '',
         startTime: '08:00', endTime: '17:30', budget: '', status: 'NOUVEAU',
-        pipelineStage: 'Nouveau', coordinates: null
+        pipelineStage: 'Nouveau', coordinates: null, color: getRandomColor()
       });
       setAddressSearch('');
     } catch (error) {

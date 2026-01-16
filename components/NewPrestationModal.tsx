@@ -20,6 +20,26 @@ interface AddressSuggestion {
   };
 }
 
+// Palette de couleurs (sans rouge pour éviter "invalidé")
+const COLOR_PALETTE = [
+  'bg-blue-600',
+  'bg-emerald-600',
+  'bg-purple-600',
+  'bg-amber-600',
+  'bg-cyan-600',
+  'bg-indigo-600',
+  'bg-teal-600',
+  'bg-orange-600',
+  'bg-pink-600',
+  'bg-lime-600',
+  'bg-sky-600',
+  'bg-slate-700'
+];
+
+const getRandomColor = (): string => {
+  return COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+};
+
 const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose }) => {
   const { clients, addPrestation } = useData();
   const [formData, setFormData] = useState({
@@ -33,7 +53,8 @@ const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose
     budget: '',
     status: 'NOUVEAU' as Status,
     pipelineStage: 'Nouveau' as PipelineStage,
-    coordinates: null as [number, number] | null
+    coordinates: null as [number, number] | null,
+    color: getRandomColor()
   });
 
   const [addressSearch, setAddressSearch] = useState('');
@@ -98,7 +119,7 @@ const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose
       setFormData({
         name: '', address: '', clientId: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0],
         startTime: '08:00', endTime: '17:30', budget: '', status: 'NOUVEAU',
-        pipelineStage: 'Nouveau', coordinates: null
+        pipelineStage: 'Nouveau', coordinates: null, color: getRandomColor()
       });
       setAddressSearch('');
     } catch (error) {
