@@ -93,55 +93,77 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
         )}
       </div>
 
-      {/* Documents List */}
+      {/* Documents Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
             Documents du chantier ({documents.length})
           </h3>
         </div>
-        
-        <div className="grid grid-cols-1 gap-3">
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {documents.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-100 rounded-3xl">
+            <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-100 rounded-3xl">
               <ImageIcon size={32} className="opacity-20 mb-2" />
               <p className="text-[10px] font-black uppercase tracking-widest">Aucun document pour le moment</p>
             </div>
           ) : (
             documents.map((doc) => (
-              <div key={doc.id} className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-all group">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${doc.type === 'pdf' ? 'bg-red-50 text-red-500' : (doc.type === 'img' ? 'bg-blue-50 text-blue-500' : 'bg-slate-50 text-slate-500')}`}>
-                  {doc.type === 'pdf' ? <FileText size={24} /> : <ImageIcon size={24} />}
+              <div key={doc.id} className="group relative bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all">
+                {/* Thumbnail */}
+                <div className="aspect-square bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer relative">
+                  {doc.type === 'img' ? (
+                    <img
+                      src={doc.url}
+                      alt={doc.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onClick={() => setSelectedDocForPreview(doc)}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex flex-col items-center justify-center bg-red-50 group-hover:bg-red-100 transition-colors cursor-pointer"
+                      onClick={() => setSelectedDocForPreview(doc)}
+                    >
+                      <FileText size={32} className="text-red-500 mb-2" />
+                      <span className="text-[10px] font-black text-red-600 uppercase">PDF</span>
+                    </div>
+                  )}
+
+                  {/* Overlay Actions */}
+                  <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <button
+                      onClick={() => setSelectedDocForPreview(doc)}
+                      className="p-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all shadow-lg"
+                      title="Prévisualiser"
+                    >
+                      <Eye size={20} />
+                    </button>
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-all shadow-lg"
+                      title="Télécharger"
+                    >
+                      <Download size={20} />
+                    </a>
+                    <button
+                      onClick={() => handleDelete(doc)}
+                      disabled={isDeleting === doc.id}
+                      className="p-2.5 bg-white text-red-500 rounded-lg hover:bg-red-50 transition-all shadow-lg disabled:opacity-30"
+                      title="Supprimer"
+                    >
+                      {isDeleting === doc.id ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-800 truncate">{doc.name}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    {doc.size} • par {doc.uploadedBy} • {new Date(doc.createdAt).toLocaleDateString()}
+
+                {/* File Info */}
+                <div className="p-3">
+                  <p className="text-[11px] font-bold text-slate-800 truncate" title={doc.name}>{doc.name}</p>
+                  <p className="text-[9px] text-slate-400 font-medium mt-1">
+                    {doc.size} • {new Date(doc.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                   </p>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setSelectedDocForPreview(doc)}
-                    className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
-                    title="Prévisualiser"
-                  >
-                    <Eye size={18} />
-                  </button>
-                  <a
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
-                  >
-                    <Download size={18} />
-                  </a>
-                  <button
-                    onClick={() => handleDelete(doc)}
-                    disabled={isDeleting === doc.id}
-                    className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30"
-                  >
-                    {isDeleting === doc.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                  </button>
                 </div>
               </div>
             ))
