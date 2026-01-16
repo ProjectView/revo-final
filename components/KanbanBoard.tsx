@@ -8,11 +8,13 @@ interface KanbanBoardProps {
   sites: Site[];
   onSiteClick: (site: Site) => void;
   onStatusChange?: (siteId: string, newStatus: Status) => Promise<void>;
+  statuses?: Status[];
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange, statuses: customStatuses }) => {
   const { clients, users } = useData();
-  const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const statuses = customStatuses || DEFAULT_STATUSES;
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [draggedFromStatus, setDraggedFromStatus] = useState<Status | null>(null);
 

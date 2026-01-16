@@ -28,6 +28,7 @@ export interface Company {
   logo?: string;
   website?: string;
   pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
+  siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
   maxSimultaneousSites?: number; // Limite de chantiers en parallèle
 }
 
