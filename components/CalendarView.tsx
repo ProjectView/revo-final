@@ -199,7 +199,7 @@ const CalendarView: React.FC = () => {
     }
   };
 
-  const onResizeStart = (e: React.MouseEvent, siteId: string, direction: 'start' | 'end') => {
+  const onResizeStart = (e: React.MouseEvent | React.TouchEvent, siteId: string, direction: 'start' | 'end') => {
     e.stopPropagation();
     setResizing({ siteId, direction });
   };
@@ -207,11 +207,24 @@ const CalendarView: React.FC = () => {
   React.useEffect(() => {
     if (!resizing) return;
 
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleResizeEnd = (e: MouseEvent | TouchEvent) => {
       const site = sites.find(s => s.id === resizing.siteId);
-      if (!site) return;
+      if (!site) {
+        setResizing(null);
+        return;
+      }
 
-      const target = document.elementFromPoint(e.clientX, e.clientY);
+      // Get client coordinates from both mouse and touch events
+      let clientX: number, clientY: number;
+      if (e instanceof TouchEvent) {
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      const target = document.elementFromPoint(clientX, clientY);
       if (!target) {
         setResizing(null);
         return;
@@ -256,8 +269,12 @@ const CalendarView: React.FC = () => {
       setResizing(null);
     };
 
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => document.removeEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.addEventListener('touchend', handleResizeEnd);
+    return () => {
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.removeEventListener('touchend', handleResizeEnd);
+    };
   }, [resizing, sites, updateSite, checkCapacity, company, addNotification]);
 
   const renderYearView = () => {
@@ -378,7 +395,8 @@ const CalendarView: React.FC = () => {
                             {isStart && (
                               <div
                                 onMouseDown={(e) => onResizeStart(e, site.id, 'start')}
-                                className="absolute -left-1 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/30 rounded-l-xl group-hover:opacity-100 opacity-0 transition-opacity"
+                                onTouchStart={(e) => onResizeStart(e, site.id, 'start')}
+                                className="absolute -left-1 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/30 rounded-l-xl group-hover:opacity-100 opacity-0 transition-opacity active:opacity-100 touch-none"
                                 title="Redimensionner le début"
                               />
                             )}
@@ -386,7 +404,8 @@ const CalendarView: React.FC = () => {
                             {isEnd && (
                               <div
                                 onMouseDown={(e) => onResizeStart(e, site.id, 'end')}
-                                className="absolute -right-1 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/30 rounded-r-xl group-hover:opacity-100 opacity-0 transition-opacity"
+                                onTouchStart={(e) => onResizeStart(e, site.id, 'end')}
+                                className="absolute -right-1 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/30 rounded-r-xl group-hover:opacity-100 opacity-0 transition-opacity active:opacity-100 touch-none"
                                 title="Redimensionner la fin"
                               />
                             )}
