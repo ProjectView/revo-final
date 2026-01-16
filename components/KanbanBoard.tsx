@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Site, Status, User } from '../types';
-import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon } from 'lucide-react';
+import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon, Check } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 interface KanbanBoardProps {
@@ -73,35 +73,59 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
     setDraggedFromStatus(null);
   };
 
+  const handleCompleteStatus = async (e: React.MouseEvent, site: Site) => {
+    e.stopPropagation();
+    if (site.status !== 'TERMINÉ' && onStatusChange) {
+      await onStatusChange(site.id, 'TERMINÉ');
+    }
+  };
+
   return (
     <div className="flex gap-8 overflow-x-auto pb-10 -mx-4 px-4 scrollbar-hide items-stretch h-[calc(100vh-280px)]">
       {statuses.map((status) => {
         const sitesInStatus = sites.filter(s => s.status === status);
         const totalBudget = sitesInStatus.reduce((acc, curr) => acc + curr.budget, 0);
 
+        const isTerminedStatus = status === 'TERMINÉ';
+
         return (
-          <div 
-            key={status} 
-            className={`flex-shrink-0 w-[320px] rounded-[2.5rem] p-4 flex flex-col border shadow-sm transition-all hover:shadow-xl ${getColumnBg(status)}`}
+          <div
+            key={status}
+            className={`flex-shrink-0 w-[320px] rounded-[2.5rem] p-4 flex flex-col border shadow-sm transition-all hover:shadow-xl ${
+              isTerminedStatus
+                ? 'bg-emerald-50/10 border-emerald-200'
+                : getColumnBg(status)
+            }`}
           >
             {/* Column Header */}
             <div className="flex items-center justify-between px-3 mb-4 pt-2">
               <div className="flex items-center gap-3">
-                <div className={`w-2.5 h-2.5 rounded-full ${getStatusColor(status)} shadow-sm`}></div>
-                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{status}</h3>
-                <span className="text-[9px] font-black bg-white text-slate-400 px-2 py-0.5 rounded-lg border border-slate-100 shadow-sm">
+                <div className={`w-2.5 h-2.5 rounded-full ${getStatusColor(status)} shadow-sm ${isTerminedStatus ? 'animate-pulse' : ''}`}></div>
+                <h3 className={`text-[11px] font-black uppercase tracking-[0.2em] ${isTerminedStatus ? 'text-emerald-800' : 'text-slate-800'}`}>
+                  {status}
+                </h3>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border shadow-sm ${
+                  isTerminedStatus
+                    ? 'bg-emerald-100/50 text-emerald-600 border-emerald-100'
+                    : 'bg-white text-slate-400 border-slate-100'
+                }`}>
                   {sitesInStatus.length}
                 </span>
               </div>
-              <button className="text-slate-300 hover:text-slate-600 transition-colors">
-                <MoreHorizontal size={18} />
-              </button>
             </div>
 
             {/* Column Stats Summary */}
-            <div className={`mx-2 mb-4 px-4 py-2.5 rounded-xl border flex items-center justify-between shadow-inner ${status === 'TERMINÉ' ? 'bg-emerald-100/50 border-emerald-100' : 'bg-slate-50/50 border-slate-100'}`}>
-               <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total</span>
-               <span className="text-sm font-black text-slate-900">{totalBudget.toLocaleString()} <span className="text-[10px] uppercase ml-0.5">€</span></span>
+            <div className={`mx-2 mb-4 px-4 py-2.5 rounded-xl border flex items-center justify-between shadow-inner ${
+              isTerminedStatus
+                ? 'bg-emerald-100/50 border-emerald-100'
+                : 'bg-slate-50/50 border-slate-100'
+            }`}>
+               <span className={`text-[9px] font-black uppercase tracking-widest ${isTerminedStatus ? 'text-emerald-600' : 'text-slate-400'}`}>
+                 Volume
+               </span>
+               <span className={`text-sm font-black ${isTerminedStatus ? 'text-emerald-900' : 'text-slate-900'}`}>
+                 {totalBudget.toLocaleString()} <span className="text-[10px] uppercase ml-0.5">€</span>
+               </span>
             </div>
 
             {/* Cards Container */}
@@ -121,7 +145,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                     onDragStart={(e) => handleDragStart(e, site.id, status)}
                     onDragEnd={handleDragEnd}
                     onClick={() => onSiteClick(site)}
-                    className={`bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-200 hover:-translate-y-1 transition-all cursor-move group animate-in fade-in slide-in-from-bottom-2 duration-300 ${draggedItem === site.id ? 'opacity-50 scale-95' : ''}`}
+                    className={`bg-white p-4 rounded-[1.5rem] border shadow-sm hover:shadow-xl transition-all cursor-grab active:cursor-grabbing group animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                      draggedItem === site.id
+                        ? 'opacity-50 scale-95'
+                        : isTerminedStatus
+                        ? 'border-emerald-200 ring-1 ring-emerald-50'
+                        : 'border-slate-100 hover:border-emerald-200 hover:-translate-y-1'
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
@@ -135,7 +165,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                       <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">#{site.id.substring(0, 4)}</span>
                     </div>
                     
-                    <h4 className="text-[13px] font-black text-slate-800 group-hover:text-emerald-900 leading-snug mb-3 transition-colors line-clamp-2">
+                    <h4 className={`text-[13px] font-black leading-snug mb-3 transition-colors line-clamp-2 ${
+                      isTerminedStatus
+                        ? 'text-slate-600 group-hover:text-slate-800'
+                        : 'text-slate-800 group-hover:text-emerald-900'
+                    }`}>
                       {site.name}
                     </h4>
                     
@@ -152,10 +186,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-slate-900">
-                        <DollarSign size={12} className="text-emerald-500" strokeWidth={3} />
-                        <span className="text-sm font-black">{site.budget.toLocaleString()}</span>
+                    <div className="pt-3 border-t border-slate-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-1.5 text-slate-900">
+                          <DollarSign size={12} className="text-emerald-500" strokeWidth={3} />
+                          <span className="text-sm font-black">{site.budget.toLocaleString()}</span>
+                        </div>
+                        {!isTerminedStatus && (
+                          <button
+                            onClick={(e) => handleCompleteStatus(e, site)}
+                            title="Marquer comme terminé"
+                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Check size={14} strokeWidth={3} />
+                          </button>
+                        )}
                       </div>
                       <div className="flex -space-x-2">
                         {assignedUsers.length > 0 ? (
