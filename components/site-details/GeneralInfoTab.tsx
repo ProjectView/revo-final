@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Calendar, MapPin, Clock, MessageSquare, Users, Phone, Mail, Loader2, ChevronDown, AlertTriangle, Send } from 'lucide-react';
+import { Calendar, MapPin, Clock, MessageSquare, Users, Phone, Mail, Loader2, ChevronDown, AlertTriangle, Send, Navigation } from 'lucide-react';
 import { Site, Client, SiteComment } from '../../types';
 import { useData } from '../../context/DataContext';
 
@@ -94,6 +94,12 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
       e.preventDefault();
       handleAddComment();
     }
+  };
+
+  const openDirections = () => {
+    const encodedAddress = encodeURIComponent(site.address);
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+    window.open(mapsUrl, '_blank');
   };
 
   const assignedUsers = users.filter(u => site.assignedUserIds?.includes(u.id));
@@ -205,7 +211,15 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
         <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4 flex items-start gap-3 border-b border-slate-50">
             <MapPin size={18} className="text-emerald-600 mt-0.5" />
-            <div><p className="text-sm font-bold text-slate-800">{site.address}</p><p className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">Adresse du chantier</p></div>
+            <div className="flex-1"><p className="text-sm font-bold text-slate-800">{site.address}</p><p className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">Adresse du chantier</p></div>
+            <button
+              onClick={openDirections}
+              className="ml-auto flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-all active:scale-95 whitespace-nowrap"
+              title="Calculer l'itinéraire"
+            >
+              <Navigation size={16} />
+              <span className="text-[10px] font-black uppercase tracking-tight">Itinéraire</span>
+            </button>
           </div>
           {client && (
             <div className="p-4 bg-slate-50/50 flex flex-col gap-3">
