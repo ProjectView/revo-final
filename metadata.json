@@ -1,0 +1,7 @@
+{
+  "name": "REVO - Gestion de Chantiers BTP",
+  "description": "Une application complète pour les entreprises du BTP : gestion de clients, suivi de chantiers, planning opérationnel et pipeline commerciale.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

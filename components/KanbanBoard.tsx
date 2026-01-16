@@ -1,0 +1,156 @@
+
+import React from 'react';
+import { Site, Status, User } from '../types';
+import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon } from 'lucide-react';
+import { useData } from '../context/DataContext';
+
+interface KanbanBoardProps {
+  sites: Site[];
+  onSiteClick: (site: Site) => void;
+}
+
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick }) => {
+  const { clients, users } = useData();
+  const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+
+  const getStatusColor = (status: Status) => {
+    switch (status) {
+      case 'EN RÉVISION': return 'bg-purple-500';
+      case 'NOUVEAU': return 'bg-blue-500';
+      case 'EN COURS': return 'bg-orange-500';
+      case 'TERMINÉ': return 'bg-emerald-500';
+      default: return 'bg-slate-400';
+    }
+  };
+
+  const getColumnBg = (status: Status) => {
+    switch (status) {
+      case 'TERMINÉ': return 'bg-emerald-50/10 border-emerald-100';
+      case 'EN COURS': return 'bg-orange-50/10 border-orange-100';
+      default: return 'bg-white border-slate-100';
+    }
+  };
+
+  const getInitials = (name: string = '') => {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="flex gap-8 overflow-x-auto pb-10 -mx-4 px-4 scrollbar-hide items-stretch h-[calc(100vh-280px)]">
+      {statuses.map((status) => {
+        const sitesInStatus = sites.filter(s => s.status === status);
+        const totalBudget = sitesInStatus.reduce((acc, curr) => acc + curr.budget, 0);
+
+        return (
+          <div 
+            key={status} 
+            className={`flex-shrink-0 w-[320px] rounded-[2.5rem] p-4 flex flex-col border shadow-sm transition-all hover:shadow-xl ${getColumnBg(status)}`}
+          >
+            {/* Column Header */}
+            <div className="flex items-center justify-between px-3 mb-4 pt-2">
+              <div className="flex items-center gap-3">
+                <div className={`w-2.5 h-2.5 rounded-full ${getStatusColor(status)} shadow-sm`}></div>
+                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-[0.2em]">{status}</h3>
+                <span className="text-[9px] font-black bg-white text-slate-400 px-2 py-0.5 rounded-lg border border-slate-100 shadow-sm">
+                  {sitesInStatus.length}
+                </span>
+              </div>
+              <button className="text-slate-300 hover:text-slate-600 transition-colors">
+                <MoreHorizontal size={18} />
+              </button>
+            </div>
+
+            {/* Column Stats Summary */}
+            <div className={`mx-2 mb-4 px-4 py-2.5 rounded-xl border flex items-center justify-between shadow-inner ${status === 'TERMINÉ' ? 'bg-emerald-100/50 border-emerald-100' : 'bg-slate-50/50 border-slate-100'}`}>
+               <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total</span>
+               <span className="text-sm font-black text-slate-900">{totalBudget.toLocaleString()} <span className="text-[10px] uppercase ml-0.5">€</span></span>
+            </div>
+
+            {/* Cards Container */}
+            <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1 scrollbar-hide px-1 pb-4">
+              {sitesInStatus.map((site) => {
+                const client = clients.find(c => c.id === site.clientId);
+                const assignedUsers = users.filter(u => site.assignedUserIds?.includes(u.id));
+
+                return (
+                  <div 
+                    key={site.id}
+                    onClick={() => onSiteClick(site)}
+                    className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-200 hover:-translate-y-1 transition-all cursor-pointer group animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-lg ${client?.color || 'bg-slate-100'} flex items-center justify-center text-white text-[10px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
+                          {client?.initials || '?'}
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[140px]">
+                          {client?.name || 'Inconnu'}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">#{site.id.substring(0, 4)}</span>
+                    </div>
+                    
+                    <h4 className="text-[13px] font-black text-slate-800 group-hover:text-emerald-900 leading-snug mb-3 transition-colors line-clamp-2">
+                      {site.name}
+                    </h4>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <MapPin size={12} className="shrink-0" />
+                        <span className="text-[10px] font-bold truncate italic">{site.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Calendar size={12} className="shrink-0" />
+                        <span className="text-[10px] font-black uppercase tracking-wider">
+                          {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-slate-900">
+                        <DollarSign size={12} className="text-emerald-500" strokeWidth={3} />
+                        <span className="text-sm font-black">{site.budget.toLocaleString()}</span>
+                      </div>
+                      <div className="flex -space-x-2">
+                        {assignedUsers.length > 0 ? (
+                          assignedUsers.slice(0, 3).map((u) => (
+                            <div key={u.id} className="w-7 h-7 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-500 shadow-sm overflow-hidden" title={u.name}>
+                              {u.avatar ? (
+                                <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                              ) : (
+                                getInitials(u.name)
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center text-slate-300">
+                            <UsersIcon size={12} />
+                          </div>
+                        )}
+                        {assignedUsers.length > 3 && (
+                          <div className="w-7 h-7 rounded-full border-2 border-white bg-emerald-900 text-white flex items-center justify-center text-[8px] font-black shadow-sm">
+                            +{assignedUsers.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {sitesInStatus.length === 0 && (
+                <div className="flex-1 border-2 border-dashed border-slate-100/50 rounded-[1.5rem] flex items-center justify-center p-8 bg-slate-50/20">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] text-center">Aucune activité</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <div className="flex-shrink-0 w-10"></div>
+    </div>
+  );
+};
+
+export default KanbanBoard;
