@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Download, MoreVertical, FilePlus, Loader2, Trash2 } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Download, MoreVertical, FilePlus, Loader2, Trash2, Eye, X } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { SiteDocument } from '../../types';
 
@@ -13,6 +13,7 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
   const [documents, setDocuments] = useState<SiteDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [selectedDocForPreview, setSelectedDocForPreview] = useState<SiteDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -119,15 +120,22 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <a 
-                    href={doc.url} 
-                    target="_blank" 
+                  <button
+                    onClick={() => setSelectedDocForPreview(doc)}
+                    className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Prévisualiser"
+                  >
+                    <Eye size={18} />
+                  </button>
+                  <a
+                    href={doc.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
                   >
                     <Download size={18} />
                   </a>
-                  <button 
+                  <button
                     onClick={() => handleDelete(doc)}
                     disabled={isDeleting === doc.id}
                     className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors disabled:opacity-30"
@@ -140,6 +148,88 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
           )}
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {selectedDocForPreview && (
+        <>
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] animate-fade-in"
+            onClick={() => setSelectedDocForPreview(null)}
+          />
+          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl max-h-[90vh] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedDocForPreview.type === 'pdf' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
+                    {selectedDocForPreview.type === 'pdf' ? <FileText size={20} /> : <ImageIcon size={20} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-slate-900">{selectedDocForPreview.name}</p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      {selectedDocForPreview.size} • par {selectedDocForPreview.uploadedBy}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedDocForPreview(null)}
+                  className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-100 p-6">
+                {selectedDocForPreview.type === 'img' ? (
+                  <img
+                    src={selectedDocForPreview.url}
+                    alt={selectedDocForPreview.name}
+                    className="max-w-full max-h-full object-contain rounded-2xl shadow-lg"
+                  />
+                ) : selectedDocForPreview.type === 'pdf' ? (
+                  <iframe
+                    src={`${selectedDocForPreview.url}#toolbar=0`}
+                    className="w-full h-full rounded-2xl border-none"
+                    title={selectedDocForPreview.name}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+                    <FileText size={48} />
+                    <p className="text-sm font-bold">Aperçu non disponible</p>
+                    <a
+                      href={selectedDocForPreview.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 px-6 py-2 bg-emerald-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-800 transition-all"
+                    >
+                      Télécharger le fichier
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+                <a
+                  href={selectedDocForPreview.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 px-4 bg-emerald-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-emerald-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Download size={16} /> Télécharger
+                </a>
+                <button
+                  onClick={() => setSelectedDocForPreview(null)}
+                  className="flex-1 py-3 px-4 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition-all"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
