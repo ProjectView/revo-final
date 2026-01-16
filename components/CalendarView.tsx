@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle } from 'lucide-react';
-import { Site } from '../types';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle, X } from 'lucide-react';
+import { Site, Status } from '../types';
 import SiteDetailModal from './SiteDetailModal';
 import { useData } from '../context/DataContext';
 
@@ -12,6 +12,29 @@ const CalendarView: React.FC = () => {
   const [viewMode, setViewMode] = useState<CalendarMode>('Mois');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>(['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ']);
+
+  const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+
+  const getStatusStyle = (status: Status) => {
+    switch (status) {
+      case 'EN RÉVISION': return { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' };
+      case 'NOUVEAU': return { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-700' };
+      case 'EN COURS': return { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-700' };
+      case 'TERMINÉ': return { bg: 'bg-emerald-100', border: 'border-emerald-300', text: 'text-emerald-700' };
+      default: return { bg: 'bg-slate-100', border: 'border-slate-300', text: 'text-slate-700' };
+    }
+  };
+
+  const toggleStatusFilter = (status: Status) => {
+    setSelectedStatuses(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const filteredSites = useMemo(() => {
+    return sites.filter(s => selectedStatuses.includes(s.status));
+  }, [sites, selectedStatuses]);
 
   const weekDays = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
   const weekDaysShort = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -74,7 +97,7 @@ const CalendarView: React.FC = () => {
 
   const siteSlots = useMemo(() => {
     const slots: Record<string, number> = {};
-    const sortedSites = [...sites].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    const sortedSites = [...filteredSites].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     sortedSites.forEach(site => {
       let slot = 0;
       const start = new Date(site.startDate);
@@ -82,7 +105,7 @@ const CalendarView: React.FC = () => {
       while (true) {
         const hasCollision = Object.entries(slots).some(([otherId, otherSlot]) => {
           if (otherSlot !== slot) return false;
-          const otherSite = sites.find(s => s.id === otherId);
+          const otherSite = filteredSites.find(s => s.id === otherId);
           if (!otherSite) return false;
           return (start <= new Date(otherSite.endDate) && end >= new Date(otherSite.startDate));
         });
@@ -91,7 +114,7 @@ const CalendarView: React.FC = () => {
       }
     });
     return slots;
-  }, [sites]);
+  }, [filteredSites]);
 
   // Calculate concurrent sites for a given date/time range
   const getSimultaneousSites = (date: string, siteId: string) => {
@@ -169,7 +192,7 @@ const CalendarView: React.FC = () => {
             const days = getDaysInMonth(year, monthIdx);
             const monthStart = new Date(year, monthIdx, 1);
             const monthEnd = new Date(year, monthIdx + 1, 0);
-            const monthSites = sites.filter(s => {
+            const monthSites = filteredSites.filter(s => {
               const sStart = new Date(s.startDate);
               const sEnd = new Date(s.endDate);
               return sStart <= monthEnd && sEnd >= monthStart;
@@ -185,7 +208,7 @@ const CalendarView: React.FC = () => {
                   {days.map((day, i) => {
                     if (!day) return <div key={`empty-${i}`} className="h-8" />;
                     const dStr = toLocalISOString(day);
-                    const daySites = sites.filter(s => dStr >= s.startDate && dStr <= s.endDate);
+                    const daySites = filteredSites.filter(s => dStr >= s.startDate && dStr <= s.endDate);
                     const isToday = day.toDateString() === new Date().toDateString();
                     return (
                       <div key={i} className="h-8 flex flex-col items-center justify-center relative">
@@ -231,9 +254,9 @@ const CalendarView: React.FC = () => {
               {monthDays.map((day, i) => {
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
                 const dStr = toLocalISOString(day);
-                
+
                 // Calcul du chevauchement pour ce jour précis
-                const daySites = sites.filter(s => s.status !== 'TERMINÉ' && dStr >= s.startDate && dStr <= s.endDate);
+                const daySites = filteredSites.filter(s => dStr >= s.startDate && dStr <= s.endDate);
                 const isOverLimit = daySites.length > limit;
 
                 return (
@@ -260,7 +283,7 @@ const CalendarView: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex-1 relative mt-2 px-1">
-                      {sites.map(site => {
+                      {filteredSites.map(site => {
                         if (dStr < site.startDate || dStr > site.endDate) return null;
                         const slotIndex = siteSlots[site.id] || 0;
                         return (
@@ -314,7 +337,7 @@ const CalendarView: React.FC = () => {
                 {currentWeekDays.map((date, dayIdx) => (
                   <div key={dayIdx} className="flex-1 border-r border-slate-100 relative group">
                     {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
-                    {sites.map(site => {
+                    {filteredSites.map(site => {
                       const dStr = toLocalISOString(date);
                       if (dStr < site.startDate || dStr > site.endDate) return null;
                       const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
@@ -379,6 +402,30 @@ const CalendarView: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrer par statut :</span>
+          {statuses.map(status => {
+            const style = getStatusStyle(status);
+            const isSelected = selectedStatuses.includes(status);
+            return (
+              <button
+                key={status}
+                onClick={() => toggleStatusFilter(status)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter border transition-all ${
+                  isSelected
+                    ? `${style.bg} ${style.text} ${style.border} border-2 shadow-sm`
+                    : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${style.bg}`} />
+                {status}
+              </button>
+            );
+          })}
+        </div>
+
         {viewMode === 'Année' ? renderYearView() : viewMode === 'Mois' ? renderMonthView() : renderWeekView()}
       </div>
       <SiteDetailModal siteId={selectedSite?.id || null} onClose={() => setSelectedSite(null)} />
