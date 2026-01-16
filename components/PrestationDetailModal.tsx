@@ -1,28 +1,76 @@
 
-import React, { useState } from 'react';
-import { X, Wrench, Trash2, Edit3, Info, CheckSquare, Save, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Wrench, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2 } from 'lucide-react';
 import { Prestation, Status } from '../types';
 import { useData } from '../context/DataContext';
+import GeneralInfoTab from './site-details/GeneralInfoTab';
+import ChecklistTab from './site-details/ChecklistTab';
+import DocsTab from './site-details/DocsTab';
+import AssignUsersModal from './AssignUsersModal';
 
 interface PrestationDetailModalProps {
   prestationId: string | null;
   onClose: () => void;
 }
 
-const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestationId, onClose }) => {
-  const { prestations, updatePrestation, deletePrestation } = useData();
-  const prestation = prestations.find(p => p.id === prestationId);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editedName, setEditedName] = useState(prestation?.name || '');
+type TabType = 'info' | 'checklist' | 'docs';
 
-  if (!prestationId || !prestation) return null;
+const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestationId, onClose }) => {
+  const { prestations, clients, updatePrestation, deletePrestation } = useData();
+  const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const prestation = prestations.find(p => p.id === prestationId);
+  const [editedPrestation, setEditedPrestation] = useState<Prestation | null>(null);
+
+  useEffect(() => {
+    if (prestation && !isEditing) {
+      setEditedPrestation({ ...prestation });
+    }
+  }, [prestation, isEditing]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsStatusOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (!prestationId || !prestation || !editedPrestation) return null;
+
+  const client = clients.find(c => c.id === prestation.clientId);
+  const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+
+  const getStatusColor = (status: Status) => {
+    switch (status) {
+      case 'EN RÉVISION': return 'text-purple-600 bg-purple-50 border-purple-100';
+      case 'NOUVEAU': return 'text-blue-600 bg-blue-50 border-blue-100';
+      case 'EN COURS': return 'text-orange-600 bg-orange-50 border-orange-100';
+      case 'TERMINÉ': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+      default: return 'text-slate-600 bg-slate-50 border-slate-100';
+    }
+  };
+
+  const tabs = [
+    { id: 'info' as TabType, label: 'Informations', icon: <Info size={16} /> },
+    { id: 'checklist' as TabType, label: 'Checklist', icon: <CheckSquare size={16} /> },
+    { id: 'docs' as TabType, label: 'Photos & Docs', icon: <ImageIcon size={16} /> },
+  ];
 
   const handleSave = async () => {
     setIsSubmitting(true);
     try {
-      await updatePrestation(prestation.id, { name: editedName });
+      await updatePrestation(prestation.id, editedPrestation);
       setIsEditing(false);
+    } catch (error) {
+      console.error("Erreur sauvegarde prestation:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -30,60 +78,109 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
 
   const handleDelete = async () => {
     if (window.confirm('Supprimer cette prestation ?')) {
-      await deletePrestation(prestation.id);
-      onClose();
+      setIsSubmitting(true);
+      try {
+        await deletePrestation(prestation.id);
+        onClose();
+      } catch (error) {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleStatusChange = async (newStatus: Status) => {
+    if (!isEditing) {
+      try { await updatePrestation(prestation.id, { status: newStatus }); } catch (error) {}
+    } else {
+      setEditedPrestation({...editedPrestation, status: newStatus});
+    }
+    setIsStatusOpen(false);
+  };
+
+  const handleAssignUsers = async (userIds: string[]) => {
+    await updatePrestation(prestation.id, { assignedUserIds: userIds });
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'info':
+        return (
+          <GeneralInfoTab
+            site={editedPrestation}
+            client={client}
+            isEditing={isEditing}
+            onUpdate={(updates) => setEditedPrestation({ ...editedPrestation, ...updates })}
+            onOpenAssignModal={() => setIsAssignModalOpen(true)}
+          />
+        );
+      case 'checklist':
+        return <ChecklistTab site={prestation} onUpdateTasks={(tasks) => updatePrestation(prestation.id, { tasks })} />;
+      case 'docs':
+        return <DocsTab siteId={prestation.id} />;
+      default: return null;
     }
   };
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60]" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[70] flex flex-col animate-slide-in">
-        <div className="p-6 border-b border-slate-100">
-          <div className="flex items-center justify-between">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] animate-fade-in" onClick={isEditing || isSubmitting ? undefined : onClose} />
+
+      <div className="fixed top-0 bottom-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[70] flex flex-col animate-slide-in overflow-hidden">
+        <div className="pt-10 pb-6 px-8 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                <Wrench size={20} />
+              <div className={`p-2 rounded-xl border ${getStatusColor(prestation.status)}`}><Wrench size={20} /></div>
+              <div className="relative" ref={dropdownRef}>
+                {isEditing ? (
+                  <input className="text-xl font-black text-slate-900 leading-tight border-b-2 border-emerald-500 focus:outline-none bg-emerald-50/30 px-2 rounded-t-lg" value={editedPrestation.name} onChange={(e) => setEditedPrestation({...editedPrestation, name: e.target.value})} />
+                ) : (
+                  <h2 className="text-xl font-black text-slate-900 leading-tight">{prestation.name}</h2>
+                )}
+                <button onClick={() => !isSubmitting && setIsStatusOpen(!isStatusOpen)} className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border mt-1 transition-all ${getStatusColor(prestation.status)}`}>
+                  {prestation.status} <ChevronDown size={12} className={`transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isStatusOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95">
+                    {statuses.map((s) => (
+                      <button key={s} onClick={() => handleStatusChange(s)} className={`w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold transition-colors hover:bg-slate-50 ${prestation.status === s ? 'text-emerald-600' : 'text-slate-600'}`}>
+                        {s} {prestation.status === s && <Check size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              {isEditing ? (
-                <input className="text-xl font-black text-slate-900 border-b-2 border-emerald-500 outline-none" 
-                  value={editedName} onChange={e => setEditedName(e.target.value)} />
-              ) : (
-                <h2 className="text-xl font-black text-slate-900">{prestation.name}</h2>
-              )}
             </div>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full"><X size={24} /></button>
+            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors"><X size={24} /></button>
+          </div>
+          <div className="flex gap-1 bg-slate-100/50 p-1 rounded-2xl">
+            {tabs.map(tab => (
+              <button key={tab.id} disabled={(isEditing && tab.id !== 'info') || isSubmitting} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'}`}>
+                {tab.icon} {tab.label}
+              </button>
+            ))}
           </div>
         </div>
-
-        <div className="flex-1 p-8 overflow-y-auto">
-          <div className="space-y-6">
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Adresse</p>
-              <p className="text-sm font-bold text-slate-800">{prestation.address}</p>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Budget</p>
-              <p className="text-xl font-black text-emerald-900">{prestation.budget.toLocaleString()} €</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 border-t border-slate-100 flex gap-3">
+        <div className="flex-1 overflow-y-auto p-8 bg-white relative scrollbar-hide">{renderTabContent()}</div>
+        <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3 shrink-0">
           {isEditing ? (
-            <button onClick={handleSave} className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-              <Save size={18} /> Sauvegarder
-            </button>
+            <>
+              <button onClick={() => { setIsEditing(false); setEditedPrestation({...prestation}); }} className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-sm text-slate-600">Annuler</button>
+              <button onClick={handleSave} className="flex-[2] flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm">Sauvegarder</button>
+            </>
           ) : (
-            <button onClick={() => setIsEditing(true)} className="flex-1 bg-emerald-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-              <Edit3 size={18} /> Modifier
-            </button>
+            <>
+              <button onClick={() => { setIsEditing(true); setActiveTab('info'); }} className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-3 rounded-xl font-bold text-sm"><Edit3 size={18} /> Modifier</button>
+              <button onClick={handleDelete} className="p-3 border border-red-100 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={20} /></button>
+            </>
           )}
-          <button onClick={handleDelete} className="p-3 border border-red-100 text-red-500 rounded-xl hover:bg-red-50">
-            <Trash2 size={20} />
-          </button>
         </div>
       </div>
+      <AssignUsersModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        assignedUserIds={prestation.assignedUserIds || []}
+        onAssign={handleAssignUsers}
+      />
     </>
   );
 };
