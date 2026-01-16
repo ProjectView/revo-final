@@ -16,6 +16,7 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
   const [selectedType, setSelectedType] = useState<'site' | 'prestation' | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [autoCreatedClientId, setAutoCreatedClientId] = useState<string | null>(null);
 
   if (!lead) return null;
 
@@ -58,7 +59,7 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
     try {
       const names = lead.leadName.split(' ');
       const initials = names.map(n => n[0]).join('').toUpperCase().substring(0, 2);
-      
+
       const newClient = {
         name: lead.leadName,
         company: lead.company || 'Particulier',
@@ -69,8 +70,19 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
         initials,
         color: 'bg-indigo-500'
       };
-      
+
       await addClient(newClient);
+
+      // Find and select the newly created client by email and name
+      const createdClient = clients.find(c =>
+        c.email === lead.email && c.name === lead.leadName
+      );
+
+      if (createdClient) {
+        setSelectedClientId(createdClient.id);
+        setAutoCreatedClientId(createdClient.id);
+      }
+
       setIsCreatingNewClient(false);
     } finally {
       setIsSubmitting(false);
@@ -165,13 +177,23 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
                     <div className="flex-1 h-px bg-slate-100"></div>
                   </div>
 
-                  <button 
+                  <button
                     onClick={handleCreateClientAndSelect}
-                    disabled={isSubmitting}
-                    className="w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-700 text-xs font-black uppercase tracking-widest hover:bg-emerald-50 transition-all"
+                    disabled={isSubmitting || autoCreatedClientId !== null}
+                    className={`w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                      autoCreatedClientId !== null
+                        ? 'border-emerald-300 bg-emerald-50/50 text-emerald-500 cursor-not-allowed opacity-70'
+                        : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                    }`}
                   >
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : <UserPlus size={18} />}
-                    Créer automatiquement le client "{lead.leadName}"
+                    {isSubmitting ? (
+                      <Loader2 className="animate-spin" />
+                    ) : autoCreatedClientId !== null ? (
+                      <CheckCircle size={18} />
+                    ) : (
+                      <UserPlus size={18} />
+                    )}
+                    {autoCreatedClientId !== null ? 'Client créé ✓' : `Créer automatiquement le client "${lead.leadName}"`}
                   </button>
                </div>
 
