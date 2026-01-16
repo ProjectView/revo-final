@@ -101,7 +101,7 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
           </h3>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-6">
           {documents.length === 0 ? (
             <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-300 border border-dashed border-slate-100 rounded-3xl">
               <ImageIcon size={32} className="opacity-20 mb-2" />
