@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
-import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus } from 'lucide-react';
+import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus, Zap } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import NewSiteModal from './NewSiteModal';
 import NewClientModal from './NewClientModal';
+import NewLeadModal from './NewLeadModal';
 
 const Dashboard: React.FC = () => {
   const { sites, leads, todos, addTodo, toggleTodo, addClient } = useData();
   const [newTask, setNewTask] = useState('');
   const [isNewSiteModalOpen, setIsNewSiteModalOpen] = useState(false);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+  const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
 
   // Calcul des chantiers actifs : Ni Nouveau, Ni Terminé
   const activeSitesCount = sites.filter(s => s.status !== 'NOUVEAU' && s.status !== 'TERMINÉ').length;
@@ -74,14 +76,21 @@ const Dashboard: React.FC = () => {
         <div className="bg-[#1a4d44] p-8 rounded-[2rem] shadow-xl text-white flex flex-col justify-center">
           <h4 className="text-xs font-black mb-6 opacity-70 uppercase tracking-widest">Actions Rapides</h4>
           <div className="flex flex-col gap-4">
-            <button 
+            <button
               onClick={() => setIsNewSiteModalOpen(true)}
               className="w-full bg-white/10 hover:bg-white text-white hover:text-[#1a4d44] py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group"
             >
               Nouveau chantier
               <Plus size={18} />
             </button>
-            <button 
+            <button
+              onClick={() => setIsNewLeadModalOpen(true)}
+              className="w-full bg-white/10 hover:bg-white text-white hover:text-[#1a4d44] py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group"
+            >
+              Nouvelle affaire
+              <Zap size={18} />
+            </button>
+            <button
               onClick={() => setIsNewClientModalOpen(true)}
               className="w-full bg-white/10 hover:bg-white text-white hover:text-[#1a4d44] py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group"
             >
@@ -180,6 +189,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       <NewSiteModal isOpen={isNewSiteModalOpen} onClose={() => setIsNewSiteModalOpen(false)} />
+      <NewLeadModal isOpen={isNewLeadModalOpen} onClose={() => setIsNewLeadModalOpen(false)} />
       <NewClientModal isOpen={isNewClientModalOpen} onClose={() => setIsNewClientModalOpen(false)} onSave={addClient} />
     </div>
   );
