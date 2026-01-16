@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
 import LeadConversionModal from './LeadConversionModal';
@@ -48,6 +49,31 @@ const Pipeline: React.FC = () => {
   const handleWinLead = (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation();
     updateLeadStage(lead.id, 'Gagné');
+  };
+
+  const triggerConfetti = () => {
+    // Confettis du centre
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+
+    // Confettis depuis la gauche
+    confetti({
+      particleCount: 50,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.6 }
+    });
+
+    // Confettis depuis la droite
+    confetti({
+      particleCount: 50,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.6 }
+    });
   };
 
   // --- Pipeline Settings Logic ---
@@ -165,8 +191,8 @@ const Pipeline: React.FC = () => {
 
                     {/* Action de conversion */}
                     {isWonStage ? (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setSelectedLeadToConvert(lead); }}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); triggerConfetti(); setSelectedLeadToConvert(lead); }}
                         className="mt-3 w-full bg-emerald-900 text-white py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95"
                       >
                          Démarrer le projet
