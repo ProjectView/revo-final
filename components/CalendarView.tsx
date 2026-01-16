@@ -337,10 +337,14 @@ const CalendarView: React.FC = () => {
                             width: `${itemWidth}%`,
                             left: `${itemLeft}%`
                           }}
-                          className={`absolute p-4 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30`}
+                          className={`absolute p-2 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30 flex flex-col items-center justify-center`}
                         >
-                          <p className="text-sm font-black truncate uppercase tracking-tight">{site.name}</p>
-                          <div className="mt-2 flex items-center gap-2 text-[10px] font-bold opacity-80"><Clock size={12} /> {dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</div>
+                          <p className="text-xs font-black uppercase tracking-tight text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
+                            {site.name}
+                          </p>
+                          <div className="mt-1 text-[8px] font-bold opacity-80 text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
+                            {dStr === site.startDate ? site.startTime : '07:00'}
+                          </div>
                         </div>
                       );
                     })}
