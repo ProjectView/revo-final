@@ -1,10 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { Site, Status } from '../types';
 import { Briefcase, MapPin, ChevronRight } from 'lucide-react';
 import { useData } from '../context/DataContext';
+
+// Localisation Leaflet en français
+L.Control.Zoom.prototype._zoomInTitle = 'Zoomer';
+L.Control.Zoom.prototype._zoomOutTitle = 'Dézoomer';
 
 interface MapViewProps {
   sites: Site[];
@@ -71,11 +75,12 @@ const MapView: React.FC<MapViewProps> = ({ sites, onSiteClick }) => {
 
   return (
     <div className="w-full h-full min-h-[600px] rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl relative animate-in fade-in duration-700">
-      <MapContainer 
-        center={[45.75, 4.85]} 
-        zoom={12} 
+      <MapContainer
+        center={[45.75, 4.85]}
+        zoom={12}
         scrollWheelZoom={true}
         className="w-full h-full"
+        zoomControl={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
