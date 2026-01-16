@@ -19,6 +19,7 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
     { id: '1', label: '', isCritical: false }
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{ title?: string; items?: Record<string, string> }>({});
 
   useEffect(() => {
     if (initialData) {
@@ -29,6 +30,7 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
     } else {
       resetForm();
     }
+    setErrors({});
   }, [initialData, isOpen]);
 
   const categories = ['Électricité', 'Plomberie', 'Maçonnerie', 'Finitions', 'Logistique', 'Menuiserie', 'Peinture'];
@@ -49,8 +51,32 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || items.some(i => !i.label)) return;
+    const newErrors: { title?: string; items?: Record<string, string> } = {};
 
+    // Validation du titre
+    if (!title.trim()) {
+      newErrors.title = 'Le titre du modèle est requis';
+    }
+
+    // Validation des items
+    const itemErrors: Record<string, string> = {};
+    items.forEach((item, index) => {
+      if (!item.label?.trim()) {
+        itemErrors[item.id!] = 'Point de contrôle requis';
+      }
+    });
+
+    if (Object.keys(itemErrors).length > 0) {
+      newErrors.items = itemErrors;
+    }
+
+    // Si erreurs, les afficher et retourner
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     setIsSubmitting(true);
     try {
       const templateData = {
@@ -66,7 +92,7 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
       } else {
         await addChecklistTemplate(templateData);
       }
-      
+
       resetForm();
       onClose();
     } catch (error) {
@@ -127,15 +153,25 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Titre du modèle</label>
                 <div className="relative group">
                   <Type size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                  <input 
+                  <input
                     required
                     type="text"
                     placeholder="ex: Réception Plomberie Cuisine"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all outline-none"
+                    className={`w-full bg-slate-50 border rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white transition-all outline-none ${
+                      errors.title ? 'border-red-300 focus:ring-red-500/10' : 'border-slate-100'
+                    }`}
                     value={title}
-                    onChange={e => setTitle(e.target.value)}
+                    onChange={e => {
+                      setTitle(e.target.value);
+                      if (errors.title) setErrors({ ...errors, title: undefined });
+                    }}
                   />
                 </div>
+                {errors.title && (
+                  <p className="text-[10px] font-bold text-red-600 ml-1 flex items-center gap-1">
+                    <AlertTriangle size={12} /> {errors.title}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -186,39 +222,57 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
 
               <div className="space-y-3">
                 {items.map((item, index) => (
-                  <div key={item.id} className="group flex items-start gap-3 animate-in slide-in-from-right-2 duration-300">
-                    <div className="mt-4 text-[10px] font-black text-slate-300 w-4 text-center">{index + 1}</div>
-                    <div className="flex-1 flex gap-2">
-                      <div className="flex-1 relative">
-                        <input 
-                          type="text"
-                          placeholder="Action à vérifier..."
-                          className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-bold text-slate-700 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all shadow-sm"
-                          value={item.label}
-                          onChange={e => updateItem(item.id!, { label: e.target.value })}
-                          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addItem())}
-                        />
+                  <div key={item.id} className="group animate-in slide-in-from-right-2 duration-300">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-4 text-[10px] font-black text-slate-300 w-4 text-center">{index + 1}</div>
+                      <div className="flex-1 flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            placeholder="Action à vérifier..."
+                            className={`w-full bg-white border rounded-xl px-4 py-3.5 text-xs font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/5 outline-none transition-all shadow-sm ${
+                              errors.items?.[item.id!] ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-slate-100 focus:border-emerald-500'
+                            }`}
+                            value={item.label}
+                            onChange={e => {
+                              updateItem(item.id!, { label: e.target.value });
+                              if (errors.items?.[item.id!]) {
+                                const newItemErrors = { ...errors.items };
+                                delete newItemErrors[item.id!];
+                                setErrors({ ...errors, items: Object.keys(newItemErrors).length > 0 ? newItemErrors : undefined });
+                              }
+                            }}
+                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addItem())}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id!, { isCritical: !item.isCritical })}
+                          title="Marquer comme critique"
+                          className={`p-3.5 rounded-xl border transition-all ${
+                            item.isCritical
+                            ? 'bg-amber-50 border-amber-200 text-amber-500 shadow-sm'
+                            : 'bg-white border-slate-100 text-slate-300 hover:text-amber-500 hover:border-amber-100'
+                          }`}
+                        >
+                          <AlertTriangle size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id!)}
+                          className="p-3.5 bg-white border border-slate-100 rounded-xl text-slate-300 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
-                      <button 
-                        type="button"
-                        onClick={() => updateItem(item.id!, { isCritical: !item.isCritical })}
-                        title="Marquer comme critique"
-                        className={`p-3.5 rounded-xl border transition-all ${
-                          item.isCritical 
-                          ? 'bg-amber-50 border-amber-200 text-amber-500 shadow-sm' 
-                          : 'bg-white border-slate-100 text-slate-300 hover:text-amber-500 hover:border-amber-100'
-                        }`}
-                      >
-                        <AlertTriangle size={18} />
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => removeItem(item.id!)}
-                        className="p-3.5 bg-white border border-slate-100 rounded-xl text-slate-300 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
-                      >
-                        <Trash2 size={18} />
-                      </button>
                     </div>
+                    {errors.items?.[item.id!] && (
+                      <div className="flex items-center gap-3 mt-2 ml-8">
+                        <p className="text-[10px] font-bold text-red-600 flex items-center gap-1">
+                          <AlertTriangle size={12} /> {errors.items[item.id!]}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

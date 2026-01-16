@@ -117,14 +117,15 @@ const AssignUsersModal: React.FC<AssignUsersModalProps> = ({ isOpen, onClose, as
               <button
                 key={hId}
                 onClick={() => setActiveHabilitationFilter(activeHabilitationFilter === hId ? null : hId)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border transition-all ${
-                  activeHabilitationFilter === hId 
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-tighter border transition-all ${
+                  activeHabilitationFilter === hId
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
                   : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
                 }`}
+                title={hId}
               >
                 {HABILITATION_CONFIG[hId].icon}
-                {hId.split(' ')[0]}
+                <span className="truncate">{hId}</span>
               </button>
             ))}
           </div>
@@ -177,13 +178,13 @@ const AssignUsersModal: React.FC<AssignUsersModalProps> = ({ isOpen, onClose, as
                         {user.habilitations.map(hId => {
                           const cfg = HABILITATION_CONFIG[hId];
                           return (
-                            <div 
-                              key={hId} 
-                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[7px] font-black uppercase tracking-tighter ${cfg?.bgColor || 'bg-slate-50 text-slate-400 border-slate-100'} ${cfg?.color || ''}`}
+                            <div
+                              key={hId}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-md border text-[7px] font-black uppercase tracking-tighter ${cfg?.bgColor || 'bg-slate-50 text-slate-400 border-slate-100'} ${cfg?.color || ''}`}
                               title={hId}
                             >
                               {cfg?.icon}
-                              <span className="truncate max-w-[50px]">{hId.split(' ')[0]}</span>
+                              <span className="truncate max-w-[80px]">{hId}</span>
                             </div>
                           );
                         })}
