@@ -44,6 +44,26 @@ const CalendarView: React.FC = () => {
     }
   };
 
+  const getStatusColor = (status: Status) => {
+    switch (status) {
+      case 'EN RÉVISION': return 'bg-purple-600';
+      case 'NOUVEAU': return 'bg-blue-600';
+      case 'EN COURS': return 'bg-orange-600';
+      case 'TERMINÉ': return 'bg-emerald-600';
+      default: return 'bg-slate-600';
+    }
+  };
+
+  const getStatusDotColor = (status: Status) => {
+    switch (status) {
+      case 'EN RÉVISION': return 'bg-purple-500';
+      case 'NOUVEAU': return 'bg-blue-500';
+      case 'EN COURS': return 'bg-orange-500';
+      case 'TERMINÉ': return 'bg-emerald-500';
+      default: return 'bg-slate-400';
+    }
+  };
+
   const toggleStatusFilter = (status: Status) => {
     setSelectedStatuses(prev =>
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
@@ -317,7 +337,7 @@ const CalendarView: React.FC = () => {
                     return (
                       <div key={i} className="h-8 flex flex-col items-center justify-center relative">
                         <span className={`text-[10px] font-bold ${isToday ? 'bg-emerald-600 text-white w-6 h-6 rounded-lg flex items-center justify-center shadow-md' : 'text-slate-600'}`}>{day.getDate()}</span>
-                        <div className="flex gap-0.5 mt-0.5">{daySites.slice(0, 3).map(s => <div key={s.id} className={`w-1 h-1 rounded-full ${s.color || 'bg-blue-500'}`} />)}</div>
+                        <div className="flex gap-0.5 mt-0.5">{daySites.slice(0, 3).map(s => <div key={s.id} className={`w-1 h-1 rounded-full ${getStatusDotColor(s.status)}`} />)}</div>
                       </div>
                     );
                   })}
@@ -328,7 +348,7 @@ const CalendarView: React.FC = () => {
                     <div className="space-y-1.5 max-h-[120px] overflow-y-auto scrollbar-hide pr-1">
                       {monthSites.map(site => (
                         <button key={site.id} onClick={() => setSelectedSite(site)} className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors group/item text-left">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${site.color || 'bg-blue-500'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(site.status)}`} />
                           <span className="text-[10px] font-black text-slate-600 truncate uppercase tracking-tighter flex-1">{site.name}</span>
                           <ExternalLink size={10} className="text-slate-300 opacity-0 group-hover/item:opacity-100 transition-opacity" />
                         </button>
@@ -401,7 +421,7 @@ const CalendarView: React.FC = () => {
                             onDragStart={(e) => onSiteDragStart(e, site.id, dStr)}
                             onClick={() => setSelectedSite(site)}
                             style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }}
-                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${site.color || 'bg-blue-600'} ${isStart ? 'rounded-l-xl ml-2' : ''} ${isEnd ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
+                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${getStatusColor(site.status)} ${isStart ? 'rounded-l-xl ml-2' : ''} ${isEnd ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
                           >
                             {isStart && !siteReadOnly && (
                               <div
@@ -488,7 +508,7 @@ const CalendarView: React.FC = () => {
                             width: `${itemWidth}%`,
                             left: `${itemLeft}%`
                           }}
-                          className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${site.color || 'bg-blue-600'} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-pointer hover:scale-[1.01] hover:z-20'}`}
+                          className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${getStatusColor(site.status)} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-pointer hover:scale-[1.01] hover:z-20'}`}
                         >
                           <p className="text-xs font-black uppercase tracking-tight text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
                             {site.name}
