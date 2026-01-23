@@ -16,13 +16,13 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOpen, onCloseMobile, onLogout }) => {
-  const { company, users, userNotifications } = useData();
+  const { company, users, userNotifications, loading } = useData();
   const { planConfig, getUsagePercentage } = useSubscription();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
 
   const currentUserEmail = localStorage.getItem('revo_auth');
-  const currentUser = users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase());
+  const currentUser = !loading ? users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase()) : undefined;
   const unreadCount = userNotifications.filter(n => !n.read).length;
 
   const getUserInitials = (name: string = '') => {
@@ -157,17 +157,31 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
             </button>
 
             <div className={`flex items-center gap-4 px-2 ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}>
-              <div className="min-w-[48px] w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 font-black text-sm border border-slate-200 shadow-sm flex-shrink-0 overflow-hidden">
-                {currentUser?.avatar ? (
+              <div className={`min-w-[48px] w-12 h-12 rounded-xl flex items-center justify-center text-sm border shadow-sm flex-shrink-0 overflow-hidden font-black transition-colors ${
+                loading
+                  ? 'bg-slate-200 border-slate-300 animate-pulse'
+                  : 'bg-slate-100 border-slate-200 text-slate-600'
+              }`}>
+                {!loading && currentUser?.avatar ? (
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-                ) : (
+                ) : !loading ? (
                   getUserInitials(currentUser?.name)
+                ) : (
+                  ''
                 )}
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] font-black text-slate-800 truncate">{currentUser?.name || 'Chargement...'}</p>
-                  <p className="text-xs text-slate-500 truncate font-semibold">{currentUser?.email || currentUserEmail}</p>
+                  <p className={`text-[15px] font-black truncate transition-colors ${
+                    loading ? 'text-slate-300 bg-slate-200 h-5 rounded animate-pulse' : 'text-slate-800'
+                  }`}>
+                    {!loading ? currentUser?.name : ''}
+                  </p>
+                  <p className={`text-xs truncate font-semibold transition-colors ${
+                    loading ? 'text-slate-300 bg-slate-200 h-4 rounded animate-pulse mt-1' : 'text-slate-500'
+                  }`}>
+                    {!loading ? currentUser?.email || currentUserEmail : ''}
+                  </p>
                 </div>
               )}
             </div>
