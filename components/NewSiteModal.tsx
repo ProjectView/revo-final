@@ -272,6 +272,16 @@ const getRandomColor = (): string => {
 const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const { clients, addSite, checkCapacity, company, addNotification } = useData();
   const { canAddSite } = useSubscription();
+
+  // Statuts par défaut
+  const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const siteStatuses = useMemo(
+    () => (company?.siteStatuses && company.siteStatuses.length > 0
+      ? company.siteStatuses as Status[]
+      : DEFAULT_STATUSES),
+    [company?.siteStatuses]
+  );
+
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -281,7 +291,7 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
     startTime: '08:00',
     endTime: '17:30',
     budget: '',
-    status: 'NOUVEAU' as Status,
+    status: (siteStatuses[0] || 'NOUVEAU') as Status,
     pipelineStage: 'Nouveau' as PipelineStage,
     coordinates: null as [number, number] | null,
     color: getRandomColor()
@@ -390,7 +400,7 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
       onClose();
       setFormData({
         name: '', address: '', clientId: '', startDate: '', endDate: '',
-        startTime: '08:00', endTime: '17:30', budget: '', status: 'NOUVEAU',
+        startTime: '08:00', endTime: '17:30', budget: '', status: (siteStatuses[0] || 'NOUVEAU') as Status,
         pipelineStage: 'Nouveau', coordinates: null, color: getRandomColor()
       });
       setAddressSearch('');
@@ -572,15 +582,15 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
             <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Statut production</label>
-                <select 
+                <select
                   disabled={isSubmitting}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:opacity-50"
                   value={formData.status}
                   onChange={e => setFormData({...formData, status: e.target.value as Status})}
                 >
-                  <option value="NOUVEAU">NOUVEAU</option>
-                  <option value="EN RÉVISION">EN RÉVISION</option>
-                  <option value="EN COURS">EN COURS</option>
+                  {siteStatuses.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
