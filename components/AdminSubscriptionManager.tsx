@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
-import { ChevronDown, AlertTriangle } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle } from 'lucide-react';
 
 type PlanId = keyof typeof SUBSCRIPTION_PLANS;
 
@@ -32,19 +32,30 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
   if (!company || !selectedPlan) return null;
 
   const targetPlan = SUBSCRIPTION_PLANS[selectedPlan];
+  const currentPlan = SUBSCRIPTION_PLANS[company.subscription?.plan || 'artisan_solo'];
   const downgradeInfo = canDowngradeTo(selectedPlan);
-  const isDowngrade = SUBSCRIPTION_PLANS[selectedPlan].limits.maxClients < SUBSCRIPTION_PLANS[company.subscription?.plan || 'artisan_solo'].limits.maxClients;
+
+  // Déterminer si c'est un upgrade ou downgrade
+  const isUpgrade =
+    targetPlan.limits.maxClients > currentPlan.limits.maxClients ||
+    targetPlan.limits.maxSites > currentPlan.limits.maxSites ||
+    targetPlan.limits.maxUsers > currentPlan.limits.maxUsers;
+
+  const isDowngrade = targetPlan.limits.maxClients < currentPlan.limits.maxClients;
 
   const handlePlanChange = async () => {
     try {
       setIsChanging(true);
 
-      const clientsReadOnly = clients
-        .filter(c => !clientsToKeep.has(c.id))
-        .map(c => c.id);
-      const sitesReadOnly = sites
-        .filter(s => !sitesToKeep.has(s.id))
-        .map(s => s.id);
+      // En cas d'upgrade, débloquer tous les clients/chantiers
+      // En cas de downgrade, utiliser la sélection de l'utilisateur
+      const clientsReadOnly = isUpgrade
+        ? []
+        : clients.filter(c => !clientsToKeep.has(c.id)).map(c => c.id);
+
+      const sitesReadOnly = isUpgrade
+        ? []
+        : sites.filter(s => !sitesToKeep.has(s.id)).map(s => s.id);
 
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + (billingPeriod === 'yearly' ? 365 : 30));
@@ -67,7 +78,11 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
         },
       });
 
-      addNotification(`Plan mis à jour: ${targetPlan.name}`, 'success');
+      const message = isUpgrade
+        ? `Upgrade réussi vers ${targetPlan.name}. Tous vos clients et chantiers sont à nouveau accessibles.`
+        : `Plan mis à jour: ${targetPlan.name}`;
+
+      addNotification(message, 'success');
       if (onClose) onClose();
     } catch (error) {
       addNotification('Erreur lors de la mise à jour du plan', 'error');
@@ -130,6 +145,23 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
           ))}
         </div>
       </div>
+
+      {/* Upgrade Info */}
+      {isUpgrade && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300">
+          <div className="flex gap-3">
+            <CheckCircle size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-emerald-900 mb-1">
+                Upgrade vers un plan supérieur
+              </p>
+              <p className="text-xs text-emerald-700">
+                Tous vos clients et chantiers en lecture seule seront automatiquement débloqués.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Downgrade Warning */}
       {isDowngrade && !downgradeInfo.canDowngrade && (
