@@ -663,7 +663,7 @@ const SettingsView: React.FC = () => {
               {selectedPlanId && currentUser?.role === 'Administrateur' && (
                 <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
                   <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedPlanId(null)} />
-                  <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                  <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto scrollbar-hide">
                     <div className="sticky top-0 bg-white p-8 border-b border-slate-100 flex items-center justify-between z-10">
                       <div>
                         <h2 className="text-2xl font-black text-slate-900">Modifier l'abonnement</h2>
