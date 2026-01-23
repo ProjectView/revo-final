@@ -19,7 +19,8 @@ export const useSubscription = () => {
       canAddUser: () => ({ allowed: false, current: 0, max: 0, message: 'Plan non configuré' }),
       isReadOnly: () => false,
       isUnlimited: () => false,
-      canDowngradeTo: () => true,
+      getUsagePercentage: () => 0,
+      canDowngradeTo: () => ({ canDowngrade: false, clientsToMove: 0, sitesToMove: 0, usersToMove: 0 }),
     };
   }
 

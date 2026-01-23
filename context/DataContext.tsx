@@ -145,13 +145,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createCompany = async (companyName: string, adminEmail: string, adminName: string) => {
     const newCompanyRef = doc(collection(db, 'companies'));
     const companyId = newCompanyRef.id;
-    
+
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+
     await setDoc(newCompanyRef, {
       id: companyId,
       name: companyName,
       createdAt: new Date().toISOString(),
       pipelineStages: ['Nouveau', 'Qualifié', 'Devis envoyé', 'Négociation', 'Gagné'],
-      maxSimultaneousSites: 2 
+      maxSimultaneousSites: 2,
+      subscription: {
+        plan: 'artisan_solo',
+        status: 'active',
+        billingPeriod: 'monthly',
+        currentPeriodEnd: futureDate.toISOString(),
+        maxClients: 3,
+        maxSites: 5,
+        maxUsers: 1,
+        paymentMethod: 'manual',
+      },
+      limits: {
+        clientsReadOnly: [],
+        sitesReadOnly: [],
+      }
     });
 
     await setDoc(doc(db, 'users', adminEmail.toLowerCase()), {
