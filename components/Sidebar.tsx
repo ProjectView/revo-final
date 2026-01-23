@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
 
   const currentUserEmail = localStorage.getItem('revo_auth');
-  const currentUser = !loading ? users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase()) : undefined;
+  const currentUser = users.length > 0 ? users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase()) : undefined;
   const unreadCount = userNotifications.filter(n => !n.read).length;
 
   const getUserInitials = (name: string = '') => {
@@ -173,14 +173,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex-1 min-w-0">
                   <p className={`text-[15px] font-black truncate transition-colors ${
-                    loading ? 'text-slate-300 bg-slate-200 h-5 rounded animate-pulse' : 'text-slate-800'
+                    loading ? 'text-slate-400' : 'text-slate-800'
                   }`}>
-                    {!loading ? currentUser?.name : ''}
+                    {currentUser?.name || 'Chargement...'}
                   </p>
                   <p className={`text-xs truncate font-semibold transition-colors ${
-                    loading ? 'text-slate-300 bg-slate-200 h-4 rounded animate-pulse mt-1' : 'text-slate-500'
+                    loading ? 'text-slate-400' : 'text-slate-500'
                   }`}>
-                    {!loading ? currentUser?.email || currentUserEmail : ''}
+                    {currentUser?.email || currentUserEmail}
                   </p>
                 </div>
               )}
