@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle, X, Lock } from 'lucide-react';
 import { Site, Status } from '../types';
 import SiteDetailModal from './SiteDetailModal';
@@ -24,12 +24,24 @@ const CalendarView: React.FC = () => {
     [company?.siteStatuses]
   );
 
-  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([]);
+  // Initialize selectedStatuses from localStorage or use all statuses by default
+  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>(() => {
+    const stored = localStorage.getItem('revo_calendar_filters');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error('Error parsing stored filters:', e);
+        return statuses;
+      }
+    }
+    return statuses;
+  });
 
-  // Initialiser selectedStatuses avec tous les statuts disponibles
-  useMemo(() => {
-    setSelectedStatuses(statuses);
-  }, [statuses]);
+  // Save selectedStatuses to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('revo_calendar_filters', JSON.stringify(selectedStatuses));
+  }, [selectedStatuses]);
 
   // State for resize handling
   const [resizing, setResizing] = useState<{ siteId: string; direction: 'start' | 'end' } | null>(null);
