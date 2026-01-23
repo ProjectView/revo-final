@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
-import { ChevronDown, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle, Users, HardHat, Check } from 'lucide-react';
 
 type PlanId = keyof typeof SUBSCRIPTION_PLANS;
 
@@ -19,14 +19,8 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
     company?.subscription?.billingPeriod || 'monthly'
   );
   const [notes, setNotes] = useState(company?.subscription?.notes || '');
-  const [clientsToKeep, setClientsToKeep] = useState<Set<string>>(
-    new Set(company?.limits?.clientsReadOnly?.length === 0 ? clients.map(c => c.id) :
-            clients.filter(c => !company?.limits?.clientsReadOnly?.includes(c.id)).map(c => c.id))
-  );
-  const [sitesToKeep, setSitesToKeep] = useState<Set<string>>(
-    new Set(company?.limits?.sitesReadOnly?.length === 0 ? sites.map(s => s.id) :
-            sites.filter(s => !company?.limits?.sitesReadOnly?.includes(s.id)).map(s => s.id))
-  );
+  const [clientsToKeep, setClientsToKeep] = useState<Set<string>>(new Set());
+  const [sitesToKeep, setSitesToKeep] = useState<Set<string>>(new Set());
   const [isChanging, setIsChanging] = useState(false);
 
   if (!company || !selectedPlan) return null;
@@ -180,68 +174,120 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
         </div>
       )}
 
-      {/* Client Selection for Downgrade */}
-      {isDowngrade && downgradeInfo.clientsToMove > 0 && (
-        <div>
-          <label className="block text-xs font-black uppercase tracking-tight text-slate-900 mb-3">
-            Garder actifs: {clientsToKeep.size}/{targetPlan.limits.maxClients} clients
-          </label>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {clients.map((client) => (
-              <label key={client.id} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50">
-                <input
-                  type="checkbox"
-                  checked={clientsToKeep.has(client.id)}
-                  onChange={(e) => {
-                    const newSet = new Set(clientsToKeep);
-                    if (e.target.checked) {
-                      if (newSet.size < targetPlan.limits.maxClients) {
-                        newSet.add(client.id);
-                      }
-                    } else {
-                      newSet.delete(client.id);
-                    }
-                    setClientsToKeep(newSet);
-                  }}
-                  disabled={!clientsToKeep.has(client.id) && clientsToKeep.size >= targetPlan.limits.maxClients}
-                  className="rounded"
-                />
-                <span className="text-xs font-medium text-slate-700">{client.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Clients & Sites Selection for Downgrade - Two Columns */}
+      {isDowngrade && (downgradeInfo.clientsToMove > 0 || downgradeInfo.sitesToMove > 0) && (
+        <div className="space-y-4">
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+            Sélectionnez les éléments à garder actifs
+          </p>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Clients Column */}
+            {downgradeInfo.clientsToMove > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users size={16} className="text-blue-600" />
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                    Clients ({clientsToKeep.size}/{targetPlan.limits.maxClients})
+                  </p>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                  {clients.map((client) => {
+                    const isSelected = clientsToKeep.has(client.id);
+                    const canSelect = isSelected || clientsToKeep.size < targetPlan.limits.maxClients;
 
-      {/* Sites Selection for Downgrade */}
-      {isDowngrade && downgradeInfo.sitesToMove > 0 && (
-        <div>
-          <label className="block text-xs font-black uppercase tracking-tight text-slate-900 mb-3">
-            Garder actifs: {sitesToKeep.size}/{targetPlan.limits.maxSites} chantiers
-          </label>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {sites.map((site) => (
-              <label key={site.id} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50">
-                <input
-                  type="checkbox"
-                  checked={sitesToKeep.has(site.id)}
-                  onChange={(e) => {
-                    const newSet = new Set(sitesToKeep);
-                    if (e.target.checked) {
-                      if (newSet.size < targetPlan.limits.maxSites) {
-                        newSet.add(site.id);
-                      }
-                    } else {
-                      newSet.delete(site.id);
-                    }
-                    setSitesToKeep(newSet);
-                  }}
-                  disabled={!sitesToKeep.has(site.id) && sitesToKeep.size >= targetPlan.limits.maxSites}
-                  className="rounded"
-                />
-                <span className="text-xs font-medium text-slate-700">{site.name}</span>
-              </label>
-            ))}
+                    return (
+                      <button
+                        key={client.id}
+                        onClick={() => {
+                          if (!canSelect) return;
+                          const newSet = new Set(clientsToKeep);
+                          if (isSelected) {
+                            newSet.delete(client.id);
+                          } else {
+                            newSet.add(client.id);
+                          }
+                          setClientsToKeep(newSet);
+                        }}
+                        disabled={!canSelect}
+                        className={`w-full p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50'
+                            : canSelect
+                            ? 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                            : 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-500'
+                            : 'border-slate-300'
+                        }`}>
+                          {isSelected && <Check size={14} className="text-white" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 truncate">{client.name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{client.company}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Sites Column */}
+            {downgradeInfo.sitesToMove > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <HardHat size={16} className="text-amber-600" />
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                    Chantiers ({sitesToKeep.size}/{targetPlan.limits.maxSites})
+                  </p>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                  {sites.map((site) => {
+                    const isSelected = sitesToKeep.has(site.id);
+                    const canSelect = isSelected || sitesToKeep.size < targetPlan.limits.maxSites;
+
+                    return (
+                      <button
+                        key={site.id}
+                        onClick={() => {
+                          if (!canSelect) return;
+                          const newSet = new Set(sitesToKeep);
+                          if (isSelected) {
+                            newSet.delete(site.id);
+                          } else {
+                            newSet.add(site.id);
+                          }
+                          setSitesToKeep(newSet);
+                        }}
+                        disabled={!canSelect}
+                        className={`w-full p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                          isSelected
+                            ? 'border-amber-500 bg-amber-50'
+                            : canSelect
+                            ? 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/50'
+                            : 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                          isSelected
+                            ? 'border-amber-500 bg-amber-500'
+                            : 'border-slate-300'
+                        }`}>
+                          {isSelected && <Check size={14} className="text-white" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 truncate">{site.name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{site.address}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
