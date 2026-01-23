@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X } from 'lucide-react';
+import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
@@ -531,86 +531,130 @@ const SettingsView: React.FC = () => {
                 <div className="space-y-6">
                   <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Choisir un plan</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => (
-                      <button
-                        key={id}
-                        onClick={() => setSelectedPlanId(id)}
-                        className={`group p-8 rounded-[2.5rem] border-2 transition-all text-left overflow-hidden relative ${
-                          company?.subscription?.plan === id
-                            ? `border-emerald-500 ${plan.color} shadow-lg`
-                            : `border-slate-200 bg-white hover:border-slate-300 hover:shadow-md`
-                        }`}
-                      >
-                        {/* Badge Plan Actuel */}
-                        {company?.subscription?.plan === id && (
-                          <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-600 text-white rounded-full text-[9px] font-black uppercase tracking-tight">
-                            Plan actuel
-                          </div>
-                        )}
+                    {Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => {
+                      const isCurrentPlan = company?.subscription?.plan === id;
+                      const isPremium = id === 'multi_sites_premium';
 
-                        <div className="mb-6">
-                          <h4 className={`font-black text-lg uppercase tracking-tight mb-1 ${plan.textColor}`}>
-                            {plan.name}
-                          </h4>
-                          <p className="text-xs text-slate-500 font-medium">{plan.tagline}</p>
-                        </div>
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => setSelectedPlanId(id)}
+                          className={`group relative rounded-[2rem] overflow-hidden transition-all duration-300 text-left flex flex-col h-full ${
+                            isCurrentPlan
+                              ? 'ring-2 ring-emerald-500 shadow-xl'
+                              : 'shadow-sm hover:shadow-lg hover:ring-1 hover:ring-slate-300'
+                          }`}
+                        >
+                          {/* Header with background color */}
+                          <div className={`${plan.color} px-8 pt-8 pb-6 relative overflow-hidden`}>
+                            {/* Decorative circle */}
+                            <div className="absolute -top-16 -right-16 w-40 h-40 bg-white/10 rounded-full" />
+                            <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full" />
 
-                        <div className="mb-6 pb-6 border-b border-slate-200/50">
-                          <p className="text-sm font-black text-slate-900">
-                            {plan.isFree ? 'Gratuit' : `€${plan.pricing.monthly}`}
-                            {!plan.isFree && <span className="text-xs font-bold text-slate-500">/mois</span>}
-                          </p>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4 text-xs">
-                            <div>
-                              <p className="font-bold text-slate-600 mb-1">Clients</p>
-                              <p className="font-black text-slate-900">
-                                {plan.limits.maxClients === Infinity ? '∞' : plan.limits.maxClients}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-600 mb-1">Chantiers</p>
-                              <p className="font-black text-slate-900">
-                                {plan.limits.maxSites === Infinity ? '∞' : plan.limits.maxSites}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-600 mb-1">Utilisateurs</p>
-                              <p className="font-black text-slate-900">
-                                {plan.limits.maxUsers === Infinity ? '∞' : plan.limits.maxUsers}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-600 mb-1">Simultanés</p>
-                              <p className="font-black text-slate-900">
-                                {plan.limits.maxSimultaneousSites === Infinity ? '∞' : plan.limits.maxSimultaneousSites}
-                              </p>
+                            <div className="relative z-10">
+                              {isCurrentPlan && (
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/90 rounded-full mb-3">
+                                  <Check size={12} className={plan.textColor} />
+                                  <span className={`text-[9px] font-black uppercase tracking-tight ${plan.textColor}`}>
+                                    Plan actuel
+                                  </span>
+                                </div>
+                              )}
+                              <h4 className={`font-black text-2xl uppercase tracking-tight mb-1 ${plan.textColor}`}>
+                                {plan.name}
+                              </h4>
+                              <p className={`text-xs font-bold ${plan.textColor} opacity-70`}>{plan.tagline}</p>
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-slate-200/50">
-                            <ul className="space-y-2">
-                              {plan.features.map((feature, i) => (
-                                <li key={i} className="text-[10px] font-bold text-slate-700 flex items-start gap-2">
-                                  <span className="text-emerald-600 font-black mt-0.5">✓</span>
-                                  <span>{feature}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-
-                        {company?.subscription?.plan !== id && (
-                          <div className="mt-6 pt-6 border-t border-slate-200/50">
-                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">
-                              Cliquer pour changer
+                          {/* Pricing */}
+                          <div className="px-8 py-6 border-b border-slate-100 bg-white">
+                            <p className="text-base font-black text-slate-900">
+                              {plan.isFree ? 'Gratuit' : `€${plan.pricing.monthly}`}
+                              {!plan.isFree && <span className="text-xs font-bold text-slate-500 ml-1">/mois</span>}
                             </p>
                           </div>
-                        )}
-                      </button>
-                    ))}
+
+                          {/* Content */}
+                          <div className="px-8 py-8 flex-1 bg-white space-y-8 flex flex-col">
+                            {/* Limits Grid */}
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                <div className="p-3 bg-blue-100 rounded-xl text-blue-600 flex-shrink-0">
+                                  <Users size={18} />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Clients</p>
+                                  <p className="text-xl font-black text-slate-900">
+                                    {plan.limits.maxClients === Infinity ? '∞' : plan.limits.maxClients}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                <div className="p-3 bg-amber-100 rounded-xl text-amber-600 flex-shrink-0">
+                                  <HardHat size={18} />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Chantiers</p>
+                                  <p className="text-xl font-black text-slate-900">
+                                    {plan.limits.maxSites === Infinity ? '∞' : plan.limits.maxSites}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-start gap-4">
+                                <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600 flex-shrink-0">
+                                  <UsersIcon size={18} />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Utilisateurs</p>
+                                  <p className="text-xl font-black text-slate-900">
+                                    {plan.limits.maxUsers === Infinity ? '∞' : plan.limits.maxUsers}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Features */}
+                            <div className="space-y-3">
+                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Inclus</p>
+                              <ul className="space-y-2.5">
+                                {plan.features.map((feature, i) => (
+                                  <li key={i} className="flex items-start gap-2.5">
+                                    <span className="text-emerald-600 font-black mt-0.5 flex-shrink-0">✓</span>
+                                    <span className="text-xs font-bold text-slate-700 leading-snug">{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="px-8 py-6 bg-white border-t border-slate-100">
+                            {isCurrentPlan ? (
+                              <div className="py-3 text-center">
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-tight">Votre abonnement actuel</p>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPlanId(id);
+                                }}
+                                className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-tight transition-all ${
+                                  isPremium
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                    : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
+                                }`}
+                              >
+                                Choisir ce plan
+                              </button>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
