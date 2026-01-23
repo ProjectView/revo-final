@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, HardHat, MapPin, Users, Calendar as CalendarIcon, DollarSign, Layout, Clock, Loader2, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 import { Status, PipelineStage } from '../types';
 
 interface NewSiteModalProps {
@@ -270,6 +271,7 @@ const getRandomColor = (): string => {
 
 const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const { clients, addSite, checkCapacity, company, addNotification } = useData();
+  const { canAddSite } = useSubscription();
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -290,6 +292,7 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const suggestionRef = useRef<HTMLDivElement>(null);
 
   const capacityWarning = useMemo(() => {
@@ -363,15 +366,23 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    if (capacityWarning !== null) {
-      addNotification(
-        `Chantier créé malgré le dépassement de capacité (${capacityWarning + 1} chantiers en simultané).`,
-        'warning'
-      );
-    }
+    setError(null);
 
     try {
+      const limitCheck = canAddSite();
+      if (!limitCheck.allowed) {
+        setError(`Limite atteinte: ${limitCheck.current}/${limitCheck.max} chantiers utilisés.`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (capacityWarning !== null) {
+        addNotification(
+          `Chantier créé malgré le dépassement de capacité (${capacityWarning + 1} chantiers en simultané).`,
+          'warning'
+        );
+      }
+
       await addSite({
         ...formData,
         budget: parseInt(formData.budget) || 0
@@ -383,7 +394,8 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
         pipelineStage: 'Nouveau', coordinates: null, color: getRandomColor()
       });
       setAddressSearch('');
-    } catch (error) {
+    } catch (error: any) {
+      setError(error?.message || "Erreur lors de la création du chantier");
       console.error("Erreur lors de la création du chantier:", error);
     } finally {
       setIsSubmitting(false);

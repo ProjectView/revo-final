@@ -129,3 +129,85 @@ export const MOCK_TODOS: TodoTask[] = [
   { id: 't3', label: 'Valider devis Martin', completed: false },
   { id: 't4', label: 'Réunion équipe 14h', completed: false },
 ];
+
+export const SUBSCRIPTION_PLANS = {
+  artisan_solo: {
+    id: 'artisan_solo',
+    name: 'Artisan Solo',
+    tagline: 'Pour débuter',
+    isFree: true,
+    pricing: {
+      monthly: 0,
+      yearly: 0,
+    },
+    limits: {
+      maxClients: 3,
+      maxSites: 5,
+      maxUsers: 1,
+      maxSimultaneousSites: 1,
+    },
+    features: [
+      'Jusqu\'à 3 clients',
+      'Jusqu\'à 5 chantiers',
+      '1 utilisateur',
+      'Support email',
+      'Calendrier basique',
+    ],
+    color: 'bg-slate-100',
+    textColor: 'text-slate-600',
+  },
+  chantier_pro: {
+    id: 'chantier_pro',
+    name: 'Chantier Pro',
+    tagline: 'Pour grandir',
+    isFree: false,
+    pricing: {
+      monthly: 50,
+      yearly: 500,
+    },
+    limits: {
+      maxClients: Infinity,
+      maxSites: Infinity,
+      maxUsers: 3,
+      maxSimultaneousSites: 5,
+    },
+    features: [
+      'Clients illimités',
+      'Chantiers illimités',
+      'Jusqu\'à 3 utilisateurs',
+      'Jusqu\'à 5 chantiers simultanés',
+      'Support prioritaire',
+      'Pipeline personnalisé',
+    ],
+    color: 'bg-blue-100',
+    textColor: 'text-blue-700',
+  },
+  multi_sites_premium: {
+    id: 'multi_sites_premium',
+    name: 'Multi-Sites Premium',
+    tagline: 'Pour les équipes',
+    isFree: false,
+    pricing: {
+      monthly: 150,
+      yearly: 1500,
+    },
+    limits: {
+      maxClients: Infinity,
+      maxSites: Infinity,
+      maxUsers: Infinity,
+      maxSimultaneousSites: Infinity,
+    },
+    features: [
+      'Clients illimités',
+      'Chantiers illimités',
+      'Utilisateurs illimités',
+      'Chantiers simultanés illimités',
+      'Support premium 24/7',
+      'Pipeline et statuts personnalisés',
+      'Rapports avancés',
+      'Intégrations premium',
+    ],
+    color: 'bg-emerald-100',
+    textColor: 'text-emerald-700',
+  },
+};

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User as UserIcon, Mail, Shield, ShieldCheck, HardHat, Save, Loader2, AlertCircle, CheckCircle2, Zap, Radiation, Beaker, Lock, Send } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 import { User } from '../types';
 
 interface UserModalProps {
@@ -20,6 +21,7 @@ const HABILITATIONS_LIST = [
 
 const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
   const { saveUser, inviteUser } = useData();
+  const { canAddUser } = useSubscription();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,11 +64,17 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
         await saveUser(formData);
       } else {
         // Envoi d'une invitation réelle
+        const limitCheck = canAddUser();
+        if (!limitCheck.allowed) {
+          setError(`Limite atteinte: ${limitCheck.current}/${limitCheck.max} utilisateurs. Upgradez votre plan pour ajouter plus.`);
+          setIsSubmitting(false);
+          return;
+        }
         await inviteUser(formData);
       }
       onClose();
-    } catch (err) {
-      setError("Erreur lors de l'opération.");
+    } catch (err: any) {
+      setError(err?.message || "Erreur lors de l'opération.");
     } finally {
       setIsSubmitting(false);
     }

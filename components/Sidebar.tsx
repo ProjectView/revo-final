@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { LogOut, ChevronLeft, ChevronRight, X, Building2, Bell } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, X, Building2, Bell, Zap } from 'lucide-react';
 import { NAV_ITEMS } from '../constants';
 import { View } from '../types';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 import NotificationPanel from './NotificationPanel';
 
 interface SidebarProps {
@@ -16,6 +17,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOpen, onCloseMobile, onLogout }) => {
   const { company, users, userNotifications } = useData();
+  const { planConfig, getUsagePercentage } = useSubscription();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
 
@@ -110,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
         <div className={`px-4 pb-8 mt-auto ${isCollapsed && !isMobileOpen ? 'items-center' : ''}`}>
           <div className="pt-6 border-t border-slate-100">
             {/* Notification Bell Button */}
-            <button 
+            <button
               onClick={() => setIsNotifPanelOpen(true)}
               className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl mb-2 group relative overflow-hidden text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-bold transition-all ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}
             >
@@ -124,6 +126,33 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
               </div>
               {(!isCollapsed || isMobileOpen) && (
                 <span className="text-[15px] flex-1 text-left">Centre d'alertes</span>
+              )}
+            </button>
+
+            {/* Subscription Widget */}
+            <button
+              onClick={() => onViewChange('settings')}
+              className={`w-full mb-4 p-3 rounded-xl border transition-all ${
+                planConfig.id === 'multi_sites_premium'
+                  ? 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100'
+                  : planConfig.id === 'chantier_pro'
+                  ? 'bg-blue-50 border-blue-300 hover:bg-blue-100'
+                  : 'bg-slate-50 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              {(!isCollapsed || isMobileOpen) && (
+                <div className="text-left">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap size={14} className="flex-shrink-0" />
+                    <span className="text-xs font-black uppercase tracking-tight">{planConfig.name}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-600 font-medium mb-1">
+                    Utilisation: {Math.max(getUsagePercentage('clients'), getUsagePercentage('sites'))}%
+                  </div>
+                </div>
+              )}
+              {isCollapsed && !isMobileOpen && (
+                <Zap size={18} className="text-slate-600" />
               )}
             </button>
 

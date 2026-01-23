@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock } from 'lucide-react';
+import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
+import { SUBSCRIPTION_PLANS } from '../constants';
 import { Company, User as UserType } from '../types';
 import UserModal from './UserModal';
+import { AdminSubscriptionManager } from './AdminSubscriptionManager';
 
-type SettingsTab = 'profile' | 'general' | 'users';
+type SettingsTab = 'profile' | 'general' | 'users' | 'subscription';
 
 const HABILITATION_ICONS: Record<string, { icon: React.ReactNode, color: string }> = {
   'Nucléaire (PR1CC)': { icon: <Radiation size={10} />, color: 'bg-amber-50 text-amber-600 border-amber-100' },
@@ -17,6 +20,7 @@ const HABILITATION_ICONS: Record<string, { icon: React.ReactNode, color: string 
 
 const SettingsView: React.FC = () => {
   const { company, users, updateCompany, deleteUser, uploadCompanyLogo, uploadUserAvatar, saveUser } = useData();
+  const { planConfig, getUsagePercentage, isUnlimited } = useSubscription();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -156,12 +160,22 @@ const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('users')}
             className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
-              activeTab === 'users' 
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1' 
+              activeTab === 'users'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
             <Users size={18} /> Utilisateurs
+          </button>
+          <button
+            onClick={() => setActiveTab('subscription')}
+            className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
+              activeTab === 'subscription'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
+                : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
+            }`}
+          >
+            <CreditCard size={18} /> Abonnement
           </button>
         </div>
 
@@ -458,6 +472,121 @@ const SettingsView: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'subscription' && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+              {/* Current Plan Info */}
+              <div className={`rounded-[2.5rem] border shadow-sm p-10 space-y-6 ${
+                planConfig.id === 'multi_sites_premium'
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : planConfig.id === 'chantier_pro'
+                  ? 'bg-blue-50 border-blue-200'
+                  : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900 mb-2">Plan actuel</h3>
+                  <h2 className="text-4xl font-black tracking-tight mb-2">{planConfig.name}</h2>
+                  <p className="text-xs text-slate-600 font-medium">{planConfig.tagline}</p>
+                </div>
+
+                {/* Usage Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Clients', usage: getUsagePercentage('clients'), type: 'clients' },
+                    { label: 'Chantiers', usage: getUsagePercentage('sites'), type: 'sites' },
+                    { label: 'Utilisateurs', usage: getUsagePercentage('users'), type: 'users' }
+                  ].map(stat => (
+                    <div key={stat.type}>
+                      <p className="text-xs font-bold uppercase tracking-tight text-slate-600 mb-2">{stat.label}</p>
+                      <div className="w-full h-2 bg-white/50 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isUnlimited(stat.type as any)
+                              ? 'bg-emerald-500 w-0'
+                              : stat.usage < 50
+                              ? 'bg-emerald-500'
+                              : stat.usage < 80
+                              ? 'bg-amber-500'
+                              : stat.usage < 100
+                              ? 'bg-orange-500'
+                              : 'bg-rose-500'
+                          }`}
+                          style={{ width: `${isUnlimited(stat.type as any) ? 5 : Math.min(stat.usage, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] font-black text-slate-600 mt-1">
+                        {isUnlimited(stat.type as any) ? 'Illimité' : `${stat.usage}%`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Plans Comparison */}
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Comparer les plans</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => (
+                    <div
+                      key={id}
+                      className={`p-6 rounded-2xl border-2 transition-all ${
+                        company?.subscription?.plan === id
+                          ? `border-emerald-500 ${plan.color}`
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <h4 className={`font-black text-sm uppercase tracking-tight mb-1 ${plan.textColor}`}>
+                        {plan.name}
+                      </h4>
+                      <p className="text-xs text-slate-600 mb-4">
+                        {plan.isFree ? 'Gratuit' : `€${plan.pricing.monthly}/mois`}
+                      </p>
+                      <ul className="space-y-2 text-[10px] font-medium text-slate-600">
+                        {plan.features.slice(0, 4).map((feature, i) => (
+                          <li key={i}>• {feature}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Admin Subscription Manager */}
+              {currentUser?.role === 'Administrateur' && (
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Gestion administrative</h3>
+                  <AdminSubscriptionManager />
+                </div>
+              )}
+
+              {/* Billing Info */}
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Informations de facturation</h3>
+                {company?.subscription ? (
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="font-bold text-slate-600 mb-1">Statut</p>
+                      <p className="font-black">{company.subscription.status}</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-600 mb-1">Période</p>
+                      <p className="font-black">{company.subscription.billingPeriod === 'monthly' ? 'Mensuel' : 'Annuel'}</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-600 mb-1">Fin de période</p>
+                      <p className="font-black">{new Date(company.subscription.currentPeriodEnd).toLocaleDateString('fr-FR')}</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-600 mb-1">Méthode</p>
+                      <p className="font-black">Manuel</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-600">Plan non configuré</p>
+                )}
               </div>
             </div>
           )}

@@ -19,6 +19,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, storage, auth } from '../lib/firebase';
 import { Site, Lead, Client, TodoTask, Company, ChecklistTemplate, SiteTask, User, SiteDocument, Prestation, LeadComment, LeadActivity, AppNotification, UserNotification, SiteComment } from '../types';
 import { AlertTriangle, Info, CheckCircle, XCircle, X } from 'lucide-react';
+import { SUBSCRIPTION_PLANS } from '../constants';
 
 interface DataContextType {
   sites: Site[];
@@ -77,7 +78,7 @@ interface DataContextType {
   markAllNotificationsRead: () => Promise<void>;
 }
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
+export const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [companyId, setCompanyIdState] = useState<string | null>(localStorage.getItem('revo_company_id'));
@@ -166,7 +167,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const inviteUser = async (userData: { email: string; name: string; role: User['role'] }) => {
     if (!companyId || !company) return;
-    
+
+    if (company.subscription) {
+      const planConfig = SUBSCRIPTION_PLANS[company.subscription.plan];
+      if (users.length >= planConfig.limits.maxUsers) {
+        addNotification(
+          `Limite atteinte: ${users.length}/${planConfig.limits.maxUsers} utilisateurs. Upgradez votre plan pour ajouter plus.`,
+          'warning'
+        );
+        throw new Error('User limit reached');
+      }
+    }
+
     const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const inviteRef = doc(db, 'invitations', token);
     const inviteLink = `${window.location.origin}?invite=${token}`;
@@ -472,7 +484,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addSite = async (site: Omit<Site, 'id'>) => {
-    if (!companyId) return;
+    if (!companyId || !company?.subscription) return;
+
+    const planConfig = SUBSCRIPTION_PLANS[company.subscription.plan];
+    const sitesReadOnly = company.limits?.sitesReadOnly || [];
+    const activeSitesCount = sites.filter(s => !sitesReadOnly.includes(s.id)).length;
+
+    if (activeSitesCount >= planConfig.limits.maxSites) {
+      addNotification(
+        `Limite atteinte: ${activeSitesCount}/${planConfig.limits.maxSites} chantiers. Upgradez votre plan pour ajouter plus.`,
+        'warning'
+      );
+      throw new Error('Site limit reached');
+    }
+
     await addDoc(collection(db, 'companies', companyId, 'sites'), { ...site, tasks: [], assignedUserIds: [] });
   };
 
@@ -571,7 +596,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addClient = async (client: Omit<Client, 'id'>) => {
-    if (!companyId) return;
+    if (!companyId || !company?.subscription) return;
+
+    const planConfig = SUBSCRIPTION_PLANS[company.subscription.plan];
+    const clientsReadOnly = company.limits?.clientsReadOnly || [];
+    const activeClientsCount = clients.filter(c => !clientsReadOnly.includes(c.id)).length;
+
+    if (activeClientsCount >= planConfig.limits.maxClients) {
+      addNotification(
+        `Limite atteinte: ${activeClientsCount}/${planConfig.limits.maxClients} clients. Upgradez votre plan pour ajouter plus.`,
+        'warning'
+      );
+      throw new Error('Client limit reached');
+    }
+
     await addDoc(collection(db, 'companies', companyId, 'clients'), client);
   };
 

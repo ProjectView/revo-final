@@ -30,6 +30,22 @@ export interface Company {
   pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
   siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
   maxSimultaneousSites?: number; // Limite de chantiers en parallèle
+  subscription?: {
+    plan: 'artisan_solo' | 'chantier_pro' | 'multi_sites_premium';
+    status: 'active' | 'inactive' | 'trial';
+    billingPeriod: 'monthly' | 'yearly';
+    currentPeriodEnd: string;
+    maxClients: number;
+    maxSites: number;
+    maxUsers: number;
+    paymentMethod: 'manual';
+    lastPaymentDate?: string;
+    notes?: string;
+  };
+  limits?: {
+    clientsReadOnly: string[];
+    sitesReadOnly: string[];
+  };
 }
 
 export interface User {

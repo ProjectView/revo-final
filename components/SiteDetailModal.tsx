@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Briefcase, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2 } from 'lucide-react';
 import { Site, Status } from '../types';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
+import { ReadOnlyBadge } from './ReadOnlyBadge';
 import GeneralInfoTab from './site-details/GeneralInfoTab';
 import ChecklistTab from './site-details/ChecklistTab';
 import DocsTab from './site-details/DocsTab';
@@ -17,6 +19,7 @@ type TabType = 'info' | 'checklist' | 'docs';
 
 const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) => {
   const { sites, clients, updateSite, deleteSite } = useData();
+  const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -134,7 +137,10 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
                 {isEditing ? (
                   <input className="text-xl font-black text-slate-900 leading-tight border-b-2 border-emerald-500 focus:outline-none bg-emerald-50/30 px-2 rounded-t-lg" value={editedSite.name} onChange={(e) => setEditedSite({...editedSite, name: e.target.value})} />
                 ) : (
-                  <h2 className="text-xl font-black text-slate-900 leading-tight">{site.name}</h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-black text-slate-900 leading-tight">{site.name}</h2>
+                    {isReadOnly('site', site.id) && <ReadOnlyBadge />}
+                  </div>
                 )}
                 <button onClick={() => !isSubmitting && setIsStatusOpen(!isStatusOpen)} className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border mt-1 transition-all ${getStatusColor(site.status)}`}>
                   {site.status} <ChevronDown size={12} className={`transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
@@ -169,8 +175,28 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
             </>
           ) : (
             <>
-              <button onClick={() => { setIsEditing(true); setActiveTab('info'); }} className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-3 rounded-xl font-bold text-sm"><Edit3 size={18} /> Modifier</button>
-              <button onClick={handleDelete} className="p-3 border border-red-100 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={20} /></button>
+              <button
+                disabled={isReadOnly('site', site.id)}
+                onClick={() => { setIsEditing(true); setActiveTab('info'); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+                  isReadOnly('site', site.id)
+                    ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                    : 'bg-[#1a4d44] text-white hover:bg-emerald-800'
+                }`}
+              >
+                <Edit3 size={18} /> Modifier
+              </button>
+              <button
+                disabled={isReadOnly('site', site.id)}
+                onClick={handleDelete}
+                className={`p-3 border rounded-xl transition-all ${
+                  isReadOnly('site', site.id)
+                    ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'border-red-100 text-red-500 hover:bg-red-50'
+                }`}
+              >
+                <Trash2 size={20} />
+              </button>
             </>
           )}
         </div>

@@ -1,17 +1,19 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Plus, List, Kanban, Map, HardHat, Ghost, FilterX, Construction, Calendar, X, ChevronDown, ChevronUp, Settings, Settings2, GripVertical, ArrowUp, ArrowDown, Trash2, Check } from 'lucide-react';
+import { Search, Filter, Plus, List, Kanban, Map, HardHat, Ghost, FilterX, Construction, Calendar, X, ChevronDown, ChevronUp, Settings, Settings2, GripVertical, ArrowUp, ArrowDown, Trash2, Check, Lock } from 'lucide-react';
 import { Status, Site } from '../types';
 import SiteDetailModal from './SiteDetailModal';
 import NewSiteModal from './NewSiteModal';
 import KanbanBoard from './KanbanBoard';
 import MapView from './MapView';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 type ViewMode = 'list' | 'kanban' | 'map';
 
 const SiteList: React.FC = () => {
   const { sites, clients, addSite, updateSite, company, updateCompany } = useData();
+  const { isReadOnly } = useSubscription();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
@@ -230,11 +232,19 @@ const SiteList: React.FC = () => {
                     <tbody className="divide-y divide-slate-50">
                       {filteredSites.map(site => {
                         const client = clients.find(c => c.id === site.clientId);
+                        const siteIsReadOnly = isReadOnly('site', site.id);
                         return (
-                          <tr key={site.id} onClick={() => setSelectedSiteId(site.id)} className="hover:bg-emerald-50/40 transition-all cursor-pointer group">
+                          <tr key={site.id} onClick={() => setSelectedSiteId(site.id)} className={`transition-all cursor-pointer group relative ${
+                            siteIsReadOnly ? 'opacity-60 bg-slate-50' : 'hover:bg-emerald-50/40'
+                          }`}>
                             <td className="px-10 py-8">
-                              <h4 className="font-black text-slate-800 text-base group-hover:text-emerald-900 transition-colors">{site.name}</h4>
-                              <p className="text-xs font-bold text-slate-400 mt-2 tracking-tight flex items-center gap-2 italic">{site.address}</p>
+                              <div className="flex items-center gap-3">
+                                {siteIsReadOnly && <Lock size={16} className="text-rose-500 flex-shrink-0" />}
+                                <div>
+                                  <h4 className="font-black text-slate-800 text-base group-hover:text-emerald-900 transition-colors">{site.name}</h4>
+                                  <p className="text-xs font-bold text-slate-400 mt-2 tracking-tight flex items-center gap-2 italic">{site.address}</p>
+                                </div>
+                              </div>
                             </td>
                             <td className="px-8 py-8">
                               <div className="flex items-center gap-4">

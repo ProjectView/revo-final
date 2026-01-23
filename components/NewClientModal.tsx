@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Building2, Mail, Phone, MapPin, Save, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface NewClientModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const COLORS = [
 ];
 
 const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave }) => {
+  const { canAddClient } = useSubscription();
   const [formData, setFormData] = useState({
     name: '',
     company: '',
@@ -107,8 +109,15 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
+      const limitCheck = canAddClient();
+      if (!limitCheck.allowed) {
+        setError(`Limite atteinte: ${limitCheck.current}/${limitCheck.max} clients utilisés.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       const clientData = {
         name: formData.name,
         company: formData.type === 'particulier' ? 'Particulier' : (formData.company || 'Société'),
@@ -127,7 +136,7 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
       setAddressSearch('');
       onClose();
     } catch (err: any) {
-      setError("Une erreur est survenue lors de l'enregistrement.");
+      setError(err?.message || "Une erreur est survenue lors de l'enregistrement.");
     } finally {
       setIsSubmitting(false);
     }

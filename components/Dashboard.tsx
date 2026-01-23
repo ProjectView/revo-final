@@ -1,13 +1,16 @@
 
 import React, { useState } from 'react';
-import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus, Zap } from 'lucide-react';
+import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus, Zap, AlertTriangle } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 import NewSiteModal from './NewSiteModal';
 import NewClientModal from './NewClientModal';
 import NewLeadModal from './NewLeadModal';
+import { SubscriptionBanner } from './SubscriptionBanner';
 
 const Dashboard: React.FC = () => {
   const { sites, leads, todos, addTodo, toggleTodo, addClient } = useData();
+  const { getUsagePercentage, canAddSite, canAddClient } = useSubscription();
   const [newTask, setNewTask] = useState('');
   const [isNewSiteModalOpen, setIsNewSiteModalOpen] = useState(false);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
@@ -24,8 +27,15 @@ const Dashboard: React.FC = () => {
     setNewTask('');
   };
 
+  const siteUsage = getUsagePercentage('sites');
+  const clientUsage = getUsagePercentage('clients');
+  const limitWarningClients = !canAddClient().allowed;
+  const limitWarningSites = !canAddSite().allowed;
+
   return (
     <div className="p-8 lg:p-12 w-full space-y-10 animate-in fade-in slide-in-from-top-4 duration-700">
+      <SubscriptionBanner />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Vue d'ensemble</h1>
@@ -77,10 +87,18 @@ const Dashboard: React.FC = () => {
           <h4 className="text-xs font-black mb-6 opacity-70 uppercase tracking-widest">Actions Rapides</h4>
           <div className="flex flex-col gap-4">
             <button
+              disabled={limitWarningSites}
               onClick={() => setIsNewSiteModalOpen(true)}
-              className="w-full bg-white/10 hover:bg-white text-white hover:text-[#1a4d44] py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group"
+              className={`w-full py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group relative ${
+                limitWarningSites
+                  ? 'bg-white/5 text-white/40 cursor-not-allowed'
+                  : 'bg-white/10 hover:bg-white text-white hover:text-[#1a4d44]'
+              }`}
             >
-              Nouveau chantier
+              <div className="flex items-center gap-2">
+                Nouveau chantier
+                {siteUsage > 80 && <AlertTriangle size={14} className="text-amber-400" />}
+              </div>
               <Plus size={18} />
             </button>
             <button
@@ -91,10 +109,18 @@ const Dashboard: React.FC = () => {
               <Zap size={18} />
             </button>
             <button
+              disabled={limitWarningClients}
               onClick={() => setIsNewClientModalOpen(true)}
-              className="w-full bg-white/10 hover:bg-white text-white hover:text-[#1a4d44] py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group"
+              className={`w-full py-4 px-5 rounded-2xl flex items-center justify-between transition-all font-black text-xs uppercase tracking-widest group relative ${
+                limitWarningClients
+                  ? 'bg-white/5 text-white/40 cursor-not-allowed'
+                  : 'bg-white/10 hover:bg-white text-white hover:text-[#1a4d44]'
+              }`}
             >
-              Nouveau client
+              <div className="flex items-center gap-2">
+                Nouveau client
+                {clientUsage > 80 && <AlertTriangle size={14} className="text-amber-400" />}
+              </div>
               <UserPlus size={18} />
             </button>
           </div>

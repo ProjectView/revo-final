@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, Mail, Phone, ExternalLink, Users2, Building2, HardHat, UserPlus, Ghost, FilterX } from 'lucide-react';
+import { Search, Plus, Mail, Phone, ExternalLink, Users2, Building2, HardHat, UserPlus, Ghost, FilterX, Lock } from 'lucide-react';
 import { Client } from '../types';
 import ClientDetailModal from './ClientDetailModal';
 import NewClientModal from './NewClientModal';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 const ClientGrid: React.FC = () => {
   const { clients, sites, addClient } = useData();
+  const { isReadOnly } = useSubscription();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSegment, setActiveSegment] = useState('Tous');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -139,11 +141,16 @@ const ClientGrid: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 lg:gap-8">
           {filteredClients.map(client => (
-            <div 
-              key={client.id} 
-              onClick={() => setSelectedClient(client)} 
-              className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:border-emerald-200 hover:-translate-y-2 transition-all cursor-pointer overflow-hidden flex flex-col group animate-in fade-in slide-in-from-bottom-4"
+            <div
+              key={client.id}
+              onClick={() => setSelectedClient(client)}
+              className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:border-emerald-200 hover:-translate-y-2 transition-all cursor-pointer overflow-hidden flex flex-col group animate-in fade-in slide-in-from-bottom-4 relative"
             >
+              {isReadOnly('client', client.id) && (
+                <div className="absolute inset-0 bg-black/40 rounded-[3rem] flex items-center justify-center z-20 pointer-events-none">
+                  <Lock size={32} className="text-white" />
+                </div>
+              )}
               <div className="p-8 pb-4 flex items-start justify-between">
                 <div className={`w-16 h-16 rounded-[1.5rem] ${client.color} flex items-center justify-center text-white text-2xl font-black shadow-xl ring-4 ring-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
                   {client.initials}

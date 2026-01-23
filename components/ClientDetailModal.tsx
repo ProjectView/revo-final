@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Building2, Mail, Phone, MapPin, Briefcase, FileText, Edit3, Trash2, ExternalLink, TrendingUp, Calendar, Save, Loader2 } from 'lucide-react';
 import { Client } from '../types';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
+import { ReadOnlyBadge } from './ReadOnlyBadge';
 
 interface ClientDetailModalProps {
   client: Client | null;
@@ -24,6 +26,7 @@ type TabType = 'overview' | 'projects' | 'docs';
 
 const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }) => {
   const { sites, updateClient, deleteClient } = useData();
+  const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [editedClient, setEditedClient] = useState<Client | null>(null);
@@ -165,13 +168,14 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-2xl font-black text-slate-900 tracking-tight truncate">{editedClient.name}</h2>
                       <div className={`flex-shrink-0 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
                         isPro ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-amber-50 text-amber-600 border-amber-100'
                       }`}>
                         {isPro ? 'PRO' : 'PART'}
                       </div>
+                      {isReadOnly('client', editedClient.id) && <ReadOnlyBadge />}
                     </div>
                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider truncate">{editedClient.company}</p>
                   </>
@@ -381,15 +385,25 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
             </>
           ) : (
             <>
-              <button 
+              <button
+                disabled={isReadOnly('client', editedClient.id)}
                 onClick={() => { setIsEditing(true); setActiveTab('overview'); }}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-lg active:scale-[0.98]"
+                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+                  isReadOnly('client', editedClient.id)
+                    ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                    : 'bg-[#1a4d44] text-white hover:bg-emerald-800'
+                }`}
               >
                 <Edit3 size={18} /> Modifier le profil
               </button>
-              <button 
+              <button
+                disabled={isReadOnly('client', editedClient.id)}
                 onClick={handleDelete}
-                className="p-4 border border-rose-100 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all shadow-sm"
+                className={`p-4 border rounded-2xl transition-all shadow-sm ${
+                  isReadOnly('client', editedClient.id)
+                    ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'border-rose-100 text-rose-500 hover:bg-rose-50'
+                }`}
               >
                 <Trash2 size={20} />
               </button>
