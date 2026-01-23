@@ -11,7 +11,7 @@ interface NewChecklistTemplateModalProps {
 }
 
 const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ isOpen, onClose, initialData }) => {
-  const { addChecklistTemplate, updateChecklistTemplate } = useData();
+  const { addChecklistTemplate, updateChecklistTemplate, company } = useData();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Électricité');
   const [description, setDescription] = useState('');
@@ -20,6 +20,10 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; items?: Record<string, string> }>({});
+
+  const getInitials = (name: string = '') => {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase();
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -47,6 +51,35 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
 
   const updateItem = (id: string, updates: Partial<ChecklistItem>) => {
     setItems(items.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, itemId: string) => {
+    const pastedText = e.clipboardData.getData('text');
+    const lines = pastedText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+    // Si plusieurs lignes, créer un item par ligne
+    if (lines.length > 1) {
+      e.preventDefault();
+
+      // Créer des nouveaux items pour les lignes supplémentaires
+      const newItems = lines.slice(1).map(line => ({
+        id: Date.now().toString() + Math.random(),
+        label: line,
+        isCritical: false
+      }));
+
+      // Trouver l'index de l'item actuel pour insérer après
+      const currentIndex = items.findIndex(item => item.id === itemId);
+
+      const updatedItems = [
+        ...items.slice(0, currentIndex),
+        { ...items[currentIndex], label: lines[0] },
+        ...newItems,
+        ...items.slice(currentIndex + 1)
+      ];
+
+      setItems(updatedItems);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,8 +226,8 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Propriétaire</label>
                   <div className="flex items-center gap-2 h-[54px] bg-slate-50 border border-slate-100 rounded-2xl px-4">
-                    <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-[10px] font-black">ENT</div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Votre Société</span>
+                    <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-[10px] font-black">{getInitials(company?.name)}</div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{company?.name || 'Votre Société'}</span>
                   </div>
                 </div>
               </div>
@@ -243,6 +276,7 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
                               }
                             }}
                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addItem())}
+                            onPaste={e => handlePaste(e, item.id!)}
                           />
                         </div>
                         <button
