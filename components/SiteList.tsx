@@ -217,8 +217,8 @@ const SiteList: React.FC = () => {
         ) : (
           <>
             {viewMode === 'list' && (
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden w-full animate-in slide-in-from-bottom-4">
-                <div className="overflow-x-auto scrollbar-hide">
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden w-full animate-in slide-in-from-bottom-4 flex flex-col">
+                <div className="overflow-x-auto overflow-y-auto scrollbar-hide flex-1">
                   <table className="w-full text-left border-collapse min-w-[1100px]">
                     <thead>
                       <tr className="bg-slate-50/50 border-b border-slate-100">
