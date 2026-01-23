@@ -48,6 +48,15 @@
           animation: fadeIn 0.3s ease-out forwards;
         }
 
+        /* Hide scrollbar but keep functionality */
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+
         /* Leaflet Overrides */
         .leaflet-container {
           width: 100%;
