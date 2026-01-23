@@ -6,10 +6,15 @@ import { ChevronDown, AlertTriangle } from 'lucide-react';
 
 type PlanId = keyof typeof SUBSCRIPTION_PLANS;
 
-export const AdminSubscriptionManager: React.FC = () => {
+interface AdminSubscriptionManagerProps {
+  selectedPlanId?: string;
+  onClose?: () => void;
+}
+
+export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> = ({ selectedPlanId, onClose }) => {
   const { company, updateCompany, clients, sites, addNotification } = useData();
   const { planConfig, canDowngradeTo } = useSubscription();
-  const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(company?.subscription?.plan || 'artisan_solo');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId | null>((selectedPlanId as PlanId) || company?.subscription?.plan || 'artisan_solo');
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>(
     company?.subscription?.billingPeriod || 'monthly'
   );
@@ -63,6 +68,7 @@ export const AdminSubscriptionManager: React.FC = () => {
       });
 
       addNotification(`Plan mis à jour: ${targetPlan.name}`, 'success');
+      if (onClose) onClose();
     } catch (error) {
       addNotification('Erreur lors de la mise à jour du plan', 'error');
       console.error(error);

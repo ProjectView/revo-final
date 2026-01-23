@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard } from 'lucide-react';
+import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
@@ -28,6 +28,7 @@ const SettingsView: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const companyLogoRef = useRef<HTMLInputElement>(null);
   const userAvatarRef = useRef<HTMLInputElement>(null);
   
@@ -525,40 +526,116 @@ const SettingsView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Plans Comparison */}
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
-                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Comparer les plans</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => (
-                    <div
-                      key={id}
-                      className={`p-6 rounded-2xl border-2 transition-all ${
-                        company?.subscription?.plan === id
-                          ? `border-emerald-500 ${plan.color}`
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <h4 className={`font-black text-sm uppercase tracking-tight mb-1 ${plan.textColor}`}>
-                        {plan.name}
-                      </h4>
-                      <p className="text-xs text-slate-600 mb-4">
-                        {plan.isFree ? 'Gratuit' : `€${plan.pricing.monthly}/mois`}
-                      </p>
-                      <ul className="space-y-2 text-[10px] font-medium text-slate-600">
-                        {plan.features.slice(0, 4).map((feature, i) => (
-                          <li key={i}>• {feature}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Admin Subscription Manager */}
+              {/* Plans Selection */}
               {currentUser?.role === 'Administrateur' && (
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Gestion administrative</h3>
-                  <AdminSubscriptionManager />
+                <div className="space-y-6">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Choisir un plan</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => (
+                      <button
+                        key={id}
+                        onClick={() => setSelectedPlanId(id)}
+                        className={`group p-8 rounded-[2.5rem] border-2 transition-all text-left overflow-hidden relative ${
+                          company?.subscription?.plan === id
+                            ? `border-emerald-500 ${plan.color} shadow-lg`
+                            : `border-slate-200 bg-white hover:border-slate-300 hover:shadow-md`
+                        }`}
+                      >
+                        {/* Badge Plan Actuel */}
+                        {company?.subscription?.plan === id && (
+                          <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-600 text-white rounded-full text-[9px] font-black uppercase tracking-tight">
+                            Plan actuel
+                          </div>
+                        )}
+
+                        <div className="mb-6">
+                          <h4 className={`font-black text-lg uppercase tracking-tight mb-1 ${plan.textColor}`}>
+                            {plan.name}
+                          </h4>
+                          <p className="text-xs text-slate-500 font-medium">{plan.tagline}</p>
+                        </div>
+
+                        <div className="mb-6 pb-6 border-b border-slate-200/50">
+                          <p className="text-sm font-black text-slate-900">
+                            {plan.isFree ? 'Gratuit' : `€${plan.pricing.monthly}`}
+                            {!plan.isFree && <span className="text-xs font-bold text-slate-500">/mois</span>}
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                              <p className="font-bold text-slate-600 mb-1">Clients</p>
+                              <p className="font-black text-slate-900">
+                                {plan.limits.maxClients === Infinity ? '∞' : plan.limits.maxClients}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-600 mb-1">Chantiers</p>
+                              <p className="font-black text-slate-900">
+                                {plan.limits.maxSites === Infinity ? '∞' : plan.limits.maxSites}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-600 mb-1">Utilisateurs</p>
+                              <p className="font-black text-slate-900">
+                                {plan.limits.maxUsers === Infinity ? '∞' : plan.limits.maxUsers}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-600 mb-1">Simultanés</p>
+                              <p className="font-black text-slate-900">
+                                {plan.limits.maxSimultaneousSites === Infinity ? '∞' : plan.limits.maxSimultaneousSites}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-slate-200/50">
+                            <ul className="space-y-2">
+                              {plan.features.map((feature, i) => (
+                                <li key={i} className="text-[10px] font-bold text-slate-700 flex items-start gap-2">
+                                  <span className="text-emerald-600 font-black mt-0.5">✓</span>
+                                  <span>{feature}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {company?.subscription?.plan !== id && (
+                          <div className="mt-6 pt-6 border-t border-slate-200/50">
+                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">
+                              Cliquer pour changer
+                            </p>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin Subscription Manager - Modal */}
+              {selectedPlanId && currentUser?.role === 'Administrateur' && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedPlanId(null)} />
+                  <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                    <div className="sticky top-0 bg-white p-8 border-b border-slate-100 flex items-center justify-between z-10">
+                      <div>
+                        <h2 className="text-2xl font-black text-slate-900">Modifier l'abonnement</h2>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Gestion du plan</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedPlanId(null)}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
+                    <div className="p-8">
+                      <AdminSubscriptionManager selectedPlanId={selectedPlanId} onClose={() => setSelectedPlanId(null)} />
+                    </div>
+                  </div>
                 </div>
               )}
 
