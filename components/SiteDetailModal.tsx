@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Briefcase, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2 } from 'lucide-react';
 import { Site, Status } from '../types';
 import { useData } from '../context/DataContext';
@@ -18,7 +18,7 @@ interface SiteDetailModalProps {
 type TabType = 'info' | 'checklist' | 'docs';
 
 const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) => {
-  const { sites, clients, updateSite, deleteSite } = useData();
+  const { sites, clients, updateSite, deleteSite, company } = useData();
   const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [isEditing, setIsEditing] = useState(false);
@@ -29,6 +29,15 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
 
   const site = sites.find(s => s.id === siteId);
   const [editedSite, setEditedSite] = useState<Site | null>(null);
+
+  // Statuts par défaut
+  const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const statuses = useMemo(
+    () => (company?.siteStatuses && company.siteStatuses.length > 0
+      ? company.siteStatuses as Status[]
+      : DEFAULT_STATUSES),
+    [company?.siteStatuses]
+  );
 
   useEffect(() => {
     if (site && !isEditing) {
@@ -49,7 +58,6 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
   if (!siteId || !site || !editedSite) return null;
 
   const client = clients.find(c => c.id === site.clientId);
-  const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
 
   const getStatusColor = (status: Status) => {
     switch (status) {
