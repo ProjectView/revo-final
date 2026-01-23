@@ -40,15 +40,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
         />
       )}
 
-      <aside 
+      <aside
         className={`
-          fixed inset-y-0 left-0 z-[110] lg:static bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-[110] lg:static bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ease-in-out relative
           ${isMobileOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed && !isMobileOpen ? 'w-24' : 'w-72'}
         `}
       >
         {/* Top Section */}
-        <div className={`p-6 flex items-center justify-between transition-all ${isCollapsed && !isMobileOpen ? 'px-4' : 'px-8'}`}>
+        <div className={`p-6 flex items-center justify-center transition-all ${isCollapsed && !isMobileOpen ? 'px-4' : 'px-8'}`}>
           <div className="flex items-center gap-4 overflow-hidden">
             <div className="min-w-[44px] w-11 h-11 bg-emerald-900 rounded-xl flex items-center justify-center text-white font-black text-2xl flex-shrink-0 shadow-lg shadow-emerald-900/20">
               R
@@ -64,20 +64,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
               </div>
             )}
           </div>
-          
-          {isMobileOpen ? (
-            <button onClick={onCloseMobile} className="lg:hidden p-2 text-slate-400 hover:text-slate-600">
+
+          {isMobileOpen && (
+            <button onClick={onCloseMobile} className="lg:hidden absolute right-4 p-2 text-slate-400 hover:text-slate-600">
               <X size={24} />
-            </button>
-          ) : (
-            <button 
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:block p-2 rounded-xl border border-slate-100 bg-white text-slate-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 transition-all shadow-sm"
-            >
-              {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             </button>
           )}
         </div>
+
+        {/* Collapse Button - Positioned on the right edge */}
+        {!isMobileOpen && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex absolute right-0 top-20 transform translate-x-1/2 p-2 rounded-xl border border-slate-100 bg-white text-slate-400 hover:text-emerald-600 hover:border-emerald-100 hover:bg-emerald-50 transition-all shadow-lg z-20"
+          >
+            {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          </button>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto scrollbar-hide">
