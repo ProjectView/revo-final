@@ -67,7 +67,10 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
     { id: 'docs' as TabType, label: 'Photos & Docs', icon: <ImageIcon size={16} /> },
   ];
 
+  const siteReadOnly = isReadOnly('site', site.id);
+
   const handleSave = async () => {
+    if (siteReadOnly) return;
     setIsSubmitting(true);
     try {
       await updateSite(site.id, editedSite);
@@ -80,6 +83,7 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
   };
 
   const handleDelete = async () => {
+    if (siteReadOnly) return;
     if (window.confirm('Supprimer ce chantier ?')) {
       setIsSubmitting(true);
       try {
@@ -92,6 +96,7 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
   };
 
   const handleStatusChange = async (newStatus: Status) => {
+    if (siteReadOnly) return;
     if (!isEditing) {
       try { await updateSite(site.id, { status: newStatus }); } catch (error) {}
     } else {
@@ -101,25 +106,27 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
   };
 
   const handleAssignUsers = async (userIds: string[]) => {
+    if (siteReadOnly) return;
     await updateSite(site.id, { assignedUserIds: userIds });
   };
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'info': 
+      case 'info':
         return (
-          <GeneralInfoTab 
-            site={editedSite} 
-            client={client} 
-            isEditing={isEditing} 
+          <GeneralInfoTab
+            site={editedSite}
+            client={client}
+            isEditing={isEditing && !siteReadOnly}
             onUpdate={(updates) => setEditedSite({ ...editedSite, ...updates })}
-            onOpenAssignModal={() => setIsAssignModalOpen(true)}
+            onOpenAssignModal={() => !siteReadOnly && setIsAssignModalOpen(true)}
+            isReadOnly={siteReadOnly}
           />
         );
-      case 'checklist': 
-        return <ChecklistTab site={site} onUpdateTasks={(tasks) => updateSite(site.id, { tasks })} />;
-      case 'docs': 
-        return <DocsTab siteId={site.id} />;
+      case 'checklist':
+        return <ChecklistTab site={site} isReadOnly={siteReadOnly} onUpdateTasks={(tasks) => updateSite(site.id, { tasks })} />;
+      case 'docs':
+        return <DocsTab siteId={site.id} isReadOnly={siteReadOnly} />;
       default: return null;
     }
   };
@@ -142,7 +149,10 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
                     {isReadOnly('site', site.id) && <ReadOnlyBadge />}
                   </div>
                 )}
-                <button onClick={() => !isSubmitting && setIsStatusOpen(!isStatusOpen)} className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border mt-1 transition-all ${getStatusColor(site.status)}`}>
+                <button
+                  onClick={() => !isSubmitting && !siteReadOnly && setIsStatusOpen(!isStatusOpen)}
+                  disabled={siteReadOnly}
+                  className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border mt-1 transition-all ${getStatusColor(site.status)} ${siteReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   {site.status} <ChevronDown size={12} className={`transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isStatusOpen && (

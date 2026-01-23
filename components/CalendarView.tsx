@@ -1,14 +1,16 @@
 
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle, X, Lock } from 'lucide-react';
 import { Site, Status } from '../types';
 import SiteDetailModal from './SiteDetailModal';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 type CalendarMode = 'Semaine' | 'Mois' | 'Année';
 
 const CalendarView: React.FC = () => {
   const { sites, updateSite, checkCapacity, company, addNotification } = useData();
+  const { isReadOnly } = useSubscription();
   const [viewMode, setViewMode] = useState<CalendarMode>('Mois');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -158,6 +160,10 @@ const CalendarView: React.FC = () => {
   };
 
   const onSiteDragStart = (e: React.DragEvent, siteId: string, draggedDateStr: string) => {
+    if (isReadOnly('site', siteId)) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData('siteId', siteId);
     e.dataTransfer.setData('draggedDate', draggedDateStr);
     e.dataTransfer.effectAllowed = 'move';
@@ -200,6 +206,10 @@ const CalendarView: React.FC = () => {
   };
 
   const onResizeStart = (e: React.MouseEvent | React.TouchEvent, siteId: string, direction: 'start' | 'end') => {
+    if (isReadOnly('site', siteId)) {
+      e.stopPropagation();
+      return;
+    }
     e.stopPropagation();
     setResizing({ siteId, direction });
   };
@@ -383,16 +393,17 @@ const CalendarView: React.FC = () => {
                         const slotIndex = siteSlots[site.id] || 0;
                         const isStart = dStr === site.startDate;
                         const isEnd = dStr === site.endDate;
+                        const siteReadOnly = isReadOnly('site', site.id);
                         return (
                           <div
                             key={site.id}
-                            draggable={!resizing}
+                            draggable={!resizing && !siteReadOnly}
                             onDragStart={(e) => onSiteDragStart(e, site.id, dStr)}
                             onClick={() => setSelectedSite(site)}
                             style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }}
-                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 cursor-grab active:cursor-grabbing transition-all hover:brightness-110 z-10 text-white shadow-sm font-black ${site.color || 'bg-blue-600'} ${isStart ? 'rounded-l-xl ml-2' : ''} ${isEnd ? 'rounded-r-xl mr-2' : ''} group`}
+                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${site.color || 'bg-blue-600'} ${isStart ? 'rounded-l-xl ml-2' : ''} ${isEnd ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
                           >
-                            {isStart && (
+                            {isStart && !siteReadOnly && (
                               <div
                                 onMouseDown={(e) => onResizeStart(e, site.id, 'start')}
                                 onTouchStart={(e) => onResizeStart(e, site.id, 'start')}
@@ -400,8 +411,11 @@ const CalendarView: React.FC = () => {
                                 title="Redimensionner le début"
                               />
                             )}
-                            {(isStart || day.getDay() === 1) && <p className="text-[11px] truncate uppercase tracking-tight pointer-events-none">{site.name}</p>}
-                            {isEnd && (
+                            <div className="flex items-center gap-2 flex-1 pointer-events-none">
+                              {siteReadOnly && <Lock size={10} />}
+                              {(isStart || day.getDay() === 1) && <p className="text-[11px] truncate uppercase tracking-tight">{site.name}</p>}
+                            </div>
+                            {isEnd && !siteReadOnly && (
                               <div
                                 onMouseDown={(e) => onResizeStart(e, site.id, 'end')}
                                 onTouchStart={(e) => onResizeStart(e, site.id, 'end')}
@@ -462,6 +476,7 @@ const CalendarView: React.FC = () => {
                       const slotIndex = siteSlots[site.id] || 0;
                       const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
                       const itemLeft = slotIndex * (100 / maxSlots);
+                      const siteReadOnly = isReadOnly('site', site.id);
 
                       return (
                         <div
@@ -473,13 +488,14 @@ const CalendarView: React.FC = () => {
                             width: `${itemWidth}%`,
                             left: `${itemLeft}%`
                           }}
-                          className={`absolute p-2 opacity-95 border-l-4 cursor-pointer text-white shadow-md z-10 transition-all hover:scale-[1.01] hover:z-20 ${site.color || 'bg-blue-600'} border-white/30 flex flex-col items-center justify-start`}
+                          className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${site.color || 'bg-blue-600'} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-pointer hover:scale-[1.01] hover:z-20'}`}
                         >
                           <p className="text-xs font-black uppercase tracking-tight text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
                             {site.name}
                           </p>
-                          <div className="mt-1 text-[8px] font-bold opacity-80 text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
-                            {dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}
+                          <div className="mt-1 text-[8px] font-bold opacity-80 text-center flex items-center gap-1" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
+                            {siteReadOnly && <Lock size={8} />}
+                            <span>{dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</span>
                           </div>
                         </div>
                       );

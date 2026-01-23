@@ -6,9 +6,10 @@ import { SiteDocument } from '../../types';
 
 interface DocsTabProps {
   siteId: string;
+  isReadOnly?: boolean;
 }
 
-const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
+const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
   const { uploadSiteDocument, getSiteDocuments, deleteSiteDocument, users } = useData();
   const [documents, setDocuments] = useState<SiteDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -69,12 +70,14 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
         onChange={handleFileUpload} 
         className="hidden" 
       />
-      <div 
-        onClick={() => !isUploading && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all group cursor-pointer ${
-          isUploading 
-            ? 'bg-emerald-50 border-emerald-200 cursor-wait' 
-            : 'border-slate-200 bg-slate-50/30 hover:bg-emerald-50/30 hover:border-emerald-200'
+      <div
+        onClick={() => !isUploading && !isReadOnly && fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all group ${
+          isReadOnly
+            ? 'border-slate-200 bg-slate-50/30 cursor-not-allowed opacity-50'
+            : isUploading
+            ? 'bg-emerald-50 border-emerald-200 cursor-wait'
+            : 'border-slate-200 bg-slate-50/30 hover:bg-emerald-50/30 hover:border-emerald-200 cursor-pointer'
         }`}
       >
         <div className={`w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center transition-all mb-4 ${
@@ -83,7 +86,7 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
           {isUploading ? <Loader2 className="animate-spin" size={32} /> : <Upload size={32} />}
         </div>
         <p className="font-bold text-slate-700 text-sm">
-          {isUploading ? 'Envoi en cours...' : 'Déposez vos documents ici'}
+          {isReadOnly ? 'Ce chantier est en lecture seule' : isUploading ? 'Envoi en cours...' : 'Déposez vos documents ici'}
         </p>
         <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">PDF, JPG, PNG (Max 10Mo)</p>
         {!isUploading && (
@@ -147,14 +150,16 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId }) => {
                     >
                       <Download size={20} />
                     </a>
-                    <button
-                      onClick={() => handleDelete(doc)}
-                      disabled={isDeleting === doc.id}
-                      className="p-2.5 bg-white text-red-500 rounded-lg hover:bg-red-50 transition-all shadow-lg disabled:opacity-30"
-                      title="Supprimer"
-                    >
-                      {isDeleting === doc.id ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => handleDelete(doc)}
+                        disabled={isDeleting === doc.id}
+                        className="p-2.5 bg-white text-red-500 rounded-lg hover:bg-red-50 transition-all shadow-lg disabled:opacity-30"
+                        title="Supprimer"
+                      >
+                        {isDeleting === doc.id ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                      </button>
+                    )}
                   </div>
                 </div>
 

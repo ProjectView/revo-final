@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
-import { ChevronDown, AlertTriangle, CheckCircle, Users, HardHat, Check } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle, Users, HardHat, Check, X, Mail } from 'lucide-react';
 
 type PlanId = keyof typeof SUBSCRIPTION_PLANS;
 
@@ -12,7 +12,7 @@ interface AdminSubscriptionManagerProps {
 }
 
 export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> = ({ selectedPlanId, onClose }) => {
-  const { company, updateCompany, clients, sites, addNotification } = useData();
+  const { company, updateCompany, clients, sites, addNotification, users } = useData();
   const { planConfig, canDowngradeTo } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<PlanId | null>((selectedPlanId as PlanId) || company?.subscription?.plan || 'artisan_solo');
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>(
@@ -22,6 +22,11 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
   const [clientsToKeep, setClientsToKeep] = useState<Set<string>>(new Set());
   const [sitesToKeep, setSitesToKeep] = useState<Set<string>>(new Set());
   const [isChanging, setIsChanging] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Get current user email from localStorage
+  const currentUserEmail = localStorage.getItem('revo_auth') || '';
+  const currentUser = users.find(u => u.email.toLowerCase() === currentUserEmail.toLowerCase());
 
   if (!company || !selectedPlan) return null;
 
@@ -41,43 +46,65 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
     try {
       setIsChanging(true);
 
-      // En cas d'upgrade, débloquer tous les clients/chantiers
-      // En cas de downgrade, utiliser la sélection de l'utilisateur
-      const clientsReadOnly = isUpgrade
-        ? []
-        : clients.filter(c => !clientsToKeep.has(c.id)).map(c => c.id);
-
-      const sitesReadOnly = isUpgrade
-        ? []
-        : sites.filter(s => !sitesToKeep.has(s.id)).map(s => s.id);
-
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + (billingPeriod === 'yearly' ? 365 : 30));
 
-      await updateCompany({
-        subscription: {
-          plan: selectedPlan,
-          status: 'active',
-          billingPeriod,
-          currentPeriodEnd: futureDate.toISOString(),
-          maxClients: targetPlan.limits.maxClients,
-          maxSites: targetPlan.limits.maxSites,
-          maxUsers: targetPlan.limits.maxUsers,
-          paymentMethod: 'manual',
-          notes,
-        },
-        limits: {
-          clientsReadOnly,
-          sitesReadOnly,
-        },
-      });
+      // Send webhook notification with all company info
+      const webhookPayload = {
+        timestamp: new Date().toISOString(),
+        // User Info
+        userName: currentUser?.name || 'Inconnu',
+        userEmail: currentUserEmail,
+        // Company Info
+        companyName: company.name,
+        companySiret: company.siret || '',
+        companyWebsite: company.website || '',
+        // Address Info
+        address: company.address || '',
+        postalCode: company.postalCode || '',
+        city: company.city || '',
+        country: company.country || 'France',
+        // Billing Info
+        billingFirstName: company.billingFirstName || '',
+        billingLastName: company.billingLastName || '',
+        billingEmail: company.billingEmail || '',
+        billingPhone: company.billingPhone || '',
+        taxId: company.taxId || '',
+        // Plan Info
+        currentPlan: currentPlan.name,
+        newPlan: targetPlan.name,
+        planId: selectedPlan,
+        billingPeriod: billingPeriod === 'monthly' ? 'Mensuel' : 'Annuel',
+        isUpgrade,
+        isDowngrade,
+        notes: notes || 'Aucun commentaire',
+        // Statistics
+        clientsCount: clients.length,
+        sitesCount: sites.length,
+        usersCount: users.length,
+        // Downgrade Info
+        clientsToMove: isDowngrade ? Array.from(clientsToKeep) : [],
+        sitesToMove: isDowngrade ? Array.from(sitesToKeep) : [],
+        // Dates
+        futureDate: futureDate.toLocaleDateString('fr-FR'),
+        currentPeriodEnd: company.subscription?.currentPeriodEnd || '',
+      };
 
-      const message = isUpgrade
-        ? `Upgrade réussi vers ${targetPlan.name}. Tous vos clients et chantiers sont à nouveau accessibles.`
-        : `Plan mis à jour: ${targetPlan.name}`;
+      try {
+        await fetch('https://n8n.srv800894.hstgr.cloud/webhook/6e4a8cdc-c895-4457-af44-a1632422f66c', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload),
+        });
+      } catch (webhookError) {
+        console.error('Erreur envoi webhook:', webhookError);
+        // Ne pas bloquer le processus si le webhook échoue
+      }
 
-      addNotification(message, 'success');
-      if (onClose) onClose();
+      // Show confirmation modal instead of closing
+      setShowConfirmation(true);
     } catch (error) {
       addNotification('Erreur lors de la mise à jour du plan', 'error');
       console.error(error);
@@ -85,6 +112,74 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
       setIsChanging(false);
     }
   };
+
+  // Confirmation Modal
+  if (showConfirmation) {
+    return (
+      <>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] animate-fade-in" />
+        <div className="fixed inset-0 z-[310] flex items-center justify-center p-4 animate-in zoom-in-95">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 space-y-6">
+            {/* Success Icon */}
+            <div className="flex justify-center">
+              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
+                <CheckCircle size={40} className="text-emerald-600" />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="text-center space-y-3">
+              <h2 className="text-2xl font-black text-slate-900">Demande en attente</h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Votre demande de changement vers <span className="font-bold">{targetPlan.name}</span> a été enregistrée. Notre équipe examinera votre demande et vous contactera pour confirmer l'activation du nouveau plan.
+              </p>
+              <p className="text-xs text-slate-500 italic">
+                Jusqu'à confirmation, votre plan actuel reste <span className="font-bold">{currentPlan.name}</span>
+              </p>
+            </div>
+
+            {/* Details */}
+            <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">Plan sélectionné</span>
+                <span className="text-sm font-black text-slate-900">{targetPlan.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">Facturation</span>
+                <span className="text-sm font-black text-slate-900">{billingPeriod === 'monthly' ? 'Mensuelle' : 'Annuelle'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">Entreprise</span>
+                <span className="text-sm font-black text-slate-900">{company.name}</span>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            {currentUser && (
+              <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <Mail size={18} className="text-blue-600 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-blue-900 uppercase tracking-tight">Nous vous contacterons à</p>
+                  <p className="text-sm font-black text-blue-600">{currentUserEmail}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <button
+              onClick={() => {
+                setShowConfirmation(false);
+                if (onClose) onClose();
+              }}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-tight text-xs rounded-xl transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">

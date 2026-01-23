@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase } from 'lucide-react';
+import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase, MapPin, Phone } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
@@ -39,7 +39,16 @@ const SettingsView: React.FC = () => {
     name: '',
     siret: '',
     website: '',
-    maxSimultaneousSites: 2
+    maxSimultaneousSites: 2,
+    address: '',
+    postalCode: '',
+    city: '',
+    country: 'France',
+    taxId: '',
+    billingFirstName: '',
+    billingLastName: '',
+    billingEmail: '',
+    billingPhone: ''
   });
 
   const [editedProfile, setEditedProfile] = useState({
@@ -52,7 +61,16 @@ const SettingsView: React.FC = () => {
         name: company.name,
         siret: company.siret || '',
         website: company.website || '',
-        maxSimultaneousSites: company.maxSimultaneousSites || 2
+        maxSimultaneousSites: company.maxSimultaneousSites || 2,
+        address: company.address || '',
+        postalCode: company.postalCode || '',
+        city: company.city || '',
+        country: company.country || 'France',
+        taxId: company.taxId || '',
+        billingFirstName: company.billingFirstName || '',
+        billingLastName: company.billingLastName || '',
+        billingEmail: company.billingEmail || '',
+        billingPhone: company.billingPhone || ''
       });
     }
     if (currentUser) {
@@ -135,14 +153,14 @@ const SettingsView: React.FC = () => {
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden px-8 pb-8 gap-8">
+      <div className="flex flex-1 overflow-hidden px-8 pb-8 gap-8 min-w-0">
         {/* Navigation Sidebar */}
-        <div className="w-64 flex flex-col gap-2">
+        <div className="w-64 flex-shrink-0 flex flex-col gap-2">
           <button
             onClick={() => setActiveTab('profile')}
             className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
-              activeTab === 'profile' 
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1' 
+              activeTab === 'profile'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
@@ -151,8 +169,8 @@ const SettingsView: React.FC = () => {
           <button
             onClick={() => setActiveTab('general')}
             className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
-              activeTab === 'general' 
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1' 
+              activeTab === 'general'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
@@ -181,7 +199,7 @@ const SettingsView: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto pr-4 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-4 scrollbar-hide min-w-0">
           {activeTab === 'profile' && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
               <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10">
@@ -359,8 +377,152 @@ const SettingsView: React.FC = () => {
                 </div>
               </div>
 
+              {/* Adresse Section */}
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                    <MapPin size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Adresse</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Localisation de l'entreprise</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Adresse</label>
+                    <div className="relative group">
+                      <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                      <input
+                        type="text"
+                        value={editedCompany.address}
+                        onChange={(e) => setEditedCompany({...editedCompany, address: e.target.value})}
+                        placeholder="123 rue de la Paix"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Code postal</label>
+                    <input
+                      type="text"
+                      value={editedCompany.postalCode}
+                      onChange={(e) => setEditedCompany({...editedCompany, postalCode: e.target.value})}
+                      placeholder="69000"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ville</label>
+                    <input
+                      type="text"
+                      value={editedCompany.city}
+                      onChange={(e) => setEditedCompany({...editedCompany, city: e.target.value})}
+                      placeholder="Lyon"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pays</label>
+                    <input
+                      type="text"
+                      value={editedCompany.country}
+                      onChange={(e) => setEditedCompany({...editedCompany, country: e.target.value})}
+                      placeholder="France"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Facturation Section */}
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+                    <CreditCard size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Facturation</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Informations de contact de facturation</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prénom</label>
+                    <div className="relative group">
+                      <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
+                      <input
+                        type="text"
+                        value={editedCompany.billingFirstName}
+                        onChange={(e) => setEditedCompany({...editedCompany, billingFirstName: e.target.value})}
+                        placeholder="Jean"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nom</label>
+                    <div className="relative group">
+                      <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
+                      <input
+                        type="text"
+                        value={editedCompany.billingLastName}
+                        onChange={(e) => setEditedCompany({...editedCompany, billingLastName: e.target.value})}
+                        placeholder="Dupont"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email facturation</label>
+                    <div className="relative group">
+                      <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
+                      <input
+                        type="email"
+                        value={editedCompany.billingEmail}
+                        onChange={(e) => setEditedCompany({...editedCompany, billingEmail: e.target.value})}
+                        placeholder="facturation@entreprise.fr"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
+                    <div className="relative group">
+                      <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
+                      <input
+                        type="tel"
+                        value={editedCompany.billingPhone}
+                        onChange={(e) => setEditedCompany({...editedCompany, billingPhone: e.target.value})}
+                        placeholder="04 XX XX XX XX"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Numéro de TVA</label>
+                    <input
+                      type="text"
+                      value={editedCompany.taxId}
+                      onChange={(e) => setEditedCompany({...editedCompany, taxId: e.target.value})}
+                      placeholder="FR 12 345 678 901"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end pt-4">
-                <button 
+                <button
                   onClick={handleSaveCompany}
                   disabled={isSubmitting}
                   className="bg-[#1a4d44] text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-900/20 hover:bg-emerald-800 transition-all active:scale-95 flex items-center gap-3 disabled:opacity-50"
@@ -530,7 +692,7 @@ const SettingsView: React.FC = () => {
               {currentUser?.role === 'Administrateur' && (
                 <div className="space-y-6">
                   <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Choisir un plan</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full min-w-0">
                     {Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => {
                       const isCurrentPlan = company?.subscription?.plan === id;
                       const isPremium = id === 'multi_sites_premium';

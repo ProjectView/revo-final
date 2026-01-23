@@ -8,6 +8,7 @@ interface GeneralInfoTabProps {
   site: Site;
   client?: Client;
   isEditing?: boolean;
+  isReadOnly?: boolean;
   onUpdate?: (updates: Partial<Site>) => void;
   onOpenAssignModal?: () => void;
 }
@@ -22,7 +23,7 @@ interface AddressSuggestion {
   };
 }
 
-const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing, onUpdate, onOpenAssignModal }) => {
+const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing, isReadOnly, onUpdate, onOpenAssignModal }) => {
   const { clients, users, checkCapacity, company, addSiteComment, getSiteComments } = useData();
   const [addressSearch, setAddressSearch] = useState(site.address);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
@@ -196,11 +197,18 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
                 )}
               </div>
             ))}
-            <button onClick={onOpenAssignModal} className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-all">
+            <button
+              onClick={onOpenAssignModal}
+              disabled={isReadOnly}
+              className={`w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
+                isReadOnly
+                  ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                  : 'border-slate-300 bg-slate-50 text-slate-400 hover:text-emerald-600 hover:border-emerald-300'
+              }`}>
               <Users size={16} />
             </button>
           </div>
-          <span className="text-xs text-slate-500 font-medium ml-2">
+          <span className={`text-xs font-medium ml-2 ${isReadOnly ? 'text-slate-400' : 'text-slate-500'}`}>
             {assignedUsers.length === 0 ? 'Aucun membre assigné' : `${assignedUsers.length} membre(s) assigné(s)`}
           </span>
         </div>
@@ -238,26 +246,32 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
 
       <div className="space-y-4">
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Commentaires & Notes</h3>
-        
-        <div className="relative group">
-          <div className="absolute left-4 top-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors z-10">
-            <MessageSquare size={18} />
+
+        {isReadOnly ? (
+          <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Ce chantier est en lecture seule</p>
           </div>
-          <textarea 
-            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 pl-12 pr-12 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none min-h-[80px] resize-none shadow-inner" 
-            placeholder="Ajouter une note de chantier... (Entrée pour valider)"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button 
-            onClick={() => handleAddComment()}
-            className="absolute right-3 bottom-3 p-2 bg-emerald-900 text-white rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-30"
-            disabled={!newComment.trim()}
-          >
-            <Send size={16} />
-          </button>
-        </div>
+        ) : (
+          <div className="relative group">
+            <div className="absolute left-4 top-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors z-10">
+              <MessageSquare size={18} />
+            </div>
+            <textarea
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 pl-12 pr-12 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none min-h-[80px] resize-none shadow-inner"
+              placeholder="Ajouter une note de chantier... (Entrée pour valider)"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button
+              onClick={() => handleAddComment()}
+              className="absolute right-3 bottom-3 p-2 bg-emerald-900 text-white rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-30"
+              disabled={!newComment.trim()}
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        )}
 
         <div className="space-y-3 pt-2">
           {comments.length === 0 ? (

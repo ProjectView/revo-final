@@ -30,6 +30,17 @@ export interface Company {
   pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
   siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
   maxSimultaneousSites?: number; // Limite de chantiers en parallèle
+  // Adresse
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  // Facturation
+  taxId?: string; // Numéro de TVA
+  billingFirstName?: string;
+  billingLastName?: string;
+  billingEmail?: string;
+  billingPhone?: string;
   subscription?: {
     plan: 'artisan_solo' | 'chantier_pro' | 'multi_sites_premium';
     status: 'active' | 'inactive' | 'trial';

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Site, Status, User } from '../types';
 import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon, Check } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface KanbanBoardProps {
   sites: Site[];
@@ -13,6 +14,7 @@ interface KanbanBoardProps {
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange, statuses: customStatuses }) => {
   const { clients, users } = useData();
+  const { isReadOnly } = useSubscription();
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
   const statuses = customStatuses || DEFAULT_STATUSES;
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
@@ -41,6 +43,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, siteId: string, status: Status) => {
+    if (isReadOnly('site', siteId)) {
+      e.preventDefault();
+      return;
+    }
     setDraggedItem(siteId);
     setDraggedFromStatus(status);
     e.dataTransfer.effectAllowed = 'move';
@@ -77,6 +83,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
 
   const handleCompleteStatus = async (e: React.MouseEvent, site: Site) => {
     e.stopPropagation();
+    if (isReadOnly('site', site.id)) {
+      return;
+    }
     if (site.status !== 'TERMINÉ' && onStatusChange) {
       await onStatusChange(site.id, 'TERMINÉ');
     }
@@ -143,16 +152,19 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                 return (
                   <div
                     key={site.id}
-                    draggable
+                    draggable={!isReadOnly('site', site.id)}
                     onDragStart={(e) => handleDragStart(e, site.id, status)}
                     onDragEnd={handleDragEnd}
                     onClick={() => onSiteClick(site)}
-                    className={`bg-white p-4 rounded-[1.5rem] border shadow-sm hover:shadow-xl transition-all cursor-grab active:cursor-grabbing group animate-in fade-in slide-in-from-bottom-2 duration-300 ${
-                      draggedItem === site.id
-                        ? 'opacity-50 scale-95'
-                        : isTerminedStatus
-                        ? 'border-emerald-200 ring-1 ring-emerald-50'
-                        : 'border-slate-100 hover:border-emerald-200 hover:-translate-y-1'
+                    className={`bg-white p-4 rounded-[1.5rem] border shadow-sm hover:shadow-xl transition-all group animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                      isReadOnly('site', site.id)
+                        ? 'opacity-60 bg-slate-50 border-slate-200 cursor-not-allowed'
+                        : draggedItem === site.id
+                        ? 'opacity-50 scale-95 cursor-grabbing'
+                        : `${isTerminedStatus
+                          ? 'border-emerald-200 ring-1 ring-emerald-50'
+                          : 'border-slate-100 hover:border-emerald-200 hover:-translate-y-1'
+                        } cursor-grab`
                     }`}
                   >
                     <div className="flex justify-between items-start mb-3">

@@ -3,10 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Wrench, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2 } from 'lucide-react';
 import { Prestation, Status } from '../types';
 import { useData } from '../context/DataContext';
+import { useSubscription } from '../hooks/useSubscription';
 import GeneralInfoTab from './site-details/GeneralInfoTab';
 import ChecklistTab from './site-details/ChecklistTab';
 import DocsTab from './site-details/DocsTab';
 import AssignUsersModal from './AssignUsersModal';
+import { ReadOnlyBadge } from './ReadOnlyBadge';
 
 interface PrestationDetailModalProps {
   prestationId: string | null;
@@ -17,6 +19,7 @@ type TabType = 'info' | 'checklist' | 'docs';
 
 const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestationId, onClose }) => {
   const { prestations, clients, updatePrestation, deletePrestation } = useData();
+  const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -46,6 +49,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   if (!prestationId || !prestation || !editedPrestation) return null;
 
   const client = clients.find(c => c.id === prestation.clientId);
+  const isClientReadOnly = isReadOnly('client', prestation.clientId);
   const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
 
   const getStatusColor = (status: Status) => {
@@ -65,6 +69,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   ];
 
   const handleSave = async () => {
+    if (isClientReadOnly) return;
     setIsSubmitting(true);
     try {
       await updatePrestation(prestation.id, editedPrestation);
@@ -77,6 +82,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   };
 
   const handleDelete = async () => {
+    if (isClientReadOnly) return;
     if (window.confirm('Supprimer cette prestation ?')) {
       setIsSubmitting(true);
       try {
@@ -89,6 +95,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   };
 
   const handleStatusChange = async (newStatus: Status) => {
+    if (isClientReadOnly) return;
     if (!isEditing) {
       try { await updatePrestation(prestation.id, { status: newStatus }); } catch (error) {}
     } else {
@@ -98,6 +105,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   };
 
   const handleAssignUsers = async (userIds: string[]) => {
+    if (isClientReadOnly) return;
     await updatePrestation(prestation.id, { assignedUserIds: userIds });
   };
 
@@ -108,9 +116,9 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
           <GeneralInfoTab
             site={editedPrestation}
             client={client}
-            isEditing={isEditing}
+            isEditing={isEditing && !isClientReadOnly}
             onUpdate={(updates) => setEditedPrestation({ ...editedPrestation, ...updates })}
-            onOpenAssignModal={() => setIsAssignModalOpen(true)}
+            onOpenAssignModal={() => !isClientReadOnly && setIsAssignModalOpen(true)}
           />
         );
       case 'checklist':
@@ -126,6 +134,11 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] animate-fade-in" onClick={isEditing || isSubmitting ? undefined : onClose} />
 
       <div className="fixed top-0 bottom-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[70] flex flex-col animate-slide-in overflow-hidden">
+        {isClientReadOnly && (
+          <div className="px-8 pt-6 pb-4 border-b border-rose-200 bg-rose-50/50">
+            <ReadOnlyBadge />
+          </div>
+        )}
         <div className="pt-10 pb-6 px-8 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -136,7 +149,10 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
                 ) : (
                   <h2 className="text-xl font-black text-slate-900 leading-tight">{prestation.name}</h2>
                 )}
-                <button onClick={() => !isSubmitting && setIsStatusOpen(!isStatusOpen)} className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border mt-1 transition-all ${getStatusColor(prestation.status)}`}>
+                <button
+                  onClick={() => !isSubmitting && !isClientReadOnly && setIsStatusOpen(!isStatusOpen)}
+                  disabled={isClientReadOnly}
+                  className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border mt-1 transition-all ${getStatusColor(prestation.status)} ${isClientReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   {prestation.status} <ChevronDown size={12} className={`transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isStatusOpen && (
@@ -165,12 +181,22 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
           {isEditing ? (
             <>
               <button onClick={() => { setIsEditing(false); setEditedPrestation({...prestation}); }} className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-sm text-slate-600">Annuler</button>
-              <button onClick={handleSave} className="flex-[2] flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm">Sauvegarder</button>
+              <button onClick={handleSave} disabled={isSubmitting} className="flex-[2] flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm disabled:bg-slate-300"><Save size={18} /> Sauvegarder</button>
             </>
           ) : (
             <>
-              <button onClick={() => { setIsEditing(true); setActiveTab('info'); }} className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-3 rounded-xl font-bold text-sm"><Edit3 size={18} /> Modifier</button>
-              <button onClick={handleDelete} className="p-3 border border-red-100 text-red-500 hover:bg-red-50 rounded-xl"><Trash2 size={20} /></button>
+              <button
+                onClick={() => { setIsEditing(true); setActiveTab('info'); }}
+                disabled={isClientReadOnly}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-3 rounded-xl font-bold text-sm disabled:bg-slate-300 disabled:cursor-not-allowed">
+                <Edit3 size={18} /> Modifier
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isClientReadOnly}
+                className="p-3 border border-red-100 text-red-500 hover:bg-red-50 rounded-xl disabled:border-slate-200 disabled:text-slate-300 disabled:cursor-not-allowed">
+                <Trash2 size={20} />
+              </button>
             </>
           )}
         </div>

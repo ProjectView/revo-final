@@ -6,10 +6,11 @@ import { useData } from '../../context/DataContext';
 
 interface ChecklistTabProps {
   site: Site;
+  isReadOnly?: boolean;
   onUpdateTasks: (tasks: SiteTask[]) => Promise<void>;
 }
 
-const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
+const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateTasks }) => {
   const { checklists, assignChecklistToSite } = useData();
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [isBusy, setIsBusy] = useState(false);
@@ -27,9 +28,9 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
   }, []);
 
   const toggleTask = async (taskId: string) => {
-    if (isBusy) return;
+    if (isBusy || isReadOnly) return;
     setIsBusy(true);
-    const updatedTasks = tasks.map(t => 
+    const updatedTasks = tasks.map(t =>
       t.id === taskId ? { ...t, completed: !t.completed } : t
     );
     try {
@@ -46,17 +47,17 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     const label = newTaskLabel.trim();
-    if (!label || isBusy) return;
-    
+    if (!label || isBusy || isReadOnly) return;
+
     setIsBusy(true);
     const newTask: SiteTask = {
       id: `manual-${Date.now()}`,
       label: label,
       completed: false
     };
-    
+
     try {
       await onUpdateTasks([...tasks, newTask]);
       setNewTaskLabel('');
@@ -69,8 +70,8 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
 
   const deleteTask = async (e: React.MouseEvent, taskId: string) => {
     e.stopPropagation();
-    if (isBusy) return;
-    
+    if (isBusy || isReadOnly) return;
+
     setIsBusy(true);
     const updatedTasks = tasks.filter(t => t.id !== taskId);
     try {
@@ -83,7 +84,7 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
   };
 
   const handleImportTemplate = async (template: ChecklistTemplate) => {
-    if (isBusy) return;
+    if (isBusy || isReadOnly) return;
     setIsBusy(true);
     try {
       await assignChecklistToSite(site.id, template);
@@ -126,11 +127,11 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
 
         {/* Template Importer */}
         <div className="relative" ref={pickerRef}>
-          <button 
+          <button
             type="button"
-            disabled={isBusy}
+            disabled={isBusy || isReadOnly}
             onClick={() => setShowTemplatePicker(!showTemplatePicker)}
-            className="w-full flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl px-5 py-4 text-xs font-black text-slate-700 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all shadow-sm group disabled:opacity-50"
+            className="w-full flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl px-5 py-4 text-xs font-black text-slate-700 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all shadow-sm group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-3">
               <Library size={18} className="text-emerald-600" />
@@ -172,26 +173,32 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
         </div>
 
         {/* Quick Add Form */}
-        <form 
-          onSubmit={addTask} 
-          className="relative group"
-        >
-          <input 
-            type="text"
-            placeholder="Saisir une tâche + Entrée..."
-            className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-5 pr-12 py-4 text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-200 outline-none transition-all shadow-inner placeholder:text-slate-300 disabled:opacity-50"
-            value={newTaskLabel}
-            onChange={(e) => setNewTaskLabel(e.target.value)}
-            disabled={isBusy}
-          />
-          <button 
-            type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-md"
-            disabled={!newTaskLabel.trim() || isBusy}
+        {isReadOnly ? (
+          <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Ce chantier est en lecture seule</p>
+          </div>
+        ) : (
+          <form
+            onSubmit={addTask}
+            className="relative group"
           >
-            <Plus size={18} />
-          </button>
-        </form>
+            <input
+              type="text"
+              placeholder="Saisir une tâche + Entrée..."
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-5 pr-12 py-4 text-xs font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-200 outline-none transition-all shadow-inner placeholder:text-slate-300 disabled:opacity-50"
+              value={newTaskLabel}
+              onChange={(e) => setNewTaskLabel(e.target.value)}
+              disabled={isBusy}
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-md"
+              disabled={!newTaskLabel.trim() || isBusy}
+            >
+              <Plus size={18} />
+            </button>
+          </form>
+        )}
         
         <div className="space-y-2.5">
           {tasks.length === 0 ? (
@@ -204,14 +211,14 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
             </div>
           ) : (
             tasks.map((task) => (
-              <div 
+              <div
                 key={task.id}
                 onClick={() => toggleTask(task.id)}
-                className={`group flex items-center gap-4 p-5 rounded-[1.5rem] border transition-all cursor-pointer animate-in slide-in-from-right-2 duration-300 ${
-                  task.completed 
-                    ? 'bg-slate-50/50 border-transparent' 
+                className={`group flex items-center gap-4 p-5 rounded-[1.5rem] border transition-all animate-in slide-in-from-right-2 duration-300 ${
+                  task.completed
+                    ? 'bg-slate-50/50 border-transparent'
                     : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-md'
-                } ${isBusy ? 'opacity-70 cursor-wait' : ''}`}
+                } ${isBusy ? 'opacity-70 cursor-wait' : isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <div className={`transition-all duration-300 ${task.completed ? 'text-emerald-500 scale-110' : 'text-slate-200 group-hover:text-emerald-400'}`}>
                   {task.completed ? (
@@ -232,14 +239,16 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, onUpdateTasks }) => {
                     )}
                   </span>
                 </div>
-                <button 
-                  type="button"
-                  onClick={(e) => deleteTask(e, task.id)}
-                  disabled={isBusy}
-                  className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all active:scale-90 disabled:opacity-0"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={(e) => deleteTask(e, task.id)}
+                    disabled={isBusy}
+                    className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all active:scale-90 disabled:opacity-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))
           )}
