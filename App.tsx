@@ -96,7 +96,7 @@ const AppContent: React.FC = () => {
 
   const renderContent = () => {
     switch (currentView) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard onViewChange={setCurrentView} />;
       case 'pipeline': return <Pipeline />;
       case 'calendar': return <CalendarView />;
       case 'sites': return <SiteList />;
@@ -104,7 +104,7 @@ const AppContent: React.FC = () => {
       case 'clients': return <ClientGrid />;
       case 'checklists': return <ChecklistManager />;
       case 'settings': return <SettingsView />;
-      default: return <Dashboard />;
+      default: return <Dashboard onViewChange={setCurrentView} />;
     }
   };
 

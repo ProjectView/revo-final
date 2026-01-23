@@ -3,12 +3,17 @@ import React, { useState } from 'react';
 import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus, Zap, AlertTriangle } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { View } from '../types';
 import NewSiteModal from './NewSiteModal';
 import NewClientModal from './NewClientModal';
 import NewLeadModal from './NewLeadModal';
 import { SubscriptionBanner } from './SubscriptionBanner';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onViewChange?: (view: View) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const { sites, leads, todos, addTodo, toggleTodo, addClient } = useData();
   const { getUsagePercentage, canAddSite, canAddClient } = useSubscription();
   const [newTask, setNewTask] = useState('');
@@ -136,7 +141,10 @@ const Dashboard: React.FC = () => {
               </div>
               <h3 className="font-black text-slate-900 text-xl tracking-tight">Planning Réel</h3>
             </div>
-            <button className="text-emerald-700 font-black text-sm hover:underline flex items-center gap-1">
+            <button
+              onClick={() => onViewChange?.('calendar')}
+              className="text-emerald-700 font-black text-sm hover:underline flex items-center gap-1"
+            >
               Calendrier complet <ChevronRight size={18} />
             </button>
           </div>
