@@ -36,7 +36,7 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     coordinates: null as [number, number] | null,
     source: 'Bouche à oreille',
     comment: '',
-    stage: 'Nouveau',
+    stage: '',
     priority: 'Moyenne' as 'Haute' | 'Moyenne' | 'Basse'
   });
 
