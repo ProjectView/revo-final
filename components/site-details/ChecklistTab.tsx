@@ -26,6 +26,11 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
     return user ? user.name : email;
   };
 
+  const getUserInfo = (userName: string) => {
+    const user = users.find(u => u.name === userName);
+    return user || { name: userName, avatar: undefined };
+  };
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setShowTemplatePicker(false);
@@ -267,12 +272,34 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
                       )}
                     </span>
                   </div>
-                  {task.completed && task.completedBy && formattedTime && (
-                    <div className="flex flex-col items-end gap-0.5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{task.completedBy}</span>
-                      <span className="text-[9px] text-slate-400">{formattedTime}</span>
-                    </div>
-                  )}
+                  {task.completed && task.completedBy && formattedTime && (() => {
+                    const userInfo = getUserInfo(task.completedBy);
+                    const initials = task.completedBy
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase();
+
+                    return (
+                      <div className="flex items-center gap-2.5 ml-2 pl-4 border-l border-slate-200">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] font-bold text-slate-700 uppercase tracking-tight">{task.completedBy}</span>
+                          <span className="text-[8px] text-slate-400 leading-tight">{formattedTime}</span>
+                        </div>
+                        {userInfo.avatar ? (
+                          <img
+                            src={userInfo.avatar}
+                            alt={task.completedBy}
+                            className="w-8 h-8 rounded-full object-cover ring-2 ring-emerald-200 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-[10px] font-black ring-2 ring-emerald-200 flex-shrink-0">
+                            {initials}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {!isReadOnly && (
                     <button
                       type="button"
