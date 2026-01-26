@@ -11,13 +11,20 @@ interface ChecklistTabProps {
 }
 
 const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateTasks }) => {
-  const { checklists, assignChecklistToSite } = useData();
+  const { checklists, assignChecklistToSite, users } = useData();
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
-  
+
   const tasks = site.tasks || [];
+
+  const getCurrentUserName = () => {
+    const email = localStorage.getItem('revo_auth');
+    if (!email) return 'Inconnu';
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    return user ? user.name : email;
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -30,9 +37,18 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
   const toggleTask = async (taskId: string) => {
     if (isBusy || isReadOnly) return;
     setIsBusy(true);
-    const updatedTasks = tasks.map(t =>
-      t.id === taskId ? { ...t, completed: !t.completed } : t
-    );
+    const updatedTasks = tasks.map(t => {
+      if (t.id === taskId) {
+        const newCompleted = !t.completed;
+        return {
+          ...t,
+          completed: newCompleted,
+          completedBy: newCompleted ? getCurrentUserName() : undefined,
+          completedAt: newCompleted ? new Date().toISOString() : undefined
+        };
+      }
+      return t;
+    });
     try {
       await onUpdateTasks(updatedTasks);
     } catch (error) {
@@ -210,47 +226,66 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
                <p className="text-[9px] font-bold mt-1 text-slate-400 italic">Utilisez le bouton d'importation ou saisissez-en une</p>
             </div>
           ) : (
-            tasks.map((task) => (
-              <div
-                key={task.id}
-                onClick={() => toggleTask(task.id)}
-                className={`group flex items-center gap-4 p-5 rounded-[1.5rem] border transition-all animate-in slide-in-from-right-2 duration-300 ${
-                  task.completed
-                    ? 'bg-slate-50/50 border-transparent'
-                    : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-md'
-                } ${isBusy ? 'opacity-70 cursor-wait' : isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <div className={`transition-all duration-300 ${task.completed ? 'text-emerald-500 scale-110' : 'text-slate-200 group-hover:text-emerald-400'}`}>
-                  {task.completed ? (
-                    <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                      <Check size={14} strokeWidth={4} />
+            tasks.map((task) => {
+              const completedDate = task.completedAt ? new Date(task.completedAt) : null;
+              const formattedTime = completedDate
+                ? completedDate.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : null;
+
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => toggleTask(task.id)}
+                  className={`group flex items-center gap-4 p-5 rounded-[1.5rem] border transition-all animate-in slide-in-from-right-2 duration-300 ${
+                    task.completed
+                      ? 'bg-slate-50/50 border-transparent'
+                      : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-md'
+                  } ${isBusy ? 'opacity-70 cursor-wait' : isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className={`transition-all duration-300 ${task.completed ? 'text-emerald-500 scale-110' : 'text-slate-200 group-hover:text-emerald-400'}`}>
+                    {task.completed ? (
+                      <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                        <Check size={14} strokeWidth={4} />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-lg border-2 border-current bg-white"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-sm font-bold transition-all flex items-center gap-2 ${task.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                      {task.label}
+                      {task.isCritical && (
+                        <span className={`p-1 rounded bg-amber-50 text-amber-500 ${task.completed ? 'opacity-30' : ''}`}>
+                          <AlertTriangle size={10} />
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {task.completed && task.completedBy && formattedTime && (
+                    <div className="flex flex-col items-end gap-0.5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{task.completedBy}</span>
+                      <span className="text-[9px] text-slate-400">{formattedTime}</span>
                     </div>
-                  ) : (
-                    <div className="w-6 h-6 rounded-lg border-2 border-current bg-white"></div>
+                  )}
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={(e) => deleteTask(e, task.id)}
+                      disabled={isBusy}
+                      className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all active:scale-90 disabled:opacity-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className={`text-sm font-bold transition-all flex items-center gap-2 ${task.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                    {task.label}
-                    {task.isCritical && (
-                      <span className={`p-1 rounded bg-amber-50 text-amber-500 ${task.completed ? 'opacity-30' : ''}`}>
-                        <AlertTriangle size={10} />
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {!isReadOnly && (
-                  <button
-                    type="button"
-                    onClick={(e) => deleteTask(e, task.id)}
-                    disabled={isBusy}
-                    className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all active:scale-90 disabled:opacity-0"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

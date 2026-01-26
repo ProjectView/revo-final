@@ -86,6 +86,8 @@ export interface SiteTask {
   label: string;
   completed: boolean;
   isCritical?: boolean;
+  completedBy?: string; // Nom de l'utilisateur qui a coché la tâche
+  completedAt?: string; // ISO timestamp de quand la tâche a été cochée
 }
 
 export interface SiteComment {
