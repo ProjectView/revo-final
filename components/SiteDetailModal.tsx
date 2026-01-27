@@ -141,9 +141,9 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] animate-fade-in" onClick={isEditing || isSubmitting ? undefined : onClose} />
-      
-      <div className="fixed top-0 bottom-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[70] flex flex-col animate-slide-in overflow-hidden">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] animate-fade-in" onClick={isEditing || isSubmitting ? undefined : onClose} />
+
+      <div className="fixed top-0 bottom-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[210] flex flex-col animate-slide-in overflow-hidden">
         <div className="pt-10 pb-6 px-8 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">

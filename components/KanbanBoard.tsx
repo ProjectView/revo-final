@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { Site, Status, User } from '../types';
-import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon, Check } from 'lucide-react';
+import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon, Check, Lock } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
+import CloseSiteModal from './CloseSiteModal';
 
 interface KanbanBoardProps {
   sites: Site[];
@@ -13,12 +14,14 @@ interface KanbanBoardProps {
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange, statuses: customStatuses }) => {
-  const { clients, users } = useData();
+  const { clients, users, closeSite } = useData();
   const { isReadOnly } = useSubscription();
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
   const statuses = customStatuses || DEFAULT_STATUSES;
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [draggedFromStatus, setDraggedFromStatus] = useState<Status | null>(null);
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const [siteToClose, setSiteToClose] = useState<Site | null>(null);
 
   const getStatusColor = (status: Status) => {
     switch (status) {
@@ -91,10 +94,26 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
     }
   };
 
+  const handleCloseSite = (e: React.MouseEvent, site: Site) => {
+    e.stopPropagation();
+    if (isReadOnly('site', site.id)) {
+      return;
+    }
+    setSiteToClose(site);
+    setIsCloseModalOpen(true);
+  };
+
+  const handleConfirmClose = async (siteId: string) => {
+    await closeSite(siteId);
+    setIsCloseModalOpen(false);
+    setSiteToClose(null);
+  };
+
   return (
+    <>
     <div className="flex gap-4 md:gap-6 lg:gap-8 overflow-x-auto pb-6 md:pb-10 -mx-4 px-4 scrollbar-hide items-stretch h-[calc(100vh-280px)]">
       {statuses.map((status) => {
-        const sitesInStatus = sites.filter(s => s.status === status);
+        const sitesInStatus = sites.filter(s => s.status === status && !s.closedAt);
         const totalBudget = sitesInStatus.reduce((acc, curr) => acc + curr.budget, 0);
 
         const isTerminedStatus = status === 'TERMINÉ';
@@ -220,6 +239,15 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                           </button>
                         )}
                       </div>
+                      {isTerminedStatus && !site.closedAt && (
+                        <button
+                          onClick={(e) => handleCloseSite(e, site)}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition-all text-[10px] sm:text-xs font-black uppercase tracking-wider"
+                        >
+                          <Lock size={12} className="sm:size-[14px]" strokeWidth={3} />
+                          Clôturer
+                        </button>
+                      )}
                       <div className="flex -space-x-1.5 sm:-space-x-2">
                         {assignedUsers.length > 0 ? (
                           assignedUsers.slice(0, 3).map((u) => (
@@ -258,6 +286,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
       })}
       <div className="flex-shrink-0 w-10"></div>
     </div>
+
+    <CloseSiteModal
+      isOpen={isCloseModalOpen}
+      site={siteToClose}
+      onClose={() => setIsCloseModalOpen(false)}
+      onConfirm={handleConfirmClose}
+    />
+  </>
   );
 };
 

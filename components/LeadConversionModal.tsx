@@ -7,10 +7,11 @@ import { useData } from '../context/DataContext';
 interface LeadConversionModalProps {
   lead: Lead | null;
   onClose: () => void;
+  onSuccess?: (newId: string, type: 'site' | 'prestation') => void;
 }
 
-const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose }) => {
-  const { clients, addSite, addPrestation, deleteLead, addClient, company } = useData();
+const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose, onSuccess }) => {
+  const { clients, addSite, addPrestation, deleteLead, addClient, company, transferLeadDataToSite } = useData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'type' | 'client'>('type');
   const [selectedType, setSelectedType] = useState<'site' | 'prestation' | null>(null);
@@ -54,12 +55,25 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
     };
 
     try {
+      let newId = '';
       if (selectedType === 'site') {
-        await addSite(commonData as any);
+        newId = await addSite(commonData as any);
       } else {
-        await addPrestation(commonData as any);
+        newId = await addPrestation(commonData as any);
       }
+
+      // Transférer les commentaires et l'historique du lead
+      if (newId) {
+        await transferLeadDataToSite(lead.id, newId, selectedType);
+      }
+
       await deleteLead(lead.id);
+
+      // Notify parent component about successful conversion
+      if (onSuccess && newId && selectedType) {
+        onSuccess(newId, selectedType);
+      }
+
       onClose();
     } catch (error) {
       console.error("Erreur de conversion:", error);

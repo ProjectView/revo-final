@@ -59,12 +59,14 @@ const SiteList: React.FC = () => {
     return sites.filter(s => {
       const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           s.address.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const siteDate = new Date(s.startDate);
       const matchesStart = !dateStart || siteDate >= new Date(dateStart);
       const matchesEnd = !dateEnd || siteDate <= new Date(dateEnd);
 
-      return matchesSearch && matchesStart && matchesEnd;
+      const isNotClosed = !s.closedAt;
+
+      return matchesSearch && matchesStart && matchesEnd && isNotClosed;
     });
   }, [sites, searchTerm, dateStart, dateEnd]);
 

@@ -134,6 +134,7 @@ export interface Site {
   color?: string;
   tasks?: SiteTask[];
   assignedUserIds?: string[];
+  closedAt?: string; // Date de clôture du chantier (ISO timestamp)
 }
 
 export interface Prestation extends Site {

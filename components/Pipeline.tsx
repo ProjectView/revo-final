@@ -6,6 +6,8 @@ import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
 import LeadConversionModal from './LeadConversionModal';
 import LeadDetailModal from './LeadDetailModal';
+import SiteDetailModal from './SiteDetailModal';
+import PrestationDetailModal from './PrestationDetailModal';
 import { useData } from '../context/DataContext';
 
 const DEFAULT_STAGES = ['Nouvelle opportunité', 'En discussion', 'Gagné', 'Perdu'];
@@ -16,6 +18,8 @@ const Pipeline: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedLeadToConvert, setSelectedLeadToConvert] = useState<Lead | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [selectedConvertedSiteId, setSelectedConvertedSiteId] = useState<string | null>(null);
+  const [selectedConvertedPrestationId, setSelectedConvertedPrestationId] = useState<string | null>(null);
   
   const stages = useMemo(() => company?.pipelineStages || DEFAULT_STAGES, [company]);
   
@@ -48,6 +52,14 @@ const Pipeline: React.FC = () => {
   const handleWinLead = (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation();
     updateLeadStage(lead.id, 'Gagné');
+  };
+
+  const handleConversionSuccess = (newId: string, type: 'site' | 'prestation') => {
+    if (type === 'site') {
+      setSelectedConvertedSiteId(newId);
+    } else {
+      setSelectedConvertedPrestationId(newId);
+    }
   };
 
   const triggerConfetti = () => {
@@ -227,15 +239,30 @@ const Pipeline: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
       />
 
-      <LeadConversionModal 
-        lead={selectedLeadToConvert} 
-        onClose={() => setSelectedLeadToConvert(null)} 
+      <LeadConversionModal
+        lead={selectedLeadToConvert}
+        onClose={() => setSelectedLeadToConvert(null)}
+        onSuccess={handleConversionSuccess}
       />
 
-      <LeadDetailModal 
+      <LeadDetailModal
         leadId={selectedLeadId}
         onClose={() => setSelectedLeadId(null)}
       />
+
+      {selectedConvertedSiteId && (
+        <SiteDetailModal
+          siteId={selectedConvertedSiteId}
+          onClose={() => setSelectedConvertedSiteId(null)}
+        />
+      )}
+
+      {selectedConvertedPrestationId && (
+        <PrestationDetailModal
+          prestationId={selectedConvertedPrestationId}
+          onClose={() => setSelectedConvertedPrestationId(null)}
+        />
+      )}
 
       {/* --- Pipeline Settings Modal --- */}
       {isSettingsOpen && (

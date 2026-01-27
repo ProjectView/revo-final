@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Building2, Mail, Phone, MapPin, Briefcase, FileText, Edit3, Trash2, ExternalLink, TrendingUp, Calendar, Save, Loader2 } from 'lucide-react';
-import { Client } from '../types';
+import { Client, Site, Prestation } from '../types';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { ReadOnlyBadge } from './ReadOnlyBadge';
+import SiteDetailModal from './SiteDetailModal';
+import PrestationDetailModal from './PrestationDetailModal';
 
 interface ClientDetailModalProps {
   client: Client | null;
@@ -25,12 +27,14 @@ interface AddressSuggestion {
 type TabType = 'overview' | 'projects' | 'docs';
 
 const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }) => {
-  const { sites, updateClient, deleteClient } = useData();
+  const { sites, prestations, updateClient, deleteClient } = useData();
   const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [editedClient, setEditedClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [selectedPrestation, setSelectedPrestation] = useState<Prestation | null>(null);
 
   // Address Autocomplete states
   const [addressSearch, setAddressSearch] = useState('');
@@ -95,6 +99,13 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
   if (!client || !editedClient) return null;
 
   const clientSites = sites.filter(s => s.clientId === client.id);
+  const activeSites = clientSites.filter(s => !s.closedAt);
+  const closedSites = clientSites.filter(s => s.closedAt);
+
+  const clientPrestations = prestations.filter((p: Prestation) => p.clientId === client.id);
+  const activePrestations = clientPrestations.filter((p: Prestation) => !p.closedAt);
+  const closedPrestations = clientPrestations.filter((p: Prestation) => p.closedAt);
+
   const totalBudget = clientSites.reduce((sum, s) => sum + s.budget, 0);
   const isPro = editedClient.company !== 'Particulier';
 
@@ -345,40 +356,169 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
           )}
 
           {activeTab === 'projects' && (
-            <div className="space-y-4 animate-in fade-in duration-300">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Historique des chantiers</h3>
-              {clientSites.length > 0 ? (
-                clientSites.map((site) => (
-                  <div key={site.id} className="p-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all group cursor-pointer">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">{site.name}</h4>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{site.address}</p>
-                      </div>
-                      <div className={`px-2 py-1 rounded-lg text-[8px] font-black border ${
-                        site.status === 'TERMINÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                        site.status === 'EN COURS' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'
-                      }`}>
-                        {site.status}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                          <Calendar size={12} />
-                          {new Date(site.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* Chantiers actifs */}
+              <div>
+                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Chantiers en cours</h3>
+                {activeSites.length > 0 ? (
+                  <div className="space-y-4">
+                    {activeSites.map((site) => (
+                      <div
+                        key={site.id}
+                        onClick={() => setSelectedSite(site)}
+                        className="p-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">{site.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">{site.address}</p>
+                          </div>
+                          <div className={`px-2 py-1 rounded-lg text-[8px] font-black border ${
+                            site.status === 'TERMINÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            site.status === 'EN COURS' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                          }`}>
+                            {site.status}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                              <Calendar size={12} />
+                              {new Date(site.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                            </div>
+                          </div>
+                          <button className="text-emerald-600 hover:text-emerald-800 transition-colors">
+                            <ExternalLink size={16} />
+                          </button>
                         </div>
                       </div>
-                      <button className="text-emerald-600 hover:text-emerald-800 transition-colors">
-                        <ExternalLink size={16} />
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                ))
-              ) : (
-                <div className="py-20 flex flex-col items-center justify-center text-slate-300">
-                  <Briefcase size={40} className="mb-4 opacity-20" />
-                  <p className="text-sm font-bold">Aucun chantier historique</p>
+                ) : (
+                  <div className="py-12 flex flex-col items-center justify-center text-slate-300">
+                    <Briefcase size={32} className="mb-3 opacity-20" />
+                    <p className="text-sm font-bold">Aucun chantier actif</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Chantiers clôturés */}
+              {closedSites.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Chantiers clôturés ({closedSites.length})</h3>
+                  <div className="space-y-4">
+                    {closedSites.map((site) => (
+                      <div
+                        key={site.id}
+                        onClick={() => setSelectedSite(site)}
+                        className="p-5 bg-slate-50/50 border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all group cursor-pointer opacity-75 hover:opacity-100"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-slate-600 group-hover:text-slate-800 transition-colors">{site.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">{site.address}</p>
+                          </div>
+                          <div className="px-2 py-1 rounded-lg text-[8px] font-black border bg-slate-100 text-slate-500 border-slate-200">
+                            CLÔTURÉ
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Calendar size={12} />
+                              {new Date(site.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                              {site.closedAt && (
+                                <span className="ml-2">→ Clôturé le {new Date(site.closedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                            <ExternalLink size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Prestations actives */}
+              {activePrestations.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 mt-8">Prestations en cours</h3>
+                  <div className="space-y-4">
+                    {activePrestations.map((prestation) => (
+                      <div
+                        key={prestation.id}
+                        onClick={() => setSelectedPrestation(prestation)}
+                        className="p-5 bg-white border border-indigo-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-slate-800 group-hover:text-indigo-900 transition-colors">{prestation.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">{prestation.address}</p>
+                          </div>
+                          <div className={`px-2 py-1 rounded-lg text-[8px] font-black border ${
+                            prestation.status === 'TERMINÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            prestation.status === 'EN COURS' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                          }`}>
+                            {prestation.status}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                              <Calendar size={12} />
+                              {new Date(prestation.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                            </div>
+                          </div>
+                          <button className="text-indigo-600 hover:text-indigo-800 transition-colors">
+                            <ExternalLink size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Prestations clôturées */}
+              {closedPrestations.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 mt-8">Prestations clôturées ({closedPrestations.length})</h3>
+                  <div className="space-y-4">
+                    {closedPrestations.map((prestation) => (
+                      <div
+                        key={prestation.id}
+                        onClick={() => setSelectedPrestation(prestation)}
+                        className="p-5 bg-slate-50/50 border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all group cursor-pointer opacity-75 hover:opacity-100"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-slate-600 group-hover:text-slate-800 transition-colors">{prestation.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">{prestation.address}</p>
+                          </div>
+                          <div className="px-2 py-1 rounded-lg text-[8px] font-black border bg-slate-100 text-slate-500 border-slate-200">
+                            CLÔTURÉ
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Calendar size={12} />
+                              {new Date(prestation.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                              {prestation.closedAt && (
+                                <span className="ml-2">→ Clôturé le {new Date(prestation.closedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                            <ExternalLink size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -430,6 +570,20 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
           )}
         </div>
       </div>
+
+      {selectedSite && (
+        <SiteDetailModal
+          siteId={selectedSite.id}
+          onClose={() => setSelectedSite(null)}
+        />
+      )}
+
+      {selectedPrestation && (
+        <PrestationDetailModal
+          prestationId={selectedPrestation.id}
+          onClose={() => setSelectedPrestation(null)}
+        />
+      )}
     </>
   );
 };

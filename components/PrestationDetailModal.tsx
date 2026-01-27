@@ -131,9 +131,9 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] animate-fade-in" onClick={isEditing || isSubmitting ? undefined : onClose} />
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] animate-fade-in" onClick={isEditing || isSubmitting ? undefined : onClose} />
 
-      <div className="fixed top-0 bottom-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[70] flex flex-col animate-slide-in overflow-hidden">
+      <div className="fixed top-0 bottom-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[210] flex flex-col animate-slide-in overflow-hidden">
         {isClientReadOnly && (
           <div className="px-8 pt-6 pb-4 border-b border-rose-200 bg-rose-50/50">
             <ReadOnlyBadge />

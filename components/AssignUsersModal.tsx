@@ -78,8 +78,8 @@ const AssignUsersModal: React.FC<AssignUsersModalProps> = ({ isOpen, onClose, as
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] animate-fade-in" onClick={onClose} />
-      <div className="fixed top-0 bottom-0 right-0 w-full max-w-md bg-white shadow-2xl z-[160] flex flex-col animate-slide-in overflow-hidden">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[220] animate-fade-in" onClick={onClose} />
+      <div className="fixed top-0 bottom-0 right-0 w-full max-w-md bg-white shadow-2xl z-[230] flex flex-col animate-slide-in overflow-hidden">
         <div className="pt-10 pb-6 px-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">Assigner l'équipe</h2>

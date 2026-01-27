@@ -1,14 +1,15 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { 
-  collection, 
-  doc, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+import {
+  collection,
+  doc,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
   setDoc,
   getDoc,
+  getDocs,
   query,
   orderBy,
   where,
@@ -46,12 +47,14 @@ interface DataContextType {
   addLeadComment: (leadId: string, text: string) => Promise<void>;
   getLeadComments: (leadId: string, callback: (comments: LeadComment[]) => void) => () => void;
   getLeadActivities: (leadId: string, callback: (activities: LeadActivity[]) => void) => () => void;
-  addSite: (site: Omit<Site, 'id'>) => Promise<void>;
+  addSite: (site: Omit<Site, 'id'>) => Promise<string>;
   updateSite: (siteId: string, updates: Partial<Site>) => Promise<void>;
   deleteSite: (siteId: string) => Promise<void>;
+  closeSite: (siteId: string) => Promise<void>;
   addSiteComment: (siteId: string, text: string) => Promise<void>;
   getSiteComments: (siteId: string, callback: (comments: SiteComment[]) => void) => () => void;
-  addPrestation: (prestation: Omit<Prestation, 'id'>) => Promise<void>;
+  transferLeadDataToSite: (leadId: string, siteId: string, type?: 'site' | 'prestation') => Promise<void>;
+  addPrestation: (prestation: Omit<Prestation, 'id'>) => Promise<string>;
   updatePrestation: (prestationId: string, updates: Partial<Prestation>) => Promise<void>;
   deletePrestation: (prestationId: string) => Promise<void>;
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
@@ -502,7 +505,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addSite = async (site: Omit<Site, 'id'>) => {
-    if (!companyId || !company?.subscription) return;
+    if (!companyId || !company?.subscription) return '';
 
     const planConfig = SUBSCRIPTION_PLANS[company.subscription.plan];
     const sitesReadOnly = company.limits?.sitesReadOnly || [];
@@ -516,7 +519,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Site limit reached');
     }
 
-    await addDoc(collection(db, 'companies', companyId, 'sites'), { ...site, tasks: [], assignedUserIds: [] });
+    const docRef = await addDoc(collection(db, 'companies', companyId, 'sites'), { ...site, tasks: [], assignedUserIds: [] });
+    return docRef.id;
   };
 
   const updateSite = async (siteId: string, updates: Partial<Site>) => {
@@ -556,6 +560,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await deleteDoc(doc(db, 'companies', companyId, 'sites', siteId));
   };
 
+  const closeSite = async (siteId: string) => {
+    if (!companyId) return;
+    const siteRef = doc(db, 'companies', companyId, 'sites', siteId);
+    await updateDoc(siteRef, {
+      closedAt: new Date().toISOString()
+    });
+  };
+
   const addSiteComment = async (siteId: string, text: string) => {
     if (!companyId) return;
     await addDoc(collection(db, 'companies', companyId, 'sites', siteId, 'comments'), {
@@ -573,9 +585,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const addPrestation = async (prestation: Omit<Prestation, 'id'>) => {
+  const transferLeadDataToSite = async (leadId: string, siteId: string, type: 'site' | 'prestation' = 'site') => {
     if (!companyId) return;
-    await addDoc(collection(db, 'companies', companyId, 'prestations'), { ...prestation, tasks: [], assignedUserIds: [] });
+
+    try {
+      // Récupérer les commentaires du lead
+      const commentsSnap = await getDocs(
+        query(collection(db, 'companies', companyId, 'leads', leadId, 'comments'), orderBy('timestamp', 'asc'))
+      );
+
+      // Récupérer les activités du lead
+      const activitiesSnap = await getDocs(
+        query(collection(db, 'companies', companyId, 'leads', leadId, 'activities'), orderBy('timestamp', 'asc'))
+      );
+
+      const collectionName = type === 'site' ? 'sites' : 'prestations';
+      const commentsCollection = collection(db, 'companies', companyId, collectionName, siteId, 'comments');
+
+      // Transférer les activités comme commentaires (historique)
+      for (const activityDoc of activitiesSnap.docs) {
+        const activity = activityDoc.data() as LeadActivity;
+        await addDoc(commentsCollection, {
+          text: `[Historique Pipeline] ${activity.description}`,
+          user: activity.user,
+          timestamp: activity.timestamp
+        });
+      }
+
+      // Transférer les commentaires
+      for (const commentDoc of commentsSnap.docs) {
+        const comment = commentDoc.data() as LeadComment;
+        await addDoc(commentsCollection, {
+          text: `[Note Pipeline] ${comment.text}`,
+          user: comment.user,
+          timestamp: comment.timestamp
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors du transfert des données du lead:', error);
+    }
+  };
+
+  const addPrestation = async (prestation: Omit<Prestation, 'id'>) => {
+    if (!companyId) return '';
+    const docRef = await addDoc(collection(db, 'companies', companyId, 'prestations'), { ...prestation, tasks: [], assignedUserIds: [] });
+    return docRef.id;
   };
 
   const updatePrestation = async (prestationId: string, updates: Partial<Prestation>) => {
@@ -788,7 +842,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sites, prestations, leads, clients, todos, users, checklists, userNotifications, company, loading, permissionError, companyId,
       setCompanyId, loginWithEmail, createCompany, inviteUser, checkInvitation,
       addLead, updateLead, updateLeadStage, deleteLead, addLeadComment, getLeadComments, getLeadActivities,
-      addSite, updateSite, deleteSite, addSiteComment, getSiteComments,
+      addSite, updateSite, deleteSite, closeSite, addSiteComment, getSiteComments, transferLeadDataToSite,
       addPrestation, updatePrestation, deletePrestation,
       addClient, updateClient, deleteClient,
       addTodo, toggleTodo, deleteTodo,

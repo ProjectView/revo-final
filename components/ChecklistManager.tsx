@@ -63,7 +63,7 @@ const ChecklistManager: React.FC = () => {
     <div className="w-full px-6 lg:px-12 py-8 lg:py-10 space-y-8 lg:space-y-10 animate-in fade-in duration-700 pb-24 lg:pb-12">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-8">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Bibliothèque Qualité</h1>
+          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Modèles de Checklist</h1>
           <p className="text-slate-500 text-base font-semibold mt-1">Standards de contrôle et procédures opérationnelles.</p>
         </div>
         <div className="flex gap-3 w-full lg:w-auto">
