@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, AlertCircle, Flag } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag } from 'lucide-react';
 import { Lead, LeadComment, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
 import LeadLocationMap from './LeadLocationMap';
@@ -132,6 +132,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                 coordinates={lead.coordinates}
                 address={lead.address}
                 leadName={lead.leadName}
+                budget={lead.budget}
               />
 
               {/* Budget Card */}
@@ -234,7 +235,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                 </div>
               </div>
 
-              {/* Priority & Source Section */}
+              {/* Priority & Comment Section */}
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Autres infos</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -253,12 +254,6 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                         'text-blue-600'
                       }`}>{lead.priority}</span>
                     </div>
-                  </div>
-
-                  {/* Source */}
-                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Source</p>
-                    <p className="text-xs font-bold text-slate-700 truncate" title={lead.source}>{lead.source}</p>
                   </div>
 
                   {/* Comment */}
