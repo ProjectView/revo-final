@@ -116,8 +116,11 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
       leadName: client.name,
       company: client.company,
       email: client.email,
-      phone: client.phone
+      phone: client.phone,
+      address: client.address || '',
+      coordinates: client.coordinates || null
     }));
+    setAddressSearch(client.address || '');
     setShowContactSuggestions(false);
   };
 
