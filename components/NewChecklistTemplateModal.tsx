@@ -142,13 +142,6 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
     }
   };
 
-  const resetForm = () => {
-    setTitle('');
-    setCategory('Électricité');
-    setDescription('');
-    setItems([{ id: '1', label: '', isCritical: false }]);
-  };
-
   if (!isOpen) return null;
 
   return (
