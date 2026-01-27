@@ -676,7 +676,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: `${checklist.id}-${item.id}-${Date.now()}`,
       label: item.label,
       completed: false,
-      isCritical: item.isCritical
+      isCritical: item.isCritical,
+      category: checklist.category
     }));
 
     await updateDoc(siteRef, {

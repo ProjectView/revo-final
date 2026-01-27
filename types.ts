@@ -29,6 +29,7 @@ export interface Company {
   website?: string;
   pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
   siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
+  prestationStatuses?: string[]; // Statuts personnalisés pour les prestations
   checklistCategories?: string[]; // Catégories personnalisées pour les checklists
   maxSimultaneousSites?: number; // Limite de chantiers en parallèle
   // Adresse
@@ -89,6 +90,7 @@ export interface SiteTask {
   isCritical?: boolean;
   completedBy?: string; // Nom de l'utilisateur qui a coché la tâche
   completedAt?: string; // ISO timestamp de quand la tâche a été cochée
+  category?: string; // Catégorie du checklist (pour grouper les tâches)
 }
 
 export interface SiteComment {

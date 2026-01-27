@@ -15,9 +15,25 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const tasks = site.tasks || [];
+
+  // Extraire les catégories distinctes des tâches
+  const categories = Array.from(new Set(tasks.filter(t => t.category).map(t => t.category)));
+
+  // Initialiser activeCategory avec la première catégorie disponible
+  React.useEffect(() => {
+    if (activeCategory === null && categories.length > 0) {
+      setActiveCategory(categories[0]);
+    } else if (categories.length === 0) {
+      setActiveCategory(null);
+    }
+  }, [categories]);
+
+  // Filtrer les tâches selon la catégorie active
+  const filteredTasks = activeCategory ? tasks.filter(t => t.category === activeCategory) : tasks;
 
   const getCurrentUserName = () => {
     const email = localStorage.getItem('revo_auth');
@@ -45,12 +61,18 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
     const updatedTasks = tasks.map(t => {
       if (t.id === taskId) {
         const newCompleted = !t.completed;
-        return {
+        const updated: SiteTask = {
           ...t,
-          completed: newCompleted,
-          completedBy: newCompleted ? getCurrentUserName() : undefined,
-          completedAt: newCompleted ? new Date().toISOString() : undefined
+          completed: newCompleted
         };
+        if (newCompleted) {
+          updated.completedBy = getCurrentUserName();
+          updated.completedAt = new Date().toISOString();
+        } else {
+          delete updated.completedBy;
+          delete updated.completedAt;
+        }
+        return updated;
       }
       return t;
     });
@@ -188,6 +210,25 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
 
       {/* Task List */}
       <div className="space-y-4">
+        {/* Sub-category tabs */}
+        {categories.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                  activeCategory === cat
+                    ? 'bg-emerald-100 text-emerald-900 shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="px-2 flex items-center justify-between">
           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Actions du chantier</h3>
           {isBusy && <Loader2 className="animate-spin text-emerald-600" size={14} />}
@@ -222,7 +263,7 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
         )}
         
         <div className="space-y-2.5">
-          {tasks.length === 0 ? (
+          {filteredTasks.length === 0 ? (
             <div className="py-16 border-2 border-dashed border-slate-100 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-300 bg-slate-50/20">
                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-50">
                 <ListChecks size={24} strokeWidth={1} className="opacity-30" />
@@ -231,7 +272,7 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
                <p className="text-[9px] font-bold mt-1 text-slate-400 italic">Utilisez le bouton d'importation ou saisissez-en une</p>
             </div>
           ) : (
-            tasks.map((task) => {
+            filteredTasks.map((task) => {
               const completedDate = task.completedAt ? new Date(task.completedAt) : null;
               const formattedTime = completedDate
                 ? completedDate.toLocaleDateString('fr-FR', {

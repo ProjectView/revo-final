@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Plus, List, Kanban, Map, Wrench, Ghost, FilterX, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Filter, Plus, List, Kanban, Map, Wrench, Ghost, FilterX, Calendar, X, ChevronDown, ChevronUp, Settings, Settings2, GripVertical, ArrowUp, ArrowDown, Trash2, Check } from 'lucide-react';
 import { Status, Prestation } from '../types';
 import PrestationDetailModal from './PrestationDetailModal';
 import NewPrestationModal from './NewPrestationModal';
@@ -11,16 +11,47 @@ import { useData } from '../context/DataContext';
 type ViewMode = 'list' | 'kanban' | 'map';
 
 const PrestationList: React.FC = () => {
-  const { prestations, clients, updatePrestation } = useData();
+  const { prestations, clients, updatePrestation, company, updateCompany } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [selectedPrestationId, setSelectedPrestationId] = useState<string | null>(null);
   const [isNewPrestationModalOpen, setIsNewPrestationModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [editedStatuses, setEditedStatuses] = useState<string[]>([]);
+
   // États des filtres
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
+
+  // Statuts par défaut
+  const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const prestationStatuses = useMemo(
+    () => (company?.prestationStatuses && company.prestationStatuses.length > 0
+      ? company.prestationStatuses as Status[]
+      : DEFAULT_STATUSES),
+    [company?.prestationStatuses]
+  );
+
+  const openSettings = () => {
+    setEditedStatuses([...(company?.prestationStatuses || DEFAULT_STATUSES)]);
+    setIsSettingsOpen(true);
+  };
+
+  const saveStatuses = async () => {
+    await updateCompany({ prestationStatuses: editedStatuses });
+    setIsSettingsOpen(false);
+  };
+
+  const addStatus = () => setEditedStatuses([...editedStatuses, 'Nouveau statut']);
+  const removeStatus = (index: number) => setEditedStatuses(editedStatuses.filter((_, i) => i !== index));
+  const moveStatus = (index: number, direction: 'up' | 'down') => {
+    const newStatuses = [...editedStatuses];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newStatuses.length) return;
+    [newStatuses[index], newStatuses[targetIndex]] = [newStatuses[targetIndex], newStatuses[index]];
+    setEditedStatuses(newStatuses);
+  };
 
   const filteredPrestations = useMemo(() => {
     return prestations.filter(p => {
@@ -64,13 +95,20 @@ const PrestationList: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="flex bg-white rounded-2xl border border-slate-200 p-1.5 shadow-sm w-full sm:w-auto">
               {(['list', 'kanban', 'map'] as ViewMode[]).map(mode => (
-                <button key={mode} onClick={() => setViewMode(mode)} 
+                <button key={mode} onClick={() => setViewMode(mode)}
                   className={`flex-1 px-5 py-2.5 rounded-xl flex items-center justify-center gap-3 text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>
                   {mode === 'list' && <List size={18}/>} {mode === 'kanban' && <Kanban size={18}/>} {mode === 'map' && <Map size={18}/>}
                   <span className="hidden sm:inline">{mode === 'list' ? 'Liste' : mode}</span>
                 </button>
               ))}
             </div>
+            <button
+              onClick={openSettings}
+              className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
+              title="Paramètres des statuts"
+            >
+              <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+            </button>
             <button onClick={() => setIsNewPrestationModalOpen(true)}
               className="w-full sm:w-auto bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
               <Plus size={20} /> Nouvelle prestation
@@ -211,7 +249,7 @@ const PrestationList: React.FC = () => {
               </div>
             )}
 
-            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} onStatusChange={async (prestationId, newStatus) => await updatePrestation(prestationId, { status: newStatus })} />}
+            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} onStatusChange={async (prestationId, newStatus) => await updatePrestation(prestationId, { status: newStatus })} statuses={prestationStatuses} />}
             {viewMode === 'map' && <MapView sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
           </>
         )}
@@ -219,6 +257,70 @@ const PrestationList: React.FC = () => {
       </div>
       <PrestationDetailModal prestationId={selectedPrestationId} onClose={() => setSelectedPrestationId(null)} />
       <NewPrestationModal isOpen={isNewPrestationModalOpen} onClose={() => setIsNewPrestationModalOpen(false)} />
+
+      {/* --- Settings Modal for Prestation Statuses --- */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsSettingsOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-900/20">
+                  <Settings size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">Statuts des Prestations</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Configuration société</p>
+                </div>
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-2 text-slate-400 hover:bg-white rounded-full transition-colors"><X size={24} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-4">
+              <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3 mb-6">
+                <Settings2 className="text-amber-600 shrink-0" size={18} />
+                <p className="text-[10px] font-bold text-amber-700 leading-relaxed uppercase tracking-tight">
+                  Attention : Modifier le nom d'un statut affectera la visibilité des prestations actuellement dans cette colonne.
+                </p>
+              </div>
+
+              {editedStatuses.map((status, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
+                  <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={18} /></div>
+                  <input
+                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
+                    value={status}
+                    onChange={(e) => {
+                      const updated = [...editedStatuses];
+                      updated[idx] = e.target.value;
+                      setEditedStatuses(updated);
+                    }}
+                  />
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => moveStatus(idx, 'up')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
+                    <button onClick={() => moveStatus(idx, 'down')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
+                    <button onClick={() => removeStatus(idx)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={addStatus}
+                className="w-full py-4 border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 hover:text-emerald-600 hover:border-emerald-100 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Ajouter un statut
+              </button>
+            </div>
+
+            <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
+              <button onClick={() => setIsSettingsOpen(false)} className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600">Annuler</button>
+              <button onClick={saveStatuses} className="flex-[2] bg-emerald-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
+                <Check size={18} /> Appliquer les changements
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

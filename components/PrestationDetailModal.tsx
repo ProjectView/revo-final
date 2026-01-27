@@ -122,7 +122,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
           />
         );
       case 'checklist':
-        return <ChecklistTab site={prestation} onUpdateTasks={(tasks) => updatePrestation(prestation.id, { tasks })} />;
+        return <ChecklistTab site={prestation} isReadOnly={isClientReadOnly} onUpdateTasks={(tasks) => updatePrestation(prestation.id, { tasks })} />;
       case 'docs':
         return <DocsTab siteId={prestation.id} />;
       default: return null;
