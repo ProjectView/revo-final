@@ -529,12 +529,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const oldSnap = await getDoc(siteRef);
     if (!oldSnap.exists()) return;
     const oldData = oldSnap.data() as Site;
-    
+
     await updateDoc(siteRef, updates);
-    
-    if (oldData.assignedUserIds && oldData.assignedUserIds.length > 0) {
+
+    // Handle assignment changes
+    const newAssignedUserIds = updates.assignedUserIds ?? oldData.assignedUserIds ?? [];
+    const oldAssignedUserIds = oldData.assignedUserIds ?? [];
+
+    const newlyAssignedIds = newAssignedUserIds.filter(id => !oldAssignedUserIds.includes(id));
+    const stillAssignedIds = oldAssignedUserIds.filter(id => newAssignedUserIds.includes(id));
+
+    // Send notification to newly assigned users
+    if (newlyAssignedIds.length > 0) {
+      await triggerNotifications(
+        newlyAssignedIds,
+        `Chantier : ${oldData.name}`,
+        `Vous avez été assigné(e) à ce chantier par ${getCurrentUserName()}`,
+        'assignment',
+        siteId
+      );
+    }
+
+    // Send update notifications to users who remain assigned (only if non-assignment changes)
+    if (stillAssignedIds.length > 0 && updates.assignedUserIds === undefined) {
       let msg = `Informations générales mises à jour`;
-      
+
       if (updates.status && updates.status !== oldData.status) {
         msg = `Statut passé à ${updates.status}`;
       } else if (updates.address && updates.address !== oldData.address) {
@@ -546,7 +565,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       await triggerNotifications(
-        oldData.assignedUserIds,
+        stillAssignedIds,
         `Chantier : ${oldData.name}`,
         msg,
         'site_update',
@@ -563,9 +582,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const closeSite = async (siteId: string) => {
     if (!companyId) return;
     const siteRef = doc(db, 'companies', companyId, 'sites', siteId);
+    const siteSnap = await getDoc(siteRef);
+    if (!siteSnap.exists()) return;
+    const site = siteSnap.data() as Site;
+
     await updateDoc(siteRef, {
       closedAt: new Date().toISOString()
     });
+
+    // Notify assigned users that the site has been closed
+    if (site.assignedUserIds && site.assignedUserIds.length > 0) {
+      await triggerNotifications(
+        site.assignedUserIds,
+        `Chantier : ${site.name}`,
+        `Le chantier a été clôturé`,
+        'site_update',
+        siteId
+      );
+    }
   };
 
   const addSiteComment = async (siteId: string, text: string) => {
@@ -641,9 +675,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await updateDoc(prestRef, updates);
 
-    if (oldData.assignedUserIds && oldData.assignedUserIds.length > 0) {
-      let msg = `Informations mises à jour par ${getCurrentUserName()}`;
-      
+    // Handle assignment changes
+    const newAssignedUserIds = updates.assignedUserIds ?? oldData.assignedUserIds ?? [];
+    const oldAssignedUserIds = oldData.assignedUserIds ?? [];
+
+    const newlyAssignedIds = newAssignedUserIds.filter(id => !oldAssignedUserIds.includes(id));
+    const stillAssignedIds = oldAssignedUserIds.filter(id => newAssignedUserIds.includes(id));
+
+    // Send notification to newly assigned users
+    if (newlyAssignedIds.length > 0) {
+      await triggerNotifications(
+        newlyAssignedIds,
+        `Prestation : ${oldData.name}`,
+        `Vous avez été assigné(e) à cette prestation par ${getCurrentUserName()}`,
+        'assignment',
+        prestationId
+      );
+    }
+
+    // Send update notifications to users who remain assigned (only if non-assignment changes)
+    if (stillAssignedIds.length > 0 && updates.assignedUserIds === undefined) {
+      let msg = `Informations mises à jour`;
+
       if (updates.status && updates.status !== oldData.status) {
         msg = `Statut passé à ${updates.status}`;
       } else if (updates.address && updates.address !== oldData.address) {
@@ -653,7 +706,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       await triggerNotifications(
-        oldData.assignedUserIds,
+        stillAssignedIds,
         `Prestation : ${oldData.name}`,
         msg,
         'prestation_update',
