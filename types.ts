@@ -29,6 +29,7 @@ export interface Company {
   website?: string;
   pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
   siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
+  checklistCategories?: string[]; // Catégories personnalisées pour les checklists
   maxSimultaneousSites?: number; // Limite de chantiers en parallèle
   // Adresse
   address?: string;

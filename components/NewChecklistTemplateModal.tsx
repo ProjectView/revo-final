@@ -12,8 +12,10 @@ interface NewChecklistTemplateModalProps {
 
 const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ isOpen, onClose, initialData }) => {
   const { addChecklistTemplate, updateChecklistTemplate, company } = useData();
+  const categories = company?.checklistCategories || ['Technique', 'ADV'];
+
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Électricité');
+  const [category, setCategory] = useState(categories[0]);
   const [description, setDescription] = useState('');
   const [items, setItems] = useState<Partial<ChecklistItem>[]>([
     { id: '1', label: '', isCritical: false }
@@ -37,7 +39,12 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
     setErrors({});
   }, [initialData, isOpen]);
 
-  const categories = ['Électricité', 'Plomberie', 'Maçonnerie', 'Finitions', 'Logistique', 'Menuiserie', 'Peinture'];
+  const resetForm = () => {
+    setTitle('');
+    setCategory(categories[0] || 'Technique');
+    setDescription('');
+    setItems([{ id: '1', label: '', isCritical: false }]);
+  };
 
   const addItem = () => {
     setItems([...items, { id: Date.now().toString(), label: '', isCritical: false }]);

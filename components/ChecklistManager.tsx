@@ -1,20 +1,25 @@
 
-import React, { useState } from 'react';
-import { Plus, Search, ClipboardList, Trash2, Edit3, ArrowRight, CheckCircle2, AlertTriangle, FilterX, X, Loader2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Search, ClipboardList, Trash2, Edit3, ArrowRight, CheckCircle2, AlertTriangle, FilterX, X, Loader2, Settings2 } from 'lucide-react';
 import { ChecklistTemplate } from '../types';
 import NewChecklistTemplateModal from './NewChecklistTemplateModal';
+import ChecklistSettingsModal from './ChecklistSettingsModal';
 import { useData } from '../context/DataContext';
 
 const ChecklistManager: React.FC = () => {
-  const { checklists, sites, deleteChecklistTemplate, assignChecklistToSite } = useData();
+  const { checklists, sites, company, deleteChecklistTemplate, assignChecklistToSite } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Tous');
   const [templateToEdit, setTemplateToEdit] = useState<ChecklistTemplate | null>(null);
   const [selectedTemplateForAssign, setSelectedTemplateForAssign] = useState<ChecklistTemplate | null>(null);
   const [isNewTemplateModalOpen, setIsNewTemplateModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
 
-  const categories = ['Tous', 'Électricité', 'Finitions', 'Logistique', 'Maçonnerie', 'Plomberie', 'Menuiserie', 'Peinture'];
+  const categories = useMemo(() => {
+    const baseCategories = company?.checklistCategories || ['Technique', 'ADV'];
+    return ['Tous', ...baseCategories];
+  }, [company?.checklistCategories]);
 
   const filteredTemplates = checklists.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -56,15 +61,21 @@ const ChecklistManager: React.FC = () => {
 
   return (
     <div className="w-full px-6 lg:px-12 py-8 lg:py-10 space-y-8 lg:space-y-10 animate-in fade-in duration-700 pb-24 lg:pb-12">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-8">
         <div>
           <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Bibliothèque Qualité</h1>
           <p className="text-slate-500 text-base font-semibold mt-1">Standards de contrôle et procédures opérationnelles.</p>
         </div>
-        <button onClick={() => setIsNewTemplateModalOpen(true)}
-          className="w-full lg:w-auto bg-[#1a4d44] text-white px-8 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
-          <Plus size={22} /> Nouveau Template
-        </button>
+        <div className="flex gap-3 w-full lg:w-auto">
+          <button onClick={() => setIsSettingsModalOpen(true)}
+            className="p-5 border border-slate-200 bg-white rounded-[1.5rem] text-slate-400 hover:text-slate-600 hover:border-emerald-200 transition-all shadow-sm">
+            <Settings2 size={22} />
+          </button>
+          <button onClick={() => setIsNewTemplateModalOpen(true)}
+            className="flex-1 lg:flex-none bg-[#1a4d44] text-white px-8 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
+            <Plus size={22} /> Nouveau Template
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col xl:flex-row gap-6 w-full">
@@ -209,10 +220,15 @@ const ChecklistManager: React.FC = () => {
         </div>
       )}
 
-      <NewChecklistTemplateModal 
-        isOpen={isNewTemplateModalOpen} 
-        onClose={handleCloseModal} 
+      <NewChecklistTemplateModal
+        isOpen={isNewTemplateModalOpen}
+        onClose={handleCloseModal}
         initialData={templateToEdit}
+      />
+
+      <ChecklistSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </div>
   );
