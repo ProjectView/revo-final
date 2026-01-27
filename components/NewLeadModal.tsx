@@ -22,7 +22,7 @@ interface AddressSuggestion {
 }
 
 const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
-  const { company, addLead } = useData();
+  const { company, addLead, clients } = useData();
   const stages = useMemo(() => company?.pipelineStages || ['Nouveau', 'Qualifié', 'Devis envoyé', 'Négociation', 'Gagné'], [company]);
 
   const [formData, setFormData] = useState({
@@ -45,7 +45,9 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showContactSuggestions, setShowContactSuggestions] = useState(false);
   const suggestionRef = useRef<HTMLDivElement>(null);
+  const contactRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (stages.length > 0 && !formData.stage) {
@@ -57,6 +59,9 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     const handleClickOutside = (event: MouseEvent) => {
       if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+      }
+      if (contactRef.current && !contactRef.current.contains(event.target as Node)) {
+        setShowContactSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -87,12 +92,33 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
 
   const selectAddress = (s: AddressSuggestion) => {
     setAddressSearch(s.label);
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       address: s.label,
       coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]] // [lat, lng]
     }));
     setShowSuggestions(false);
+  };
+
+  const getContactSuggestions = () => {
+    const search = formData.leadName.toLowerCase().trim();
+    if (!search || search.length < 1) return [];
+    return clients.filter(client =>
+      client.name.toLowerCase().includes(search)
+    ).slice(0, 5);
+  };
+
+  const selectContact = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    setFormData(prev => ({
+      ...prev,
+      leadName: client.name,
+      company: client.company,
+      email: client.email,
+      phone: client.phone
+    }));
+    setShowContactSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,10 +174,35 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Informations Contact</label>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="relative group col-span-2">
+                <div className="relative group col-span-2" ref={contactRef}>
                   <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                  <input required type="text" placeholder="Nom du contact" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-800"
-                    value={formData.leadName} onChange={e => setFormData({...formData, leadName: e.target.value})} />
+                  <input
+                    required
+                    type="text"
+                    placeholder="Nom du contact"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-800"
+                    value={formData.leadName}
+                    onChange={e => {
+                      setFormData({...formData, leadName: e.target.value});
+                      setShowContactSuggestions(true);
+                    }}
+                    onFocus={() => formData.leadName.length > 0 && setShowContactSuggestions(true)}
+                  />
+                  {getContactSuggestions().length > 0 && showContactSuggestions && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden py-2">
+                      {getContactSuggestions().map((client) => (
+                        <button
+                          key={client.id}
+                          type="button"
+                          onClick={() => selectContact(client.id)}
+                          className="w-full text-left px-5 py-3 hover:bg-emerald-50 flex flex-col gap-0.5 border-b border-slate-50 last:border-0 transition-colors"
+                        >
+                          <span className="text-sm font-bold text-slate-800">{client.name}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{client.company}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="relative group col-span-2">
                   <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
