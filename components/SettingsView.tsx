@@ -6,8 +6,8 @@ import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
 import { Company, User as UserType } from '../types';
 import UserModal from './UserModal';
+import ChangePasswordModal from './ChangePasswordModal';
 import { AdminSubscriptionManager } from './AdminSubscriptionManager';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 type SettingsTab = 'profile' | 'general' | 'users' | 'subscription';
@@ -31,9 +31,7 @@ const SettingsView: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [passwordResetSent, setPasswordResetSent] = useState(false);
-  const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const companyLogoRef = useRef<HTMLInputElement>(null);
   const userAvatarRef = useRef<HTMLInputElement>(null);
   
@@ -173,42 +171,8 @@ const SettingsView: React.FC = () => {
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!currentUser?.email) {
-      console.error("No user email found");
-      setPasswordResetError("Email utilisateur non trouvé");
-      setTimeout(() => setPasswordResetError(null), 5000);
-      return;
-    }
-
-    console.log("Attempting to send password reset email to:", currentUser.email);
-    setIsResettingPassword(true);
-    setPasswordResetError(null);
-    setPasswordResetSent(false);
-
-    try {
-      await sendPasswordResetEmail(auth, currentUser.email);
-      console.log("Password reset email sent successfully to:", currentUser.email);
-      setPasswordResetSent(true);
-      setTimeout(() => setPasswordResetSent(false), 5000);
-    } catch (err: any) {
-      console.error("Password reset error:", err);
-      console.error("Error code:", err.code);
-      console.error("Error message:", err.message);
-
-      if (err.code === 'auth/too-many-requests') {
-        setPasswordResetError("Trop de demandes. Réessayez plus tard.");
-      } else if (err.code === 'auth/user-not-found') {
-        setPasswordResetError("Utilisateur non trouvé.");
-      } else if (err.code === 'auth/invalid-email') {
-        setPasswordResetError("Email invalide.");
-      } else {
-        setPasswordResetError(`Erreur: ${err.code || 'Inconnue'}`);
-      }
-      setTimeout(() => setPasswordResetError(null), 8000);
-    } finally {
-      setIsResettingPassword(false);
-    }
+  const handlePasswordChange = () => {
+    setIsChangePasswordModalOpen(true);
   };
 
   if (!company) return null;
@@ -343,33 +307,12 @@ const SettingsView: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <button
-                    onClick={handlePasswordReset}
-                    disabled={isResettingPassword}
-                    className={`p-4 rounded-2xl border flex items-center gap-4 transition-all text-left ${
-                      passwordResetSent
-                        ? 'bg-emerald-50 border-emerald-200'
-                        : passwordResetError
-                        ? 'bg-rose-50 border-rose-200'
-                        : 'bg-slate-50 border-slate-100 hover:bg-emerald-50 hover:border-emerald-200'
-                    }`}
+                    onClick={handlePasswordChange}
+                    className="p-4 rounded-2xl border bg-slate-50 border-slate-100 hover:bg-emerald-50 hover:border-emerald-200 flex items-center gap-4 transition-all text-left"
                   >
-                    {isResettingPassword ? (
-                      <Loader2 size={18} className="text-emerald-600 animate-spin" />
-                    ) : passwordResetSent ? (
-                      <CheckCircle2 size={18} className="text-emerald-600" />
-                    ) : (
-                      <Key size={18} className={passwordResetError ? 'text-rose-500' : 'text-slate-400'} />
-                    )}
-                    <span className={`text-[11px] font-black uppercase ${
-                      passwordResetSent ? 'text-emerald-600' : passwordResetError ? 'text-rose-600' : 'text-slate-500'
-                    }`}>
-                      {isResettingPassword
-                        ? 'Envoi en cours...'
-                        : passwordResetSent
-                        ? 'Email envoyé !'
-                        : passwordResetError
-                        ? passwordResetError
-                        : 'Changer de mot de passe'}
+                    <Key size={18} className="text-slate-400" />
+                    <span className="text-[11px] font-black uppercase text-slate-500">
+                      Changer de mot de passe
                     </span>
                   </button>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4 opacity-50 cursor-not-allowed">
@@ -978,10 +921,16 @@ const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      <UserModal 
-        isOpen={isUserModalOpen} 
-        onClose={() => setIsUserModalOpen(false)} 
-        user={selectedUser} 
+      <UserModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        user={selectedUser}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        currentUser={auth.currentUser}
       />
     </div>
   );
