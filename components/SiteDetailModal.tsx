@@ -9,6 +9,7 @@ import GeneralInfoTab from './site-details/GeneralInfoTab';
 import ChecklistTab from './site-details/ChecklistTab';
 import DocsTab from './site-details/DocsTab';
 import AssignUsersModal from './AssignUsersModal';
+import ConfirmationModal from './ConfirmationModal';
 
 interface SiteDetailModalProps {
   siteId: string | null;
@@ -25,6 +26,8 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const site = sites.find(s => s.id === siteId);
@@ -92,14 +95,13 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
 
   const handleDelete = async () => {
     if (siteReadOnly) return;
-    if (window.confirm('Supprimer ce chantier ?')) {
-      setIsSubmitting(true);
-      try {
-        await deleteSite(site.id);
-        onClose();
-      } catch (error) {
-        setIsSubmitting(false);
-      }
+    setIsDeleting(true);
+    try {
+      await deleteSite(site.id);
+      setIsDeleteModalOpen(false);
+      onClose();
+    } catch (error) {
+      setIsDeleting(false);
     }
   };
 
@@ -206,7 +208,7 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
               </button>
               <button
                 disabled={isReadOnly('site', site.id)}
-                onClick={handleDelete}
+                onClick={() => setIsDeleteModalOpen(true)}
                 className={`p-3 border rounded-xl transition-all ${
                   isReadOnly('site', site.id)
                     ? 'border-slate-200 text-slate-400 cursor-not-allowed'
@@ -220,11 +222,23 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
         </div>
       </div>
       {/* Placé ici pour être au même niveau que le contenu de SiteDetailModal mais au-dessus de tout le reste */}
-      <AssignUsersModal 
-        isOpen={isAssignModalOpen} 
-        onClose={() => setIsAssignModalOpen(false)} 
-        assignedUserIds={site.assignedUserIds || []} 
-        onAssign={handleAssignUsers} 
+      <AssignUsersModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        assignedUserIds={site.assignedUserIds || []}
+        onAssign={handleAssignUsers}
+      />
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le chantier"
+        message="Voulez-vous vraiment supprimer ce chantier ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
       />
     </>
   );

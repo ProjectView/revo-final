@@ -4,6 +4,7 @@ import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, His
 import { Lead, LeadComment, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
 import LeadLocationMap from './LeadLocationMap';
+import ConfirmationModal from './ConfirmationModal';
 
 interface LeadDetailModalProps {
   leadId: string | null;
@@ -20,6 +21,8 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<LeadComment[]>([]);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const lead = leads.find(l => l.id === leadId);
   const [editedLead, setEditedLead] = useState<Partial<Lead>>({});
@@ -65,9 +68,13 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Supprimer définitivement ce prospect ?")) {
+    setIsDeleting(true);
+    try {
       await deleteLead(lead.id);
+      setIsDeleteModalOpen(false);
       onClose();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -388,8 +395,8 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
               >
                 <Edit3 size={18} /> Modifier le prospect
               </button>
-              <button 
-                onClick={handleDelete}
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
                 className="p-3 border border-rose-100 text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
               >
                 <Trash2 size={20} />
@@ -398,6 +405,18 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le prospect"
+        message="Voulez-vous vraiment supprimer ce prospect ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
     </>
   );
 };

@@ -5,6 +5,7 @@ import { ChecklistTemplate } from '../types';
 import NewChecklistTemplateModal from './NewChecklistTemplateModal';
 import ChecklistSettingsModal from './ChecklistSettingsModal';
 import { useData } from '../context/DataContext';
+import ConfirmationModal from './ConfirmationModal';
 
 const ChecklistManager: React.FC = () => {
   const { checklists, sites, company, deleteChecklistTemplate, assignChecklistToSite } = useData();
@@ -15,6 +16,8 @@ const ChecklistManager: React.FC = () => {
   const [isNewTemplateModalOpen, setIsNewTemplateModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const baseCategories = company?.checklistCategories || ['Technique', 'ADV'];
@@ -27,10 +30,17 @@ const ChecklistManager: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm('Voulez-vous vraiment supprimer ce modèle de checklist ?')) {
-      await deleteChecklistTemplate(id);
+    setTemplateToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (templateToDelete) {
+      await deleteChecklistTemplate(templateToDelete);
+      setIsDeleteModalOpen(false);
+      setTemplateToDelete(null);
     }
   };
 
@@ -135,7 +145,7 @@ const ChecklistManager: React.FC = () => {
                     <button onClick={(e) => handleEdit(e, template)} className="p-2 bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
                       <Edit3 size={16} />
                     </button>
-                    <button onClick={(e) => handleDelete(e, template.id)} className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                    <button onClick={(e) => handleDeleteClick(e, template.id)} className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -229,6 +239,18 @@ const ChecklistManager: React.FC = () => {
       <ChecklistSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le modèle"
+        message="Voulez-vous vraiment supprimer ce modèle de checklist ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={false}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import ChecklistTab from './site-details/ChecklistTab';
 import DocsTab from './site-details/DocsTab';
 import AssignUsersModal from './AssignUsersModal';
 import { ReadOnlyBadge } from './ReadOnlyBadge';
+import ConfirmationModal from './ConfirmationModal';
 
 interface PrestationDetailModalProps {
   prestationId: string | null;
@@ -25,6 +26,8 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const prestation = prestations.find(p => p.id === prestationId);
@@ -83,14 +86,13 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
 
   const handleDelete = async () => {
     if (isClientReadOnly) return;
-    if (window.confirm('Supprimer cette prestation ?')) {
-      setIsSubmitting(true);
-      try {
-        await deletePrestation(prestation.id);
-        onClose();
-      } catch (error) {
-        setIsSubmitting(false);
-      }
+    setIsDeleting(true);
+    try {
+      await deletePrestation(prestation.id);
+      setIsDeleteModalOpen(false);
+      onClose();
+    } catch (error) {
+      setIsDeleting(false);
     }
   };
 
@@ -192,7 +194,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
                 <Edit3 size={18} /> Modifier
               </button>
               <button
-                onClick={handleDelete}
+                onClick={() => setIsDeleteModalOpen(true)}
                 disabled={isClientReadOnly}
                 className="p-3 border border-red-100 text-red-500 hover:bg-red-50 rounded-xl disabled:border-slate-200 disabled:text-slate-300 disabled:cursor-not-allowed">
                 <Trash2 size={20} />
@@ -206,6 +208,18 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
         onClose={() => setIsAssignModalOpen(false)}
         assignedUserIds={prestation.assignedUserIds || []}
         onAssign={handleAssignUsers}
+      />
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer la prestation"
+        message="Voulez-vous vraiment supprimer cette prestation ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
       />
     </>
   );

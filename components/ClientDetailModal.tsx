@@ -7,6 +7,7 @@ import { useSubscription } from '../hooks/useSubscription';
 import { ReadOnlyBadge } from './ReadOnlyBadge';
 import SiteDetailModal from './SiteDetailModal';
 import PrestationDetailModal from './PrestationDetailModal';
+import ConfirmationModal from './ConfirmationModal';
 
 interface ClientDetailModalProps {
   client: Client | null;
@@ -35,6 +36,8 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [selectedPrestation, setSelectedPrestation] = useState<Prestation | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Address Autocomplete states
   const [addressSearch, setAddressSearch] = useState('');
@@ -133,9 +136,13 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Voulez-vous vraiment supprimer ce client ? Cette action est irréversible.')) {
+    setIsDeleting(true);
+    try {
       await deleteClient(client.id);
+      setIsDeleteModalOpen(false);
       onClose();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -557,7 +564,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
               </button>
               <button
                 disabled={isReadOnly('client', editedClient.id)}
-                onClick={handleDelete}
+                onClick={() => setIsDeleteModalOpen(true)}
                 className={`p-4 border rounded-2xl transition-all shadow-sm ${
                   isReadOnly('client', editedClient.id)
                     ? 'border-slate-200 text-slate-400 cursor-not-allowed'
@@ -584,6 +591,18 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
           onClose={() => setSelectedPrestation(null)}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le client"
+        message="Voulez-vous vraiment supprimer ce client ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
     </>
   );
 };

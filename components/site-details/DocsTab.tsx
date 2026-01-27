@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Image as ImageIcon, Download, MoreVertical, FilePlus, Loader2, Trash2, Eye, X } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { SiteDocument } from '../../types';
+import ConfirmationModal from '../ConfirmationModal';
 
 interface DocsTabProps {
   siteId: string;
@@ -15,6 +16,8 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedDocForPreview, setSelectedDocForPreview] = useState<SiteDocument | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<SiteDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,17 +49,22 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
     }
   };
 
-  const handleDelete = async (doc: SiteDocument) => {
-    if (window.confirm(`Supprimer définitivement ${doc.name} ?`)) {
-      setIsDeleting(doc.id);
-      try {
-        await deleteSiteDocument(siteId, doc.id, (doc as any).fileName || doc.name);
-      } catch (error) {
-        console.error("Erreur suppression:", error);
-        alert("Erreur lors de la suppression du fichier.");
-      } finally {
-        setIsDeleting(null);
-      }
+  const handleDeleteClick = (doc: SiteDocument) => {
+    setDocToDelete(doc);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!docToDelete) return;
+    setIsDeleting(docToDelete.id);
+    try {
+      await deleteSiteDocument(siteId, docToDelete.id, (docToDelete as any).fileName || docToDelete.name);
+      setIsDeleteModalOpen(false);
+      setDocToDelete(null);
+    } catch (error) {
+      console.error("Erreur suppression:", error);
+      alert("Erreur lors de la suppression du fichier.");
+      setIsDeleting(null);
     }
   };
 
@@ -152,7 +160,7 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
                     </a>
                     {!isReadOnly && (
                       <button
-                        onClick={() => handleDelete(doc)}
+                        onClick={() => handleDeleteClick(doc)}
                         disabled={isDeleting === doc.id}
                         className="p-2.5 bg-white text-red-500 rounded-lg hover:bg-red-50 transition-all shadow-lg disabled:opacity-30"
                         title="Supprimer"
@@ -257,6 +265,18 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
           </div>
         </>
       )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le fichier"
+        message={docToDelete ? `Voulez-vous vraiment supprimer "${docToDelete.name}" ? Cette action est irréversible.` : ''}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={isDeleting !== null}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
     </div>
   );
 };
