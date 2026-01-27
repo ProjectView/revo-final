@@ -37,7 +37,8 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     source: 'Bouche à oreille',
     comment: '',
     stage: '',
-    priority: 'Moyenne' as 'Haute' | 'Moyenne' | 'Basse'
+    priority: 'Moyenne' as 'Haute' | 'Moyenne' | 'Basse',
+    clientId: undefined as string | undefined
   });
 
   const [addressSearch, setAddressSearch] = useState('');
@@ -118,7 +119,8 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
       email: client.email,
       phone: client.phone,
       address: client.address || '',
-      coordinates: client.coordinates || null
+      coordinates: client.coordinates || null,
+      clientId: clientId
     }));
     setAddressSearch(client.address || '');
     setShowContactSuggestions(false);
@@ -137,7 +139,7 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
       setFormData({
         leadName: '', company: '', email: '', phone: '', project: '',
         budget: '', address: '', coordinates: null, source: 'Bouche à oreille', comment: '',
-        stage: stages[0], priority: 'Moyenne'
+        stage: stages[0], priority: 'Moyenne', clientId: undefined
       });
       setAddressSearch('');
     } finally {
