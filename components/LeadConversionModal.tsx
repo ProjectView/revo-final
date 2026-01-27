@@ -20,6 +20,13 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
 
   if (!lead) return null;
 
+  // Pré-sélectionner le client si le lead en a un assigné
+  React.useEffect(() => {
+    if (lead.clientId && step === 'client') {
+      setSelectedClientId(lead.clientId);
+    }
+  }, [lead.clientId, step]);
+
   // Get the first status from configured site statuses or default to 'NOUVEAU'
   const getFirstSiteStatus = () => {
     return company?.siteStatuses && company.siteStatuses.length > 0
@@ -164,9 +171,17 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
                </div>
 
                <div className="space-y-4">
+                  {lead.clientId && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                      <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-2">Client assigné</p>
+                      <p className="text-sm font-bold text-emerald-900">
+                        {clients.find(c => c.id === lead.clientId)?.company || 'Client'} - {clients.find(c => c.id === lead.clientId)?.name || 'Unknown'}
+                      </p>
+                    </div>
+                  )}
                   <div className="relative group">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500" />
-                    <select 
+                    <select
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none"
                       value={selectedClientId}
                       onChange={e => setSelectedClientId(e.target.value)}
@@ -184,24 +199,26 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
                     <div className="flex-1 h-px bg-slate-100"></div>
                   </div>
 
-                  <button
-                    onClick={handleCreateClientAndSelect}
-                    disabled={isSubmitting || autoCreatedClientId !== null}
-                    className={`w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                      autoCreatedClientId !== null
-                        ? 'border-emerald-300 bg-emerald-50/50 text-emerald-500 cursor-not-allowed opacity-70'
-                        : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="animate-spin" />
-                    ) : autoCreatedClientId !== null ? (
-                      <CheckCircle size={18} />
-                    ) : (
-                      <UserPlus size={18} />
-                    )}
-                    {autoCreatedClientId !== null ? 'Client créé ✓' : `Créer automatiquement le client "${lead.leadName}"`}
-                  </button>
+                  {!lead.clientId && (
+                    <button
+                      onClick={handleCreateClientAndSelect}
+                      disabled={isSubmitting || autoCreatedClientId !== null}
+                      className={`w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                        autoCreatedClientId !== null
+                          ? 'border-emerald-300 bg-emerald-50/50 text-emerald-500 cursor-not-allowed opacity-70'
+                          : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                      }`}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="animate-spin" />
+                      ) : autoCreatedClientId !== null ? (
+                        <CheckCircle size={18} />
+                      ) : (
+                        <UserPlus size={18} />
+                      )}
+                      {autoCreatedClientId !== null ? 'Client créé ✓' : `Créer automatiquement le client "${lead.leadName}"`}
+                    </button>
+                  )}
                </div>
 
                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4">

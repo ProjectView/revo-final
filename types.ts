@@ -157,6 +157,7 @@ export interface Lead {
   comment: string;
   stage: PipelineStage;
   priority: 'Haute' | 'Moyenne' | 'Basse';
+  clientId?: string; // Client assigné à cette opportunité
 }
 
 export interface ChecklistItem {
