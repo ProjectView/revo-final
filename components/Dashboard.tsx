@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus, Zap, AlertTriangle } from 'lucide-react';
+import { Clock, TrendingUp, Plus, Check, Search, Calendar, ChevronRight, HardHat, UserPlus, Zap, AlertTriangle, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { View } from '../types';
@@ -14,7 +14,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
-  const { sites, leads, todos, addTodo, toggleTodo, addClient } = useData();
+  const { sites, leads, todos, addTodo, toggleTodo, deleteTodo, addClient } = useData();
   const { getUsagePercentage, canAddSite, canAddClient } = useSubscription();
   const [newTask, setNewTask] = useState('');
   const [isNewSiteModalOpen, setIsNewSiteModalOpen] = useState(false);
@@ -198,23 +198,33 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
               <p className="text-center text-slate-300 text-xs font-bold uppercase py-10">Toutes les tâches sont terminées !</p>
             ) : (
               todos.map(todo => (
-                <div 
-                  key={todo.id} 
-                  onClick={() => toggleTodo(todo.id, todo.completed)}
-                  className="group flex items-center gap-4 cursor-pointer p-4 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all"
+                <div
+                  key={todo.id}
+                  className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all"
                 >
-                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
-                    todo.completed 
-                      ? 'bg-emerald-500 border-emerald-500 text-white' 
-                      : 'border-slate-200 group-hover:border-emerald-400 bg-white'
-                  }`}>
-                    {todo.completed && <Check size={14} strokeWidth={4} />}
+                  <div
+                    onClick={() => toggleTodo(todo.id, todo.completed)}
+                    className="flex-1 flex items-center gap-4 cursor-pointer"
+                  >
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
+                      todo.completed
+                        ? 'bg-emerald-500 border-emerald-500 text-white'
+                        : 'border-slate-200 group-hover:border-emerald-400 bg-white'
+                    }`}>
+                      {todo.completed && <Check size={14} strokeWidth={4} />}
+                    </div>
+                    <span className={`text-base font-bold transition-all truncate ${
+                      todo.completed ? 'text-slate-300 line-through font-semibold' : 'text-slate-700'
+                    }`}>
+                      {todo.label}
+                    </span>
                   </div>
-                  <span className={`text-base font-bold transition-all flex-1 truncate ${
-                    todo.completed ? 'text-slate-300 line-through font-semibold' : 'text-slate-700'
-                  }`}>
-                    {todo.label}
-                  </span>
+                  <button
+                    onClick={() => deleteTodo(todo.id)}
+                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               ))
             )}

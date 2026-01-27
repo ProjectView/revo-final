@@ -81,6 +81,8 @@ export interface Client {
   coordinates?: [number, number];
   initials: string;
   color: string;
+  siret?: string;
+  tva?: string;
 }
 
 export interface SiteTask {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, Save, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, Save, UserPlus, AlertCircle, Loader2, FileText, Barcode } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 
 interface NewClientModalProps {
@@ -37,7 +37,9 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
     coordinates: null as [number, number] | null,
     initials: '',
     color: COLORS[0],
-    type: 'pro' as 'pro' | 'particulier'
+    type: 'pro' as 'pro' | 'particulier',
+    siret: '',
+    tva: ''
   });
 
   const [addressSearch, setAddressSearch] = useState('');
@@ -118,7 +120,7 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
         return;
       }
 
-      const clientData = {
+      const clientData: any = {
         name: formData.name,
         company: formData.type === 'particulier' ? 'Particulier' : (formData.company || 'Société'),
         email: formData.email,
@@ -128,10 +130,16 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
         initials: formData.initials,
         color: formData.color
       };
+
+      if (formData.type === 'pro') {
+        clientData.siret = formData.siret;
+        clientData.tva = formData.tva;
+      }
+
       await onSave(clientData);
       setFormData({
         name: '', company: '', email: '', phone: '', address: '', coordinates: null,
-        initials: '', color: COLORS[0], type: 'pro'
+        initials: '', color: COLORS[0], type: 'pro', siret: '', tva: ''
       });
       setAddressSearch('');
       onClose();
@@ -217,15 +225,42 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
               </div>
 
               {formData.type === 'pro' && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Société</label>
-                  <div className="relative group">
-                    <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                    <input 
-                      required type="text" placeholder="ex: SOA AGENCEMENT"
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
-                      value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})}
-                    />
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-1">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Société</label>
+                    <div className="relative group">
+                      <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                      <input
+                        required type="text" placeholder="ex: SOA AGENCEMENT"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
+                        value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">SIRET</label>
+                      <div className="relative group">
+                        <Barcode size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                        <input
+                          type="text" placeholder="ex: 12345678901234"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
+                          value={formData.siret} onChange={e => setFormData({...formData, siret: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Numéro TVA</label>
+                      <div className="relative group">
+                        <FileText size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                        <input
+                          type="text" placeholder="ex: FR12345678901"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
+                          value={formData.tva} onChange={e => setFormData({...formData, tva: e.target.value})}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

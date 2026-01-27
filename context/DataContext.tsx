@@ -59,6 +59,7 @@ interface DataContextType {
   deleteClient: (clientId: string) => Promise<void>;
   addTodo: (label: string) => Promise<void>;
   toggleTodo: (todoId: string, currentStatus: boolean) => Promise<void>;
+  deleteTodo: (todoId: string) => Promise<void>;
   addChecklistTemplate: (template: Omit<ChecklistTemplate, 'id'>) => Promise<void>;
   updateChecklistTemplate: (id: string, updates: Partial<ChecklistTemplate>) => Promise<void>;
   deleteChecklistTemplate: (id: string) => Promise<void>;
@@ -650,6 +651,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, 'companies', companyId, 'todos', todoId), { completed: !currentStatus });
   };
 
+  const deleteTodo = async (todoId: string) => {
+    if (!companyId) return;
+    await deleteDoc(doc(db, 'companies', companyId, 'todos', todoId));
+  };
+
   const addChecklistTemplate = async (template: Omit<ChecklistTemplate, 'id'>) => {
     if (!companyId) return;
     await addDoc(collection(db, 'companies', companyId, 'checklists'), template);
@@ -785,7 +791,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addSite, updateSite, deleteSite, addSiteComment, getSiteComments,
       addPrestation, updatePrestation, deletePrestation,
       addClient, updateClient, deleteClient,
-      addTodo, toggleTodo,
+      addTodo, toggleTodo, deleteTodo,
       addChecklistTemplate, updateChecklistTemplate, deleteChecklistTemplate,
       assignChecklistToSite,
       updateCompany, saveUser, deleteUser,
