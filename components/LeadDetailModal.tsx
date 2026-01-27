@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, DollarSign, Clock, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, AlertCircle, Flag } from 'lucide-react';
 import { Lead, LeadComment, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
+import LeadLocationMap from './LeadLocationMap';
 
 interface LeadDetailModalProps {
   leadId: string | null;
@@ -126,74 +127,147 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
 
           {activeTab === 'details' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Budget prévisionnel</p>
+              {/* Location Map */}
+              <LeadLocationMap
+                coordinates={lead.coordinates}
+                address={lead.address}
+                leadName={lead.leadName}
+              />
+
+              {/* Budget Card */}
+              <div className="p-5 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-2xl shadow-sm">
+                <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest mb-2">Budget prévisionnel</p>
                 {isEditing ? (
                   <div className="relative">
-                    <DollarSign size={18} className="absolute left-0 top-1/2 -translate-y-1/2 text-emerald-600" />
-                    <input 
+                    <DollarSign size={20} className="absolute left-0 top-1/2 -translate-y-1/2 text-emerald-600" />
+                    <input
                       type="number"
-                      className="w-full bg-transparent border-none text-2xl font-black text-emerald-900 pl-6 outline-none"
+                      className="w-full bg-white/40 border border-emerald-200 text-2xl font-black text-emerald-900 pl-7 pr-3 py-2 outline-none rounded-lg focus:bg-white focus:ring-2 focus:ring-emerald-400"
                       value={editedLead.budget}
                       onChange={e => setEditedLead({...editedLead, budget: Number(e.target.value)})}
                     />
                   </div>
                 ) : (
-                  <p className="text-2xl font-black text-emerald-900">{lead.budget.toLocaleString()} €</p>
+                  <p className="text-3xl font-black text-emerald-900">{lead.budget.toLocaleString()} <span className="text-lg text-emerald-700">€</span></p>
                 )}
               </div>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Projet</p>
+              {/* Project Section */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Description du projet</p>
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl">
                   {isEditing ? (
-                    <input className="w-full bg-white border border-slate-200 rounded-lg p-2 text-sm font-bold" 
-                      value={editedLead.project} onChange={e => setEditedLead({...editedLead, project: e.target.value})} />
+                    <textarea
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white resize-none"
+                      rows={3}
+                      value={editedLead.project}
+                      onChange={e => setEditedLead({...editedLead, project: e.target.value})}
+                    />
                   ) : (
-                    <p className="text-sm font-bold text-slate-800">{lead.project}</p>
+                    <p className="text-sm font-bold text-slate-800 leading-relaxed">{lead.project}</p>
                   )}
                 </div>
+              </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Coordonnées</p>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Building2 size={16} className="text-slate-400" />
-                      {isEditing ? (
-                        <input className="flex-1 bg-white border border-slate-200 rounded p-1 text-xs" 
-                          value={editedLead.company} onChange={e => setEditedLead({...editedLead, company: e.target.value})} />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-600">{lead.company || 'Particulier'}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Mail size={16} className="text-slate-400" />
-                      {isEditing ? (
-                        <input className="flex-1 bg-white border border-slate-200 rounded p-1 text-xs" 
-                          value={editedLead.email} onChange={e => setEditedLead({...editedLead, email: e.target.value})} />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-600">{lead.email}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Phone size={16} className="text-slate-400" />
-                      {isEditing ? (
-                        <input className="flex-1 bg-white border border-slate-200 rounded p-1 text-xs" 
-                          value={editedLead.phone} onChange={e => setEditedLead({...editedLead, phone: e.target.value})} />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-600">{lead.phone}</span>
-                      )}
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin size={16} className="text-slate-400 mt-0.5" />
-                      {isEditing ? (
-                        <textarea className="flex-1 bg-white border border-slate-200 rounded p-1 text-xs" 
-                          value={editedLead.address} onChange={e => setEditedLead({...editedLead, address: e.target.value})} />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-600">{lead.address}</span>
-                      )}
+              {/* Contact Info Section */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Coordonnées du contact</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Company */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Société</p>
+                    {isEditing ? (
+                      <input
+                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400"
+                        value={editedLead.company}
+                        onChange={e => setEditedLead({...editedLead, company: e.target.value})}
+                      />
+                    ) : (
+                      <p className="text-xs font-bold text-slate-700">{lead.company || '—'}</p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Email</p>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400"
+                        value={editedLead.email}
+                        onChange={e => setEditedLead({...editedLead, email: e.target.value})}
+                      />
+                    ) : (
+                      <p className="text-xs font-bold text-slate-700 truncate">{lead.email}</p>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Téléphone</p>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400"
+                        value={editedLead.phone}
+                        onChange={e => setEditedLead({...editedLead, phone: e.target.value})}
+                      />
+                    ) : (
+                      <p className="text-xs font-bold text-slate-700">{lead.phone}</p>
+                    )}
+                  </div>
+
+                  {/* Address */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl col-span-2">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Adresse</p>
+                    {isEditing ? (
+                      <textarea
+                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                        rows={2}
+                        value={editedLead.address}
+                        onChange={e => setEditedLead({...editedLead, address: e.target.value})}
+                      />
+                    ) : (
+                      <p className="text-xs font-bold text-slate-700 leading-relaxed">{lead.address}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority & Source Section */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Autres infos</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Priority */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Priorité</p>
+                    <div className="flex items-center gap-2">
+                      <Flag size={12} className={`${
+                        lead.priority === 'Haute' ? 'text-red-500' :
+                        lead.priority === 'Moyenne' ? 'text-amber-500' :
+                        'text-blue-500'
+                      }`} />
+                      <span className={`text-xs font-black ${
+                        lead.priority === 'Haute' ? 'text-red-600' :
+                        lead.priority === 'Moyenne' ? 'text-amber-600' :
+                        'text-blue-600'
+                      }`}>{lead.priority}</span>
                     </div>
                   </div>
+
+                  {/* Source */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Source</p>
+                    <p className="text-xs font-bold text-slate-700 truncate" title={lead.source}>{lead.source}</p>
+                  </div>
+
+                  {/* Comment */}
+                  {lead.comment && (
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl col-span-2">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Commentaire</p>
+                      <p className="text-xs text-slate-700">{lead.comment}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
