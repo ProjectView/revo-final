@@ -8,7 +8,7 @@ import LeadConversionModal from './LeadConversionModal';
 import LeadDetailModal from './LeadDetailModal';
 import { useData } from '../context/DataContext';
 
-const DEFAULT_STAGES = ['Nouveau', 'Qualifié', 'Devis envoyé', 'Négociation', 'Gagné'];
+const DEFAULT_STAGES = ['Nouvelle opportunité', 'En discussion', 'Gagné', 'Perdu'];
 
 const Pipeline: React.FC = () => {
   const { leads, updateLeadStage, company, updateCompany } = useData();
@@ -21,10 +21,9 @@ const Pipeline: React.FC = () => {
   
   const getStageColor = (stage: string) => {
     if (stage === 'Gagné') return 'bg-emerald-500';
-    if (stage === 'Nouveau') return 'bg-blue-500';
-    if (stage === 'Qualifié') return 'bg-indigo-500';
-    if (stage === 'Devis envoyé') return 'bg-amber-500';
-    if (stage === 'Négociation') return 'bg-rose-500';
+    if (stage === 'Perdu') return 'bg-red-500';
+    if (stage === 'Nouvelle opportunité') return 'bg-blue-500';
+    if (stage === 'En discussion') return 'bg-amber-500';
     return 'bg-slate-400';
   };
 
