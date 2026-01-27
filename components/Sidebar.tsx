@@ -1,10 +1,9 @@
 
 import React, { useState } from 'react';
-import { LogOut, ChevronLeft, ChevronRight, X, Building2, Bell, Zap } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, X, Building2, Bell } from 'lucide-react';
 import { NAV_ITEMS } from '../constants';
 import { View } from '../types';
 import { useData } from '../context/DataContext';
-import { useSubscription } from '../hooks/useSubscription';
 import NotificationPanel from './NotificationPanel';
 
 interface SidebarProps {
@@ -17,7 +16,6 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOpen, onCloseMobile, onLogout }) => {
   const { company, users, userNotifications, loading } = useData();
-  const { planConfig, getUsagePercentage } = useSubscription();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
 
@@ -132,34 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
               )}
             </button>
 
-            {/* Subscription Widget */}
-            <button
-              onClick={() => onViewChange('settings')}
-              className={`w-full mb-4 p-3 rounded-xl border transition-all ${
-                planConfig.id === 'multi_sites_premium'
-                  ? 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100'
-                  : planConfig.id === 'chantier_pro'
-                  ? 'bg-blue-50 border-blue-300 hover:bg-blue-100'
-                  : 'bg-slate-50 border-slate-300 hover:bg-slate-100'
-              }`}
-            >
-              {(!isCollapsed || isMobileOpen) && (
-                <div className="text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Zap size={14} className="flex-shrink-0" />
-                    <span className="text-xs font-black uppercase tracking-tight">{planConfig.name}</span>
-                  </div>
-                  <div className="text-[10px] text-slate-600 font-medium mb-1">
-                    Utilisation: {Math.max(getUsagePercentage('clients'), getUsagePercentage('sites'))}%
-                  </div>
-                </div>
-              )}
-              {isCollapsed && !isMobileOpen && (
-                <Zap size={18} className="text-slate-600" />
-              )}
-            </button>
-
-            <div className={`flex items-center gap-4 px-2 ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}>
+            <div className={`flex items-center gap-4 px-2 mt-4 ${isCollapsed && !isMobileOpen ? 'justify-center' : ''}`}>
               <div className={`min-w-[48px] w-12 h-12 rounded-xl flex items-center justify-center text-sm border shadow-sm flex-shrink-0 overflow-hidden font-black transition-colors ${
                 loading
                   ? 'bg-slate-200 border-slate-300 animate-pulse'
