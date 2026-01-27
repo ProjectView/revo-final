@@ -113,11 +113,11 @@ const Pipeline: React.FC = () => {
           >
             <Settings size={22} className="group-hover:rotate-90 transition-transform duration-500" />
           </button>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95"
           >
-            <Plus size={20} /> Nouveau Lead
+            <Plus size={20} /> Nouvelle opportunité
           </button>
         </div>
       </div>
