@@ -130,10 +130,17 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await addLead({
+      const leadData: any = {
         ...formData,
         budget: Number(formData.budget) || 0
-      });
+      };
+
+      // Remove undefined clientId to avoid Firestore error
+      if (leadData.clientId === undefined) {
+        delete leadData.clientId;
+      }
+
+      await addLead(leadData);
       onClose();
       // Reset
       setFormData({
