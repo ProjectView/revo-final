@@ -47,8 +47,10 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showContactSuggestions, setShowContactSuggestions] = useState(false);
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
   const suggestionRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
+  const companyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (stages.length > 0 && !formData.stage) {
@@ -63,6 +65,9 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
       }
       if (contactRef.current && !contactRef.current.contains(event.target as Node)) {
         setShowContactSuggestions(false);
+      }
+      if (companyRef.current && !companyRef.current.contains(event.target as Node)) {
+        setShowCompanySuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -124,6 +129,59 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     }));
     setAddressSearch(client.address || '');
     setShowContactSuggestions(false);
+  };
+
+  const getCompanySuggestions = () => {
+    const search = formData.company.toLowerCase().trim();
+    if (!search || search.length < 1) return [];
+    // Get clients with matching company names
+    const matchingClients = clients.filter(client =>
+      client.company && client.company.toLowerCase().includes(search)
+    );
+    // Group by company name to show unique companies with their clients
+    const companyMap = new Map<string, typeof clients>();
+    matchingClients.forEach(client => {
+      const key = client.company.toLowerCase();
+      if (!companyMap.has(key)) {
+        companyMap.set(key, []);
+      }
+      companyMap.get(key)!.push(client);
+    });
+    return Array.from(companyMap.entries()).slice(0, 5);
+  };
+
+  const selectCompanyClient = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    setFormData(prev => ({
+      ...prev,
+      leadName: client.name,
+      company: client.company,
+      email: client.email,
+      phone: client.phone,
+      address: client.address || '',
+      coordinates: client.coordinates || null,
+      clientId: clientId
+    }));
+    setAddressSearch(client.address || '');
+    setShowCompanySuggestions(false);
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 === 0) {
+        formatted += ' ';
+      }
+      formatted += digits[i];
+    }
+    return formatted;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setFormData({ ...formData, phone: formatted });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -216,10 +274,41 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
                     </div>
                   )}
                 </div>
-                <div className="relative group col-span-2">
+                <div className="relative group col-span-2" ref={companyRef}>
                   <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                  <input type="text" placeholder="Société (Facultatif)" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-800"
-                    value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+                  <input
+                    type="text"
+                    placeholder="Société (Facultatif)"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-800"
+                    value={formData.company}
+                    onChange={e => {
+                      setFormData({...formData, company: e.target.value});
+                      setShowCompanySuggestions(true);
+                    }}
+                    onFocus={() => formData.company.length > 0 && setShowCompanySuggestions(true)}
+                  />
+                  {getCompanySuggestions().length > 0 && showCompanySuggestions && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden py-2">
+                      {getCompanySuggestions().map(([companyName, companyClients]) => (
+                        <div key={companyName} className="border-b border-slate-50 last:border-0">
+                          <div className="px-5 py-2 bg-slate-50/50">
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider">{companyClients[0].company}</span>
+                          </div>
+                          {companyClients.map((client) => (
+                            <button
+                              key={client.id}
+                              type="button"
+                              onClick={() => selectCompanyClient(client.id)}
+                              className="w-full text-left px-5 py-3 hover:bg-emerald-50 flex flex-col gap-0.5 transition-colors"
+                            >
+                              <span className="text-sm font-bold text-slate-800">{client.name}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{client.email}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="relative group">
                   <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
@@ -228,8 +317,8 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
                 </div>
                 <div className="relative group">
                   <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                  <input required type="tel" placeholder="Téléphone" className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-11 pr-4 py-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-800"
-                    value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                  <input required type="tel" placeholder="06 00 00 00 00" maxLength={14} className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-11 pr-4 py-3.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-800 tracking-wider"
+                    value={formData.phone} onChange={e => handlePhoneChange(e.target.value)} />
                 </div>
               </div>
             </div>

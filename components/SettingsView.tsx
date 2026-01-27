@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase, MapPin, Phone } from 'lucide-react';
+import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase, MapPin, Phone, CheckCircle2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
 import { Company, User as UserType } from '../types';
 import UserModal from './UserModal';
 import { AdminSubscriptionManager } from './AdminSubscriptionManager';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 type SettingsTab = 'profile' | 'general' | 'users' | 'subscription';
 
@@ -29,6 +31,9 @@ const SettingsView: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
+  const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
   const companyLogoRef = useRef<HTMLInputElement>(null);
   const userAvatarRef = useRef<HTMLInputElement>(null);
   
@@ -79,6 +84,37 @@ const SettingsView: React.FC = () => {
       });
     }
   }, [company, currentUser]);
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 === 0) {
+        formatted += ' ';
+      }
+      formatted += digits[i];
+    }
+    return formatted;
+  };
+
+  const formatTva = (value: string) => {
+    const cleaned = value.replace(/\s/g, '').toUpperCase();
+    let letters = cleaned.slice(0, 2).replace(/[^A-Z]/g, '');
+    let digits = cleaned.slice(2).replace(/\D/g, '').slice(0, 11);
+    if (letters.length === 0 && digits.length === 0) return '';
+    if (letters.length < 2) return letters;
+    return letters + (digits.length > 0 ? ' ' + digits : '');
+  };
+
+  const handleBillingPhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setEditedCompany({ ...editedCompany, billingPhone: formatted });
+  };
+
+  const handleTaxIdChange = (value: string) => {
+    const formatted = formatTva(value);
+    setEditedCompany({ ...editedCompany, taxId: formatted });
+  };
 
   const handleSaveCompany = async () => {
     setIsSubmitting(true);
@@ -134,6 +170,44 @@ const SettingsView: React.FC = () => {
       setTimeout(() => setSaveSuccess(false), 3000);
     } finally {
       setIsUploadingAvatar(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!currentUser?.email) {
+      console.error("No user email found");
+      setPasswordResetError("Email utilisateur non trouvé");
+      setTimeout(() => setPasswordResetError(null), 5000);
+      return;
+    }
+
+    console.log("Attempting to send password reset email to:", currentUser.email);
+    setIsResettingPassword(true);
+    setPasswordResetError(null);
+    setPasswordResetSent(false);
+
+    try {
+      await sendPasswordResetEmail(auth, currentUser.email);
+      console.log("Password reset email sent successfully to:", currentUser.email);
+      setPasswordResetSent(true);
+      setTimeout(() => setPasswordResetSent(false), 5000);
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
+
+      if (err.code === 'auth/too-many-requests') {
+        setPasswordResetError("Trop de demandes. Réessayez plus tard.");
+      } else if (err.code === 'auth/user-not-found') {
+        setPasswordResetError("Utilisateur non trouvé.");
+      } else if (err.code === 'auth/invalid-email') {
+        setPasswordResetError("Email invalide.");
+      } else {
+        setPasswordResetError(`Erreur: ${err.code || 'Inconnue'}`);
+      }
+      setTimeout(() => setPasswordResetError(null), 8000);
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -268,10 +342,36 @@ const SettingsView: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4 opacity-50 cursor-not-allowed">
-                    <Key size={18} className="text-slate-400" />
-                    <span className="text-[11px] font-black uppercase text-slate-500">Changer de mot de passe</span>
-                  </div>
+                  <button
+                    onClick={handlePasswordReset}
+                    disabled={isResettingPassword}
+                    className={`p-4 rounded-2xl border flex items-center gap-4 transition-all text-left ${
+                      passwordResetSent
+                        ? 'bg-emerald-50 border-emerald-200'
+                        : passwordResetError
+                        ? 'bg-rose-50 border-rose-200'
+                        : 'bg-slate-50 border-slate-100 hover:bg-emerald-50 hover:border-emerald-200'
+                    }`}
+                  >
+                    {isResettingPassword ? (
+                      <Loader2 size={18} className="text-emerald-600 animate-spin" />
+                    ) : passwordResetSent ? (
+                      <CheckCircle2 size={18} className="text-emerald-600" />
+                    ) : (
+                      <Key size={18} className={passwordResetError ? 'text-rose-500' : 'text-slate-400'} />
+                    )}
+                    <span className={`text-[11px] font-black uppercase ${
+                      passwordResetSent ? 'text-emerald-600' : passwordResetError ? 'text-rose-600' : 'text-slate-500'
+                    }`}>
+                      {isResettingPassword
+                        ? 'Envoi en cours...'
+                        : passwordResetSent
+                        ? 'Email envoyé !'
+                        : passwordResetError
+                        ? passwordResetError
+                        : 'Changer de mot de passe'}
+                    </span>
+                  </button>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4 opacity-50 cursor-not-allowed">
                     <Smartphone size={18} className="text-slate-400" />
                     <span className="text-[11px] font-black uppercase text-slate-500">Appareils connectés</span>
@@ -500,10 +600,11 @@ const SettingsView: React.FC = () => {
                       <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
                       <input
                         type="tel"
+                        maxLength={14}
                         value={editedCompany.billingPhone}
-                        onChange={(e) => setEditedCompany({...editedCompany, billingPhone: e.target.value})}
-                        placeholder="04 XX XX XX XX"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                        onChange={(e) => handleBillingPhoneChange(e.target.value)}
+                        placeholder="06 00 00 00 00"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all tracking-wider"
                       />
                     </div>
                   </div>
@@ -512,10 +613,11 @@ const SettingsView: React.FC = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Numéro de TVA</label>
                     <input
                       type="text"
+                      maxLength={14}
                       value={editedCompany.taxId}
-                      onChange={(e) => setEditedCompany({...editedCompany, taxId: e.target.value})}
-                      placeholder="FR 12 345 678 901"
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      onChange={(e) => handleTaxIdChange(e.target.value)}
+                      placeholder="FR 12345678901"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all tracking-wider"
                     />
                   </div>
                 </div>

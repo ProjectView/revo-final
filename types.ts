@@ -21,6 +21,18 @@ export interface UserNotification {
   read: boolean;
 }
 
+export interface CustomRole {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface CustomHabilitation {
+  id: string;
+  name: string;
+  color: string; // Classe CSS pour la couleur (ex: 'text-amber-600 bg-amber-50 border-amber-100')
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -31,6 +43,8 @@ export interface Company {
   siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
   prestationStatuses?: string[]; // Statuts personnalisés pour les prestations
   checklistCategories?: string[]; // Catégories personnalisées pour les checklists
+  customRoles?: CustomRole[]; // Rôles personnalisés
+  customHabilitations?: CustomHabilitation[]; // Habilitations personnalisées
   maxSimultaneousSites?: number; // Limite de chantiers en parallèle
   // Adresse
   address?: string;
@@ -61,12 +75,14 @@ export interface Company {
   };
 }
 
+export type DefaultRole = 'Administrateur' | 'Conducteur de travaux' | 'Technicien';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   companyId: string;
-  role: 'Administrateur' | 'Conducteur de travaux' | 'Technicien';
+  role: string; // Peut être un rôle par défaut ou un rôle personnalisé
   avatar?: string;
   habilitations?: string[]; // Liste des habilitations détenues
 }

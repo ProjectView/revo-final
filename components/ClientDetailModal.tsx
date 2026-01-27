@@ -128,6 +128,23 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
     }
   };
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 === 0) {
+        formatted += ' ';
+      }
+      formatted += digits[i];
+    }
+    return formatted;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    if (editedClient) setEditedClient({ ...editedClient, phone: formatted });
+  };
+
   return (
     <>
       <div 
@@ -280,11 +297,13 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
                         <div className="relative group">
                           <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                          <input 
+                          <input
                             type="tel"
-                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all"
+                            maxLength={14}
+                            placeholder="06 00 00 00 00"
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all tracking-wider"
                             value={editedClient.phone}
-                            onChange={(e) => setEditedClient({...editedClient, phone: e.target.value})}
+                            onChange={(e) => handlePhoneChange(e.target.value)}
                           />
                         </div>
                       </div>

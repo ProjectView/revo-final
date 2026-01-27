@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag, ChevronDown } from 'lucide-react';
 import { Lead, LeadComment, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
 import LeadLocationMap from './LeadLocationMap';
@@ -69,6 +69,23 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
       await deleteLead(lead.id);
       onClose();
     }
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 === 0) {
+        formatted += ' ';
+      }
+      formatted += digits[i];
+    }
+    return formatted;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setEditedLead({ ...editedLead, phone: formatted });
   };
 
   return (
@@ -209,12 +226,14 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                     {isEditing ? (
                       <input
                         type="tel"
-                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400"
+                        maxLength={14}
+                        placeholder="06 00 00 00 00"
+                        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400 tracking-wider"
                         value={editedLead.phone}
-                        onChange={e => setEditedLead({...editedLead, phone: e.target.value})}
+                        onChange={e => handlePhoneChange(e.target.value)}
                       />
                     ) : (
-                      <p className="text-xs font-bold text-slate-700">{lead.phone}</p>
+                      <p className="text-xs font-bold text-slate-700 tracking-wider">{lead.phone}</p>
                     )}
                   </div>
 
@@ -242,18 +261,37 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                   {/* Priority */}
                   <div className="p-3 bg-white border border-slate-200 rounded-xl">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Priorité</p>
-                    <div className="flex items-center gap-2">
-                      <Flag size={12} className={`${
-                        lead.priority === 'Haute' ? 'text-red-500' :
-                        lead.priority === 'Moyenne' ? 'text-amber-500' :
-                        'text-blue-500'
-                      }`} />
-                      <span className={`text-xs font-black ${
-                        lead.priority === 'Haute' ? 'text-red-600' :
-                        lead.priority === 'Moyenne' ? 'text-amber-600' :
-                        'text-blue-600'
-                      }`}>{lead.priority}</span>
-                    </div>
+                    {isEditing ? (
+                      <div className="relative">
+                        <select
+                          className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-400 appearance-none pr-8 ${
+                            editedLead.priority === 'Haute' ? 'text-red-600' :
+                            editedLead.priority === 'Moyenne' ? 'text-amber-600' :
+                            'text-blue-600'
+                          }`}
+                          value={editedLead.priority}
+                          onChange={e => setEditedLead({...editedLead, priority: e.target.value as 'Haute' | 'Moyenne' | 'Basse'})}
+                        >
+                          <option value="Haute" className="text-red-600">Haute</option>
+                          <option value="Moyenne" className="text-amber-600">Moyenne</option>
+                          <option value="Basse" className="text-blue-600">Basse</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Flag size={12} className={`${
+                          lead.priority === 'Haute' ? 'text-red-500' :
+                          lead.priority === 'Moyenne' ? 'text-amber-500' :
+                          'text-blue-500'
+                        }`} />
+                        <span className={`text-xs font-black ${
+                          lead.priority === 'Haute' ? 'text-red-600' :
+                          lead.priority === 'Moyenne' ? 'text-amber-600' :
+                          'text-blue-600'
+                        }`}>{lead.priority}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Comment */}

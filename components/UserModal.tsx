@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User as UserIcon, Mail, Shield, ShieldCheck, HardHat, Save, Loader2, AlertCircle, CheckCircle2, Zap, Radiation, Beaker, Lock, Send } from 'lucide-react';
+import { X, User as UserIcon, Mail, Shield, ShieldCheck, HardHat, Save, Loader2, AlertCircle, CheckCircle2, Zap, Radiation, Beaker, Lock, Send, Plus, UserCog, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { User } from '../types';
+import { User, CustomRole, CustomHabilitation } from '../types';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -19,18 +19,44 @@ const HABILITATIONS_LIST = [
   { id: 'Electrique', icon: <Zap size={14} />, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
 ];
 
+const DEFAULT_ROLES = [
+  { id: 'Administrateur', name: 'Administrateur', description: 'Accès total', icon: Shield },
+  { id: 'Conducteur de travaux', name: 'Conducteur de travaux', description: 'Gestion chantiers', icon: ShieldCheck },
+  { id: 'Technicien', name: 'Technicien', description: 'Saisie terrain', icon: HardHat },
+];
+
 const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
-  const { saveUser, inviteUser } = useData();
+  const { saveUser, inviteUser, company, updateCompany } = useData();
   const { canAddUser } = useSubscription();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNewRoleForm, setShowNewRoleForm] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
+  const [showNewHabilitationForm, setShowNewHabilitationForm] = useState(false);
+  const [newHabilitationName, setNewHabilitationName] = useState('');
+  const [newHabilitationColor, setNewHabilitationColor] = useState('text-slate-600 bg-slate-50 border-slate-100');
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'Technicien' as User['role'],
+    role: 'Technicien',
     habilitations: [] as string[]
   });
+
+  const customRoles = company?.customRoles || [];
+  const customHabilitations = company?.customHabilitations || [];
+
+  const HABILITATION_COLORS = [
+    { id: 'amber', color: 'text-amber-600 bg-amber-50 border-amber-100' },
+    { id: 'blue', color: 'text-blue-600 bg-blue-50 border-blue-100' },
+    { id: 'indigo', color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+    { id: 'rose', color: 'text-rose-600 bg-rose-50 border-rose-100' },
+    { id: 'emerald', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+    { id: 'purple', color: 'text-purple-600 bg-purple-50 border-purple-100' },
+    { id: 'cyan', color: 'text-cyan-600 bg-cyan-50 border-cyan-100' },
+    { id: 'orange', color: 'text-orange-600 bg-orange-50 border-orange-100' },
+  ];
 
   useEffect(() => {
     if (user) {
@@ -87,6 +113,60 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
         ? prev.habilitations.filter(id => id !== hId)
         : [...prev.habilitations, hId]
     }));
+  };
+
+  const handleAddCustomRole = async () => {
+    if (!newRoleName.trim()) return;
+    const newRole: CustomRole = {
+      id: `custom_${Date.now()}`,
+      name: newRoleName.trim(),
+      description: newRoleDescription.trim() || 'Rôle personnalisé'
+    };
+    await updateCompany({
+      customRoles: [...customRoles, newRole]
+    });
+    setFormData({ ...formData, role: newRole.name });
+    setNewRoleName('');
+    setNewRoleDescription('');
+    setShowNewRoleForm(false);
+  };
+
+  const handleDeleteCustomRole = async (roleId: string) => {
+    const updatedRoles = customRoles.filter(r => r.id !== roleId);
+    await updateCompany({ customRoles: updatedRoles });
+    // Si le rôle supprimé était sélectionné, revenir à Technicien
+    const deletedRole = customRoles.find(r => r.id === roleId);
+    if (deletedRole && formData.role === deletedRole.name) {
+      setFormData({ ...formData, role: 'Technicien' });
+    }
+  };
+
+  const handleAddCustomHabilitation = async () => {
+    if (!newHabilitationName.trim()) return;
+    const newHabilitation: CustomHabilitation = {
+      id: `hab_${Date.now()}`,
+      name: newHabilitationName.trim(),
+      color: newHabilitationColor
+    };
+    await updateCompany({
+      customHabilitations: [...customHabilitations, newHabilitation]
+    });
+    setNewHabilitationName('');
+    setNewHabilitationColor('text-slate-600 bg-slate-50 border-slate-100');
+    setShowNewHabilitationForm(false);
+  };
+
+  const handleDeleteCustomHabilitation = async (habId: string) => {
+    const updatedHabilitations = customHabilitations.filter(h => h.id !== habId);
+    await updateCompany({ customHabilitations: updatedHabilitations });
+    // Retirer l'habilitation supprimée de la sélection
+    const deletedHab = customHabilitations.find(h => h.id === habId);
+    if (deletedHab && formData.habilitations.includes(deletedHab.name)) {
+      setFormData({
+        ...formData,
+        habilitations: formData.habilitations.filter(h => h !== deletedHab.name)
+      });
+    }
   };
 
   return (
@@ -153,38 +233,175 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
             </div>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rôle et Permissions</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rôle et Permissions</label>
+                <button
+                  type="button"
+                  onClick={() => setShowNewRoleForm(!showNewRoleForm)}
+                  className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                >
+                  <Plus size={14} />
+                  Créer un rôle
+                </button>
+              </div>
+
+              {showNewRoleForm && (
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl space-y-3 animate-in slide-in-from-top-2">
+                  <input
+                    type="text"
+                    placeholder="Nom du rôle"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Description (optionnel)"
+                    value={newRoleDescription}
+                    onChange={(e) => setNewRoleDescription(e.target.value)}
+                    className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 text-sm text-slate-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowNewRoleForm(false); setNewRoleName(''); setNewRoleDescription(''); }}
+                      className="flex-1 py-2.5 border border-emerald-200 rounded-xl text-[10px] font-black uppercase text-emerald-700 hover:bg-white transition-all"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomRole}
+                      disabled={!newRoleName.trim()}
+                      className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition-all disabled:opacity-50"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-3">
-                {(['Administrateur', 'Conducteur de travaux', 'Technicien'] as User['role'][]).map((role) => (
+                {/* Default roles */}
+                {DEFAULT_ROLES.map((role) => (
                   <button
-                    key={role}
+                    key={role.id}
                     type="button"
-                    onClick={() => setFormData({...formData, role})}
+                    onClick={() => setFormData({...formData, role: role.name})}
                     className={`flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${
-                      formData.role === role 
-                        ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                      formData.role === role.name
+                        ? 'bg-emerald-50 border-emerald-200 shadow-sm'
                         : 'bg-white border-slate-100 hover:border-slate-200'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      formData.role === role ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
+                      formData.role === role.name ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
                     }`}>
-                      {role === 'Administrateur' ? <Shield size={20} /> : role === 'Conducteur de travaux' ? <ShieldCheck size={20} /> : <HardHat size={20} />}
+                      <role.icon size={20} />
                     </div>
                     <div>
-                      <p className={`text-sm font-black ${formData.role === role ? 'text-emerald-900' : 'text-slate-800'}`}>{role}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        {role === 'Administrateur' ? 'Accès total' : role === 'Conducteur de travaux' ? 'Gestion chantiers' : 'Saisie terrain'}
-                      </p>
+                      <p className={`text-sm font-black ${formData.role === role.name ? 'text-emerald-900' : 'text-slate-800'}`}>{role.name}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{role.description}</p>
                     </div>
                   </button>
+                ))}
+
+                {/* Custom roles */}
+                {customRoles.map((role) => (
+                  <div
+                    key={role.id}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                      formData.role === role.name
+                        ? 'bg-emerald-50 border-emerald-200 shadow-sm'
+                        : 'bg-white border-slate-100 hover:border-slate-200'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, role: role.name})}
+                      className="flex items-center gap-4 flex-1 text-left"
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        formData.role === role.name ? 'bg-emerald-600 text-white' : 'bg-purple-100 text-purple-500'
+                      }`}>
+                        <UserCog size={20} />
+                      </div>
+                      <div>
+                        <p className={`text-sm font-black ${formData.role === role.name ? 'text-emerald-900' : 'text-slate-800'}`}>{role.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{role.description}</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCustomRole(role.id)}
+                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="space-y-4 pt-4 border-t border-slate-50">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Habilitations BTP</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Habilitations</label>
+                <button
+                  type="button"
+                  onClick={() => setShowNewHabilitationForm(!showNewHabilitationForm)}
+                  className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                >
+                  <Plus size={14} />
+                  Créer une habilitation
+                </button>
+              </div>
+
+              {showNewHabilitationForm && (
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl space-y-3 animate-in slide-in-from-top-2">
+                  <input
+                    type="text"
+                    placeholder="Nom de l'habilitation"
+                    value={newHabilitationName}
+                    onChange={(e) => setNewHabilitationName(e.target.value)}
+                    className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500">Couleur</label>
+                    <div className="flex flex-wrap gap-2">
+                      {HABILITATION_COLORS.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setNewHabilitationColor(c.color)}
+                          className={`w-8 h-8 rounded-lg border-2 transition-all ${c.color} ${
+                            newHabilitationColor === c.color ? 'ring-2 ring-emerald-500 ring-offset-2' : ''
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowNewHabilitationForm(false); setNewHabilitationName(''); }}
+                      className="flex-1 py-2.5 border border-emerald-200 rounded-xl text-[10px] font-black uppercase text-emerald-700 hover:bg-white transition-all"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomHabilitation}
+                      disabled={!newHabilitationName.trim()}
+                      className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition-all disabled:opacity-50"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2">
+                {/* Habilitations par défaut */}
                 {HABILITATIONS_LIST.map((h) => {
                   const isSelected = formData.habilitations.includes(h.id);
                   return (
@@ -193,14 +410,42 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
                       type="button"
                       onClick={() => toggleHabilitation(h.id)}
                       className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight border transition-all ${
-                        isSelected 
-                          ? h.color + ' ring-2 ring-emerald-500/10' 
+                        isSelected
+                          ? h.color + ' ring-2 ring-emerald-500/10'
                           : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
                       }`}
                     >
                       {isSelected ? <CheckCircle2 size={14} className="shrink-0" /> : h.icon}
                       {h.id}
                     </button>
+                  );
+                })}
+
+                {/* Habilitations personnalisées */}
+                {customHabilitations.map((h) => {
+                  const isSelected = formData.habilitations.includes(h.name);
+                  return (
+                    <div key={h.id} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => toggleHabilitation(h.name)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight border transition-all ${
+                          isSelected
+                            ? h.color + ' ring-2 ring-emerald-500/10'
+                            : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
+                        }`}
+                      >
+                        {isSelected ? <CheckCircle2 size={14} className="shrink-0" /> : <Shield size={14} className="shrink-0" />}
+                        {h.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCustomHabilitation(h.id)}
+                        className="absolute -top-1 -right-1 p-1 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>

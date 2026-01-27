@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, ClipboardList, Plus, Trash2, AlertTriangle, Type, AlignLeft, Tag, Save, Loader2 } from 'lucide-react';
+import { X, ClipboardList, Plus, Trash2, AlertTriangle, Type, AlignLeft, Tag, Save, Loader2, ChevronDown, Settings } from 'lucide-react';
 import { ChecklistItem, ChecklistTemplate } from '../types';
 import { useData } from '../context/DataContext';
 
@@ -10,9 +10,11 @@ interface NewChecklistTemplateModalProps {
   initialData?: ChecklistTemplate | null;
 }
 
+const DEFAULT_CATEGORIES = ['Technique', 'ADV'];
+
 const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ isOpen, onClose, initialData }) => {
-  const { addChecklistTemplate, updateChecklistTemplate, company } = useData();
-  const categories = company?.checklistCategories || ['Technique', 'ADV'];
+  const { addChecklistTemplate, updateChecklistTemplate, company, updateCompany } = useData();
+  const categories = company?.checklistCategories || DEFAULT_CATEGORIES;
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(categories[0]);
@@ -22,6 +24,8 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; items?: Record<string, string> }>({});
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const getInitials = (name: string = '') => {
     return name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase();
@@ -86,6 +90,31 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
       ];
 
       setItems(updatedItems);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    const trimmedName = newCategoryName.trim();
+    // Vérifier si la catégorie existe déjà
+    if (categories.includes(trimmedName)) {
+      return;
+    }
+    const updatedCategories = [...categories, trimmedName];
+    await updateCompany({ checklistCategories: updatedCategories });
+    setCategory(trimmedName);
+    setNewCategoryName('');
+    setShowCategoryManager(false);
+  };
+
+  const handleDeleteCategory = async (catToDelete: string) => {
+    // Ne pas supprimer si c'est la seule catégorie
+    if (categories.length <= 1) return;
+    const updatedCategories = categories.filter(c => c !== catToDelete);
+    await updateCompany({ checklistCategories: updatedCategories });
+    // Si la catégorie supprimée était sélectionnée, revenir à la première
+    if (category === catToDelete) {
+      setCategory(updatedCategories[0]);
     }
   };
 
@@ -209,19 +238,76 @@ const NewChecklistTemplateModal: React.FC<NewChecklistTemplateModalProps> = ({ i
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Corps d'état</label>
-                  <div className="relative">
-                    <Tag size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                    <select 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 appearance-none focus:ring-4 focus:ring-emerald-500/10 outline-none"
-                      value={category}
-                      onChange={e => setCategory(e.target.value)}
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Corps d'état</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryManager(!showCategoryManager)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                     >
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                      <Settings size={12} />
+                      Gérer
+                    </button>
                   </div>
+
+                  {showCategoryManager ? (
+                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl space-y-3 animate-in slide-in-from-top-2">
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {categories.map((cat) => (
+                          <div key={cat} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border border-emerald-100">
+                            <span className="text-xs font-bold text-slate-700">{cat}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(cat)}
+                              disabled={categories.length <= 1}
+                              className="p-1 text-slate-300 hover:text-rose-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Nouveau corps d'état"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCategory())}
+                          className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCategory}
+                          disabled={!newCategoryName.trim()}
+                          className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition-all disabled:opacity-50"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCategoryManager(false)}
+                        className="w-full py-2 border border-emerald-200 rounded-xl text-[10px] font-black uppercase text-emerald-700 hover:bg-white transition-all"
+                      >
+                        Fermer
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Tag size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                      <select
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 appearance-none focus:ring-4 focus:ring-emerald-500/10 outline-none"
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                      >
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Propriétaire</label>

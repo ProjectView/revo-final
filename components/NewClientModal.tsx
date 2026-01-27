@@ -97,12 +97,70 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
 
   const selectAddress = (s: AddressSuggestion) => {
     setAddressSearch(s.label);
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       address: s.label,
       coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]]
     }));
     setShowSuggestions(false);
+  };
+
+  const formatSiret = (value: string) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    // Limit to 14 digits
+    const limited = digits.slice(0, 14);
+    // Format as XXX XXX XXX XXXXX
+    let formatted = '';
+    for (let i = 0; i < limited.length; i++) {
+      if (i === 3 || i === 6 || i === 9) {
+        formatted += ' ';
+      }
+      formatted += limited[i];
+    }
+    return formatted;
+  };
+
+  const handleSiretChange = (value: string) => {
+    const formatted = formatSiret(value);
+    setFormData({ ...formData, siret: formatted });
+  };
+
+  const formatTva = (value: string) => {
+    // Remove spaces
+    const cleaned = value.replace(/\s/g, '').toUpperCase();
+    // First 2 characters must be letters, rest are digits
+    let letters = cleaned.slice(0, 2).replace(/[^A-Z]/g, '');
+    let digits = cleaned.slice(2).replace(/\D/g, '').slice(0, 11);
+    // Format as XX XXXXXXXXXXX
+    if (letters.length === 0 && digits.length === 0) return '';
+    if (letters.length < 2) {
+      // Still typing letters
+      return letters;
+    }
+    return letters + (digits.length > 0 ? ' ' + digits : '');
+  };
+
+  const handleTvaChange = (value: string) => {
+    const formatted = formatTva(value);
+    setFormData({ ...formData, tva: formatted });
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 2 === 0) {
+        formatted += ' ';
+      }
+      formatted += digits[i];
+    }
+    return formatted;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setFormData({ ...formData, phone: formatted });
   };
 
   if (!isOpen) return null;
@@ -244,9 +302,10 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
                       <div className="relative group">
                         <Barcode size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
                         <input
-                          type="text" placeholder="ex: 12345678901234"
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
-                          value={formData.siret} onChange={e => setFormData({...formData, siret: e.target.value})}
+                          type="text" placeholder="123 456 789 01234"
+                          maxLength={17}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none tracking-wider"
+                          value={formData.siret} onChange={e => handleSiretChange(e.target.value)}
                         />
                       </div>
                     </div>
@@ -255,9 +314,10 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
                       <div className="relative group">
                         <FileText size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
                         <input
-                          type="text" placeholder="ex: FR12345678901"
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
-                          value={formData.tva} onChange={e => setFormData({...formData, tva: e.target.value})}
+                          type="text" placeholder="FR 12345678901"
+                          maxLength={14}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-800 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none tracking-wider uppercase"
+                          value={formData.tva} onChange={e => handleTvaChange(e.target.value)}
                         />
                       </div>
                     </div>
@@ -309,10 +369,11 @@ const NewClientModal: React.FC<NewClientModalProps> = ({ isOpen, onClose, onSave
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
                   <div className="relative group">
                     <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                    <input 
+                    <input
                       required type="tel" placeholder="06 00 00 00 00"
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none"
-                      value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})}
+                      maxLength={14}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-500/5 focus:bg-white transition-all outline-none tracking-wider"
+                      value={formData.phone} onChange={e => handlePhoneChange(e.target.value)}
                     />
                   </div>
                 </div>
