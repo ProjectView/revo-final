@@ -18,14 +18,14 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
   const [autoCreatedClientId, setAutoCreatedClientId] = useState<string | null>(null);
 
-  if (!lead) return null;
-
   // Pré-sélectionner le client si le lead en a un assigné
   React.useEffect(() => {
-    if (lead.clientId && step === 'client') {
+    if (lead?.clientId && step === 'client') {
       setSelectedClientId(lead.clientId);
     }
-  }, [lead.clientId, step]);
+  }, [lead?.clientId, step]);
+
+  if (!lead) return null;
 
   // Get the first status from configured site statuses or default to 'NOUVEAU'
   const getFirstSiteStatus = () => {
