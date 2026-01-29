@@ -203,7 +203,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const inviteRef = doc(db, 'invitations', token);
     const inviteLink = `${window.location.origin}?invite=${token}`;
-    
+
     await setDoc(inviteRef, {
       ...userData,
       companyId,
@@ -811,12 +811,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetCompanyId = explicitCompanyId || companyId;
     if (!targetCompanyId) return;
     const emailKey = userData.email.toLowerCase();
-    await setDoc(doc(db, 'users', emailKey), {
+
+    // Construire l'objet sans les champs undefined (Firestore rejette undefined)
+    const userDoc: any = {
       ...userData,
       id: emailKey,
       email: emailKey,
       companyId: targetCompanyId
-    });
+    };
+
+    // Supprimer les champs undefined
+    Object.keys(userDoc).forEach(key => userDoc[key] === undefined && delete userDoc[key]);
+
+    await setDoc(doc(db, 'users', emailKey), userDoc);
   };
 
   const deleteUser = async (userEmail: string) => {

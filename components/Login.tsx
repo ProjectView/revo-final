@@ -26,6 +26,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -87,31 +88,65 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Éviter les double submissions (particulièrement en mode strict de React)
+    if (isSubmitting || isProcessing) {
+      return;
+    }
+
     setIsSubmitting(true);
+    setIsProcessing(true);
     setError(null);
 
     const cleanEmail = email.trim().toLowerCase();
-    
+
     try {
       if (invitationData) {
-        // 1. Création Auth
-        await createUserWithEmailAndPassword(auth, invitationData.email.toLowerCase(), password);
-        
+        // 1. Créer l'utilisateur Firebase Auth avec le nouveau mot de passe
+        const cleanEmail = invitationData.email.toLowerCase();
+
+        try {
+          await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        } catch (authErr: any) {
+          // Si l'utilisateur existe déjà (peut arriver par double submit ou si Strict Mode)
+          if (authErr.code === 'auth/email-already-in-use') {
+            console.warn("Utilisateur existe déjà dans Firebase Auth, utilisation du compte existant...");
+            // Si l'utilisateur existe, on suppose qu'il est déjà loggé ou on peut se connecter
+            // Vérifier si l'utilisateur courant correspond
+            if (auth.currentUser?.email?.toLowerCase() === cleanEmail) {
+              console.log("Utilisateur déjà loggé avec le bon email");
+            } else {
+              // Essayer de se connecter avec le nouveau mot de passe
+              try {
+                await signInWithEmailAndPassword(auth, cleanEmail, password);
+              } catch (signInErr: any) {
+                // Si la connexion échoue, afficher un message utile
+                if (signInErr.code === 'auth/wrong-password') {
+                  throw new Error("Le mot de passe ne correspond pas. Veuillez réessayer.");
+                }
+                throw signInErr;
+              }
+            }
+          } else {
+            throw authErr;
+          }
+        }
+
         // 2. Upload Avatar si présent
         let avatarUrl = '';
         if (avatarFile) {
-          avatarUrl = await uploadAvatarDuringSignup(invitationData.email.toLowerCase(), avatarFile);
+          avatarUrl = await uploadAvatarDuringSignup(cleanEmail, avatarFile);
         }
 
         // 3. Sauvegarde profil utilisateur
         await saveUser({
-          email: invitationData.email.toLowerCase(),
+          email: cleanEmail,
           name: userName,
           role: invitationData.role,
           avatar: avatarUrl || undefined
         }, invitationData.companyId);
 
-        // 4. Update Invitation
+        // 4. Update Invitation (seulement si le token existe)
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('invite');
         if (token) {
@@ -119,12 +154,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
 
         setCompanyId(invitationData.companyId);
-        onLogin(invitationData.email);
+        onLogin(cleanEmail);
       } else {
         // Inscription classique (Création de société)
         if (!companyName.trim() || !userName.trim() || !cleanEmail) {
           setError("Veuillez remplir tous les champs.");
           setIsSubmitting(false);
+          setIsProcessing(false);
           return;
         }
         await createUserWithEmailAndPassword(auth, cleanEmail, password);
@@ -135,14 +171,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     } catch (err: any) {
       console.error("Register Error:", err);
       if (err.code === 'auth/email-already-in-use') {
-        setError("Cet email est déjà utilisé.");
+        setError("Cet email est déjà utilisé. Si vous avez déjà un compte, veuillez vous connecter.");
       } else if (err.code === 'auth/weak-password') {
         setError("Mot de passe trop court (6 caractères min).");
+      } else if (err.code === 'auth/wrong-password') {
+        setError("Le mot de passe ne correspond pas au compte existant.");
       } else {
         setError("Échec de l'initialisation de votre profil.");
       }
     } finally {
       setIsSubmitting(false);
+      setIsProcessing(false);
     }
   };
 
