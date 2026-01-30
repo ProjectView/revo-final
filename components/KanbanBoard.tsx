@@ -1,20 +1,22 @@
 
 import React, { useState } from 'react';
-import { Site, Status, User } from '../types';
+import { Site, Status, User, Prestation } from '../types';
 import { MapPin, DollarSign, Calendar, MoreHorizontal, Users as UsersIcon, Check, Lock } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import CloseSiteModal from './CloseSiteModal';
+import ClosePrestationModal from './ClosePrestationModal';
 
 interface KanbanBoardProps {
   sites: Site[];
   onSiteClick: (site: Site) => void;
   onStatusChange?: (siteId: string, newStatus: Status) => Promise<void>;
   statuses?: Status[];
+  type?: 'site' | 'prestation';
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange, statuses: customStatuses }) => {
-  const { clients, users, closeSite } = useData();
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange, statuses: customStatuses, type = 'site' }) => {
+  const { clients, users, closeSite, closePrestation } = useData();
   const { isReadOnly } = useSubscription();
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
   const statuses = customStatuses || DEFAULT_STATUSES;
@@ -104,7 +106,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
   };
 
   const handleConfirmClose = async (siteId: string) => {
-    await closeSite(siteId);
+    if (type === 'prestation') {
+      await closePrestation(siteId);
+    } else {
+      await closeSite(siteId);
+    }
     setIsCloseModalOpen(false);
     setSiteToClose(null);
   };
@@ -287,12 +293,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
       <div className="flex-shrink-0 w-10"></div>
     </div>
 
-    <CloseSiteModal
-      isOpen={isCloseModalOpen}
-      site={siteToClose}
-      onClose={() => setIsCloseModalOpen(false)}
-      onConfirm={handleConfirmClose}
-    />
+    {type === 'prestation' ? (
+      <ClosePrestationModal
+        isOpen={isCloseModalOpen}
+        prestation={siteToClose as Prestation | null}
+        onClose={() => setIsCloseModalOpen(false)}
+        onConfirm={handleConfirmClose}
+      />
+    ) : (
+      <CloseSiteModal
+        isOpen={isCloseModalOpen}
+        site={siteToClose}
+        onClose={() => setIsCloseModalOpen(false)}
+        onConfirm={handleConfirmClose}
+      />
+    )}
   </>
   );
 };

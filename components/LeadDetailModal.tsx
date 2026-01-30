@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag, ChevronDown } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag, ChevronDown, Trophy } from 'lucide-react';
 import { Lead, LeadComment, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
 import LeadLocationMap from './LeadLocationMap';
 import ConfirmationModal from './ConfirmationModal';
+import LeadConversionModal from './LeadConversionModal';
+import SiteDetailModal from './SiteDetailModal';
+import PrestationDetailModal from './PrestationDetailModal';
+import confetti from 'canvas-confetti';
 
 interface LeadDetailModalProps {
   leadId: string | null;
@@ -14,7 +18,7 @@ interface LeadDetailModalProps {
 type TabType = 'details' | 'comments' | 'history';
 
 const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) => {
-  const { leads, updateLead, deleteLead, addLeadComment, getLeadComments, getLeadActivities } = useData();
+  const { leads, updateLead, deleteLead, addLeadComment, getLeadComments, getLeadActivities, updateLeadStage } = useData();
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +27,10 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedLeadToConvert, setSelectedLeadToConvert] = useState<Lead | null>(null);
+  const [selectedConvertedSiteId, setSelectedConvertedSiteId] = useState<string | null>(null);
+  const [selectedConvertedPrestationId, setSelectedConvertedPrestationId] = useState<string | null>(null);
+  const [showSadFace, setShowSadFace] = useState(false);
 
   const lead = leads.find(l => l.id === leadId);
   const [editedLead, setEditedLead] = useState<Partial<Lead>>({});
@@ -42,6 +50,20 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
       };
     }
   }, [leadId, lead]);
+
+  // Réinitialiser l'animation du smiley triste quand on change de lead
+  useEffect(() => {
+    setShowSadFace(false);
+  }, [leadId]);
+
+  useEffect(() => {
+    if (showSadFace) {
+      const timer = setTimeout(() => {
+        setShowSadFace(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSadFace]);
 
   if (!leadId || !lead) return null;
 
@@ -78,6 +100,49 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
     }
   };
 
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+    confetti({
+      particleCount: 50,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.6 }
+    });
+    confetti({
+      particleCount: 50,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.6 }
+    });
+  };
+
+  const handleWinLead = async () => {
+    if (!lead) return;
+    triggerConfetti();
+    setSelectedLeadToConvert(lead);
+  };
+
+  const handleLoseLead = async () => {
+    if (!lead) return;
+    setShowSadFace(true);
+    await updateLeadStage(lead.id, 'Perdu');
+    setTimeout(() => {
+      onClose();
+    }, 2000);
+  };
+
+  const handleConversionSuccess = (newId: string, type: 'site' | 'prestation') => {
+    if (type === 'site') {
+      setSelectedConvertedSiteId(newId);
+    } else {
+      setSelectedConvertedPrestationId(newId);
+    }
+  };
+
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 10);
     let formatted = '';
@@ -102,13 +167,13 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
         {/* Header */}
         <div className="p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                 <User size={20} />
               </div>
-              <div>
+              <div className="flex-1">
                 {isEditing ? (
-                  <input 
+                  <input
                     className="text-xl font-black text-slate-900 border-b-2 border-emerald-500 focus:outline-none bg-emerald-50/30 px-2 rounded-t-lg w-full"
                     value={editedLead.leadName}
                     onChange={e => setEditedLead({...editedLead, leadName: e.target.value})}
@@ -119,6 +184,25 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Prospect • {lead.stage}</p>
               </div>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 mr-3">
+              <button
+                onClick={handleWinLead}
+                className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all shadow-sm active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
+                title="Marquer comme gagné"
+              >
+                <Trophy size={16} /> Gagné
+              </button>
+              <button
+                onClick={handleLoseLead}
+                className="h-10 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all shadow-sm active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
+                title="Marquer comme perdu"
+              >
+                ✕ Perdu
+              </button>
+            </div>
+
             <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors"><X size={24} /></button>
           </div>
 
@@ -373,13 +457,13 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
         <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
           {isEditing ? (
             <>
-              <button 
+              <button
                 onClick={() => setIsEditing(false)}
                 className="flex-1 py-3 border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-600 hover:bg-white transition-all shadow-sm"
               >
                 Annuler
               </button>
-              <button 
+              <button
                 onClick={handleSave}
                 disabled={isSubmitting}
                 className="flex-[2] flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg active:scale-[0.98]"
@@ -389,18 +473,31 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
             </>
           ) : (
             <>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-lg active:scale-[0.98]"
-              >
-                <Edit3 size={18} /> Modifier le prospect
-              </button>
-              <button
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="p-3 border border-rose-100 text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
-              >
-                <Trash2 size={20} />
-              </button>
+              {lead.stage === 'Perdu' ? (
+                <>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg active:scale-[0.98]"
+                  >
+                    <Trash2 size={18} /> Archiver définitivement
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#1a4d44] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-lg active:scale-[0.98]"
+                  >
+                    <Edit3 size={18} /> Modifier le prospect
+                  </button>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="p-3 border border-rose-100 text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -408,15 +505,74 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
 
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
-        title="Supprimer le prospect"
-        message="Voulez-vous vraiment supprimer ce prospect ? Cette action est irréversible."
-        confirmText="Supprimer"
+        title={lead?.stage === 'Perdu' ? "Archiver le prospect" : "Supprimer le prospect"}
+        message={lead?.stage === 'Perdu' ? "Voulez-vous vraiment archiver ce prospect ? Cette action est irréversible et supprimera complètement l'opportunité." : "Voulez-vous vraiment supprimer ce prospect ? Cette action est irréversible."}
+        confirmText={lead?.stage === 'Perdu' ? "Archiver définitivement" : "Supprimer"}
         cancelText="Annuler"
         isDangerous={true}
         isLoading={isDeleting}
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteModalOpen(false)}
       />
+
+      <LeadConversionModal
+        lead={selectedLeadToConvert}
+        onClose={() => setSelectedLeadToConvert(null)}
+        onSuccess={handleConversionSuccess}
+      />
+
+      {selectedConvertedSiteId && (
+        <SiteDetailModal
+          siteId={selectedConvertedSiteId}
+          onClose={() => setSelectedConvertedSiteId(null)}
+        />
+      )}
+
+      {selectedConvertedPrestationId && (
+        <PrestationDetailModal
+          prestationId={selectedConvertedPrestationId}
+          onClose={() => setSelectedConvertedPrestationId(null)}
+        />
+      )}
+
+      {showSadFace && (
+        <div className="fixed inset-0 pointer-events-none z-[250] flex items-center justify-center overflow-hidden">
+          <style>{`
+            @keyframes slideInFromRight {
+              0% {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+              100% {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+            @keyframes slideOutToRight {
+              0% {
+                transform: translateX(0);
+                opacity: 1;
+              }
+              100% {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+            }
+            .crying-gif {
+              width: 200px;
+              height: 200px;
+              animation:
+                slideInFromRight 0.4s ease-out forwards,
+                slideOutToRight 0.4s ease-in forwards 1.6s;
+            }
+          `}</style>
+          <img
+            src="https://usagif.com/wp-content/uploads/2022/4hv9xm/crying-emoji-9.gif"
+            alt="Crying emoji"
+            className="crying-gif"
+          />
+        </div>
+      )}
     </>
   );
 };

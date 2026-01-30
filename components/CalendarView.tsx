@@ -192,7 +192,8 @@ const CalendarView: React.FC = () => {
   };
 
   const onSiteDragStart = (e: React.DragEvent, siteId: string, draggedDateStr: string) => {
-    if (isReadOnly('site', siteId)) {
+    const site = sites.find(s => s.id === siteId);
+    if (isReadOnly('site', siteId) || site?.closedAt) {
       e.preventDefault();
       return;
     }
@@ -238,7 +239,8 @@ const CalendarView: React.FC = () => {
   };
 
   const onResizeStart = (e: React.MouseEvent | React.TouchEvent, siteId: string, direction: 'start' | 'end') => {
-    if (isReadOnly('site', siteId)) {
+    const site = sites.find(s => s.id === siteId);
+    if (isReadOnly('site', siteId) || site?.closedAt) {
       e.stopPropagation();
       return;
     }
@@ -425,7 +427,7 @@ const CalendarView: React.FC = () => {
                         const slotIndex = siteSlots[site.id] || 0;
                         const isStart = dStr === site.startDate;
                         const isEnd = dStr === site.endDate;
-                        const siteReadOnly = isReadOnly('site', site.id);
+                        const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
                         return (
                           <div
                             key={site.id}
@@ -508,7 +510,7 @@ const CalendarView: React.FC = () => {
                       const slotIndex = siteSlots[site.id] || 0;
                       const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
                       const itemLeft = slotIndex * (100 / maxSlots);
-                      const siteReadOnly = isReadOnly('site', site.id);
+                      const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
 
                       return (
                         <div

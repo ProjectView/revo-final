@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Wrench, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2 } from 'lucide-react';
-import { Prestation, Status } from '../types';
+import { X, Wrench, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2, History, Lock } from 'lucide-react';
+import { Prestation, Status, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import GeneralInfoTab from './site-details/GeneralInfoTab';
@@ -10,24 +10,27 @@ import DocsTab from './site-details/DocsTab';
 import AssignUsersModal from './AssignUsersModal';
 import { ReadOnlyBadge } from './ReadOnlyBadge';
 import ConfirmationModal from './ConfirmationModal';
+import ClosePrestationModal from './ClosePrestationModal';
 
 interface PrestationDetailModalProps {
   prestationId: string | null;
   onClose: () => void;
 }
 
-type TabType = 'info' | 'checklist' | 'docs';
+type TabType = 'info' | 'checklist' | 'docs' | 'activities';
 
 const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestationId, onClose }) => {
-  const { prestations, clients, updatePrestation, deletePrestation } = useData();
+  const { prestations, clients, updatePrestation, deletePrestation, closePrestation, getPrestationActivities } = useData();
   const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const prestation = prestations.find(p => p.id === prestationId);
@@ -38,6 +41,13 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
       setEditedPrestation({ ...prestation });
     }
   }, [prestation, isEditing]);
+
+  useEffect(() => {
+    if (prestation) {
+      const unsubActivities = getPrestationActivities(prestation.id, setActivities);
+      return () => unsubActivities();
+    }
+  }, [prestation, getPrestationActivities]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,7 +62,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   if (!prestationId || !prestation || !editedPrestation) return null;
 
   const client = clients.find(c => c.id === prestation.clientId);
-  const isClientReadOnly = isReadOnly('client', prestation.clientId);
+  const isClientReadOnly = isReadOnly('client', prestation.clientId) || !!prestation.closedAt;
   const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
 
   const getStatusColor = (status: Status) => {
@@ -69,6 +79,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
     { id: 'info' as TabType, label: 'Informations', icon: <Info size={16} /> },
     { id: 'checklist' as TabType, label: 'Checklist', icon: <CheckSquare size={16} /> },
     { id: 'docs' as TabType, label: 'Photos & Docs', icon: <ImageIcon size={16} /> },
+    { id: 'activities' as TabType, label: 'Activités', icon: <History size={16} /> },
   ];
 
   const handleSave = async () => {
@@ -111,6 +122,12 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
     await updatePrestation(prestation.id, { assignedUserIds: userIds });
   };
 
+  const handleClosePrestation = async () => {
+    await closePrestation(prestation.id);
+    setIsCloseModalOpen(false);
+    onClose();
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'info':
@@ -124,9 +141,36 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
           />
         );
       case 'checklist':
-        return <ChecklistTab site={prestation} isReadOnly={isClientReadOnly} onUpdateTasks={(tasks) => updatePrestation(prestation.id, { tasks })} />;
+        return <ChecklistTab site={prestation} isReadOnly={isClientReadOnly} onUpdateTasks={(tasks) => updatePrestation(prestation.id, { tasks })} type="prestation" />;
       case 'docs':
         return <DocsTab siteId={prestation.id} />;
+      case 'activities':
+        return (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="relative pl-6 space-y-8 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+              {activities.length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-300">
+                  <History size={32} className="opacity-20 mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Aucune activité pour le moment</p>
+                </div>
+              ) : (
+                activities.map(a => (
+                  <div key={a.id} className="relative">
+                    <div className="absolute -left-[22px] top-1 w-4 h-4 rounded-full bg-white border-2 border-emerald-500 z-10" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-slate-800">{a.description}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-emerald-900 uppercase">{a.user}</span>
+                        <span className="text-[10px] text-slate-300">•</span>
+                        <span className="text-[10px] font-bold text-slate-400">{new Date(a.timestamp).toLocaleString('fr-FR')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
       default: return null;
     }
   };
@@ -199,6 +243,19 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
                 className="p-3 border border-red-100 text-red-500 hover:bg-red-50 rounded-xl disabled:border-slate-200 disabled:text-slate-300 disabled:cursor-not-allowed">
                 <Trash2 size={20} />
               </button>
+              {!prestation.closedAt && (
+                <button
+                  disabled={isClientReadOnly}
+                  onClick={() => setIsCloseModalOpen(true)}
+                  className={`p-3 border rounded-xl transition-all ${
+                    isClientReadOnly
+                      ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'border-amber-100 text-amber-600 hover:bg-amber-50'
+                  }`}
+                >
+                  <Lock size={20} />
+                </button>
+              )}
             </>
           )}
         </div>
@@ -220,6 +277,12 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
         isLoading={isDeleting}
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteModalOpen(false)}
+      />
+      <ClosePrestationModal
+        isOpen={isCloseModalOpen}
+        prestation={prestation}
+        onClose={() => setIsCloseModalOpen(false)}
+        onConfirm={handleClosePrestation}
       />
     </>
   );

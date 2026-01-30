@@ -249,7 +249,7 @@ const PrestationList: React.FC = () => {
               </div>
             )}
 
-            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} onStatusChange={async (prestationId, newStatus) => await updatePrestation(prestationId, { status: newStatus })} statuses={prestationStatuses} />}
+            {viewMode === 'kanban' && <KanbanBoard sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} onStatusChange={async (prestationId, newStatus) => await updatePrestation(prestationId, { status: newStatus })} statuses={prestationStatuses} type="prestation" />}
             {viewMode === 'map' && <MapView sites={filteredPrestations as any} onSiteClick={(p) => setSelectedPrestationId(p.id)} />}
           </>
         )}

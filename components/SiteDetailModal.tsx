@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Briefcase, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2 } from 'lucide-react';
+import { X, Briefcase, Trash2, Edit3, Info, CheckSquare, Image as ImageIcon, ChevronDown, Check, Save, Loader2, History, Lock } from 'lucide-react';
+import { LeadActivity } from '../types';
 import { Site, Status } from '../types';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
@@ -10,24 +11,27 @@ import ChecklistTab from './site-details/ChecklistTab';
 import DocsTab from './site-details/DocsTab';
 import AssignUsersModal from './AssignUsersModal';
 import ConfirmationModal from './ConfirmationModal';
+import CloseSiteModal from './CloseSiteModal';
 
 interface SiteDetailModalProps {
   siteId: string | null;
   onClose: () => void;
 }
 
-type TabType = 'info' | 'checklist' | 'docs';
+type TabType = 'info' | 'checklist' | 'docs' | 'activities';
 
 const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) => {
-  const { sites, clients, updateSite, deleteSite, company } = useData();
+  const { sites, clients, updateSite, deleteSite, closeSite, company, getSiteActivities } = useData();
   const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const site = sites.find(s => s.id === siteId);
@@ -47,6 +51,13 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
       setEditedSite({ ...site });
     }
   }, [site, isEditing]);
+
+  useEffect(() => {
+    if (site) {
+      const unsubActivities = getSiteActivities(site.id, setActivities);
+      return () => unsubActivities();
+    }
+  }, [site, getSiteActivities]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,9 +87,10 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
     { id: 'info' as TabType, label: 'Informations', icon: <Info size={16} /> },
     { id: 'checklist' as TabType, label: 'Checklist', icon: <CheckSquare size={16} /> },
     { id: 'docs' as TabType, label: 'Photos & Docs', icon: <ImageIcon size={16} /> },
+    { id: 'activities' as TabType, label: 'Activités', icon: <History size={16} /> },
   ];
 
-  const siteReadOnly = isReadOnly('site', site.id);
+  const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
 
   const handleSave = async () => {
     if (siteReadOnly) return;
@@ -120,6 +132,12 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
     await updateSite(site.id, { assignedUserIds: userIds });
   };
 
+  const handleCloseSite = async () => {
+    await closeSite(site.id);
+    setIsCloseModalOpen(false);
+    onClose();
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'info':
@@ -137,6 +155,33 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
         return <ChecklistTab site={site} isReadOnly={siteReadOnly} onUpdateTasks={(tasks) => updateSite(site.id, { tasks })} />;
       case 'docs':
         return <DocsTab siteId={site.id} isReadOnly={siteReadOnly} />;
+      case 'activities':
+        return (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="relative pl-6 space-y-8 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+              {activities.length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-300">
+                  <History size={32} className="opacity-20 mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Aucune activité pour le moment</p>
+                </div>
+              ) : (
+                activities.map(a => (
+                  <div key={a.id} className="relative">
+                    <div className="absolute -left-[22px] top-1 w-4 h-4 rounded-full bg-white border-2 border-emerald-500 z-10" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-slate-800">{a.description}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-emerald-900 uppercase">{a.user}</span>
+                        <span className="text-[10px] text-slate-300">•</span>
+                        <span className="text-[10px] font-bold text-slate-400">{new Date(a.timestamp).toLocaleString('fr-FR')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
       default: return null;
     }
   };
@@ -217,6 +262,19 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
               >
                 <Trash2 size={20} />
               </button>
+              {!site.closedAt && (
+                <button
+                  disabled={isReadOnly('site', site.id)}
+                  onClick={() => setIsCloseModalOpen(true)}
+                  className={`p-3 border rounded-xl transition-all ${
+                    isReadOnly('site', site.id)
+                      ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'border-amber-100 text-amber-600 hover:bg-amber-50'
+                  }`}
+                >
+                  <Lock size={20} />
+                </button>
+              )}
             </>
           )}
         </div>
@@ -239,6 +297,12 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
         isLoading={isDeleting}
         onConfirm={handleDelete}
         onCancel={() => setIsDeleteModalOpen(false)}
+      />
+      <CloseSiteModal
+        isOpen={isCloseModalOpen}
+        site={site}
+        onClose={() => setIsCloseModalOpen(false)}
+        onConfirm={handleCloseSite}
       />
     </>
   );

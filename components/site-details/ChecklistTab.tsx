@@ -8,9 +8,10 @@ interface ChecklistTabProps {
   site: Site;
   isReadOnly?: boolean;
   onUpdateTasks: (tasks: SiteTask[]) => Promise<void>;
+  type?: 'site' | 'prestation';
 }
 
-const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateTasks }) => {
+const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateTasks, type = 'site' }) => {
   const { checklists, assignChecklistToSite, users } = useData();
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [isBusy, setIsBusy] = useState(false);
@@ -23,17 +24,15 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
   // Extraire les catégories distinctes des tâches
   const categories = Array.from(new Set(tasks.filter(t => t.category).map(t => t.category)));
 
-  // Initialiser activeCategory avec la première catégorie disponible
+  // Initialiser activeCategory avec 'all' par défaut
   React.useEffect(() => {
-    if (activeCategory === null && categories.length > 0) {
-      setActiveCategory(categories[0]);
-    } else if (categories.length === 0) {
-      setActiveCategory(null);
+    if (activeCategory === null) {
+      setActiveCategory('all');
     }
-  }, [categories]);
+  }, []);
 
   // Filtrer les tâches selon la catégorie active
-  const filteredTasks = activeCategory ? tasks.filter(t => t.category === activeCategory) : tasks;
+  const filteredTasks = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
 
   const getCurrentUserName = () => {
     const email = localStorage.getItem('revo_auth');
@@ -130,7 +129,7 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
     if (isBusy || isReadOnly) return;
     setIsBusy(true);
     try {
-      await assignChecklistToSite(site.id, template);
+      await assignChecklistToSite(site.id, template, type);
       setShowTemplatePicker(false);
     } catch (error) {
       console.error("Erreur import template:", error);
@@ -213,6 +212,16 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
         {/* Sub-category tabs */}
         {categories.length > 0 && (
           <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2">
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                activeCategory === 'all'
+                  ? 'bg-emerald-100 text-emerald-900 shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              Tout
+            </button>
             {categories.map(cat => (
               <button
                 key={cat}

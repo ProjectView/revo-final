@@ -84,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
           </div>
           <div>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Pipeline Prospect</p>
-            <p className="text-4xl font-black text-slate-900">{(pipelineValue / 1000).toFixed(0)}K <span className="text-2xl font-bold text-slate-400">€</span></p>
+            <p className="text-4xl font-black text-slate-900">{Math.round(pipelineValue).toLocaleString('fr-FR')} <span className="text-2xl font-bold text-slate-400">€</span></p>
           </div>
         </div>
 

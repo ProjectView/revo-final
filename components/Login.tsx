@@ -143,7 +143,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           email: cleanEmail,
           name: userName,
           role: invitationData.role,
-          avatar: avatarUrl || undefined
+          avatar: avatarUrl || undefined,
+          habilitations: invitationData.habilitations
         }, invitationData.companyId);
 
         // 4. Update Invitation (seulement si le token existe)

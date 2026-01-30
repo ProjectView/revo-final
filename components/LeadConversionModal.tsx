@@ -35,6 +35,13 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
       : 'NOUVEAU';
   };
 
+  // Get the first status from configured prestation statuses or default to 'NOUVEAU'
+  const getFirstPrestationStatus = () => {
+    return company?.prestationStatuses && company.prestationStatuses.length > 0
+      ? company.prestationStatuses[0]
+      : 'NOUVEAU';
+  };
+
   const handleConvert = async () => {
     if (!selectedType || !selectedClientId) return;
     setIsSubmitting(true);
@@ -48,7 +55,7 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
       startTime: '08:00',
       endTime: '17:30',
       budget: lead.budget,
-      status: getFirstSiteStatus() as any,
+      status: selectedType === 'prestation' ? getFirstPrestationStatus() : getFirstSiteStatus() as any,
       pipelineStage: 'Nouveau' as any,
       color: selectedType === 'site' ? 'bg-emerald-700' : 'bg-blue-600',
       coordinates: (lead as any).coordinates || [45.75, 4.85] // Transmission des coordonnées
@@ -119,8 +126,8 @@ const LeadConversionModal: React.FC<LeadConversionModalProps> = ({ lead, onClose
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] animate-fade-in" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl z-[110] flex flex-col animate-slide-in">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[170] animate-fade-in" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl z-[180] flex flex-col animate-slide-in">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-emerald-900 rounded-2xl flex items-center justify-center text-white">

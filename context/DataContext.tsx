@@ -31,6 +31,7 @@ interface DataContextType {
   users: User[];
   checklists: ChecklistTemplate[];
   userNotifications: UserNotification[];
+  pendingInvitations: any[];
   company: Company | null;
   loading: boolean;
   permissionError: boolean;
@@ -38,8 +39,9 @@ interface DataContextType {
   setCompanyId: (id: string | null) => void;
   loginWithEmail: (email: string) => Promise<string | null>;
   createCompany: (companyName: string, adminEmail: string, adminName: string) => Promise<string>;
-  inviteUser: (userData: { email: string; name: string; role: User['role'] }) => Promise<void>;
-  checkInvitation: (token: string) => Promise<{ email: string; companyId: string; role: User['role']; name: string; companyName: string } | null>;
+  inviteUser: (userData: { email: string; name: string; role: User['role']; habilitations?: string[] }) => Promise<void>;
+  checkInvitation: (token: string) => Promise<{ email: string; companyId: string; role: User['role']; name: string; companyName: string; habilitations: string[] } | null>;
+  deleteInvitation: (token: string) => Promise<void>;
   addLead: (lead: Omit<Lead, 'id'>) => Promise<void>;
   updateLead: (leadId: string, updates: Partial<Lead>, activityDesc?: string) => Promise<void>;
   updateLeadStage: (leadId: string, stage: Lead['stage']) => Promise<void>;
@@ -57,6 +59,7 @@ interface DataContextType {
   addPrestation: (prestation: Omit<Prestation, 'id'>) => Promise<string>;
   updatePrestation: (prestationId: string, updates: Partial<Prestation>) => Promise<void>;
   deletePrestation: (prestationId: string) => Promise<void>;
+  closePrestation: (prestationId: string) => Promise<void>;
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
   updateClient: (clientId: string, updates: Partial<Client>) => Promise<void>;
   deleteClient: (clientId: string) => Promise<void>;
@@ -66,7 +69,7 @@ interface DataContextType {
   addChecklistTemplate: (template: Omit<ChecklistTemplate, 'id'>) => Promise<void>;
   updateChecklistTemplate: (id: string, updates: Partial<ChecklistTemplate>) => Promise<void>;
   deleteChecklistTemplate: (id: string) => Promise<void>;
-  assignChecklistToSite: (siteId: string, checklist: ChecklistTemplate) => Promise<void>;
+  assignChecklistToSite: (siteId: string, checklist: ChecklistTemplate, type?: 'site' | 'prestation') => Promise<void>;
   updateCompany: (updates: Partial<Company>) => Promise<void>;
   saveUser: (userData: Omit<User, 'id' | 'companyId'>, explicitCompanyId?: string) => Promise<void>;
   deleteUser: (userEmail: string) => Promise<void>;
@@ -76,6 +79,8 @@ interface DataContextType {
   uploadSiteDocument: (siteId: string, file: File, userName: string) => Promise<void>;
   getSiteDocuments: (siteId: string, callback: (docs: SiteDocument[]) => void) => () => void;
   deleteSiteDocument: (siteId: string, docId: string, fileName: string) => Promise<void>;
+  getSiteActivities: (siteId: string, callback: (activities: LeadActivity[]) => void) => () => void;
+  getPrestationActivities: (prestationId: string, callback: (activities: LeadActivity[]) => void) => () => void;
   checkCapacity: (startStr: string, endStr: string, excludeSiteId?: string) => { exceeds: boolean; maxCount: number };
   addNotification: (message: string, type?: AppNotification['type']) => void;
   markNotificationRead: (notifId: string) => Promise<void>;
@@ -94,13 +99,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [users, setUsers] = useState<User[]>([]);
   const [checklists, setChecklists] = useState<ChecklistTemplate[]>([]);
   const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [permissionError, setPermissionError] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  
+
   const responsesReceived = useRef(0);
-  const TOTAL_STREAMS = 9; 
+  const TOTAL_STREAMS = 10; 
 
   const setCompanyId = (id: string | null) => {
     // Ignore redundant calls with the same ID to prevent re-initialization loops
@@ -186,7 +192,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return companyId;
   };
 
-  const inviteUser = async (userData: { email: string; name: string; role: User['role'] }) => {
+  const inviteUser = async (userData: { email: string; name: string; role: User['role']; habilitations?: string[] }) => {
     if (!companyId || !company) return;
 
     if (company.subscription) {
@@ -210,7 +216,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       companyName: company.name,
       token,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      ...(userData.habilitations && { habilitations: userData.habilitations })
     });
 
     try {
@@ -260,12 +267,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const snap = await getDoc(inviteRef);
     if (snap.exists() && snap.data().status === 'pending') {
       const data = snap.data();
-      return { 
-        email: data.email, 
-        companyId: data.companyId, 
-        role: data.role, 
+      return {
+        email: data.email,
+        companyId: data.companyId,
+        role: data.role,
         name: data.name,
-        companyName: data.companyName || 'votre société'
+        companyName: data.companyName || 'votre société',
+        habilitations: data.habilitations || []
       };
     }
     return null;
@@ -358,9 +366,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     ) : (() => { markStreamReady(); return () => {}; })();
 
+    const unsubInvitations = onSnapshot(
+      query(
+        collection(db, 'invitations'),
+        where('companyId', '==', companyId),
+        where('status', '==', 'pending')
+      ),
+      (snapshot) => {
+        setPendingInvitations(snapshot.docs.map(doc => ({ ...doc.data(), token: doc.id })));
+        markStreamReady();
+      },
+      (error) => {
+        markStreamReady();
+      }
+    );
+
     return () => {
       clearTimeout(timeoutId);
-      unsubCompany(); unsubSites(); unsubPrestations(); unsubLeads(); unsubClients(); unsubTodos(); unsubChecklists(); unsubUsers(); unsubNotifs();
+      unsubCompany(); unsubSites(); unsubPrestations(); unsubLeads(); unsubClients(); unsubTodos(); unsubChecklists(); unsubUsers(); unsubNotifs(); unsubInvitations();
     };
   }, [companyId]);
 
@@ -532,12 +555,64 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await updateDoc(siteRef, updates);
 
-    // Handle assignment changes
+    // Log activity for status changes
+    if (updates.status && updates.status !== oldData.status) {
+      await addSiteActivity(siteId, `Statut passé de "${oldData.status}" à "${updates.status}"`);
+    }
+
+    // Log activity for address changes
+    if (updates.address && updates.address !== oldData.address) {
+      await addSiteActivity(siteId, `Adresse modifiée de "${oldData.address}" à "${updates.address}"`);
+    }
+
+    // Log activity for date changes
+    if (updates.startDate && updates.startDate !== oldData.startDate) {
+      await addSiteActivity(siteId, `Date de début modifiée de "${oldData.startDate}" à "${updates.startDate}"`);
+    }
+    if (updates.endDate && updates.endDate !== oldData.endDate) {
+      await addSiteActivity(siteId, `Date de fin modifiée de "${oldData.endDate}" à "${updates.endDate}"`);
+    }
+
+    // Log activity for checklist 100% completion
+    if (updates.tasks) {
+      const oldTasks = oldData.tasks || [];
+      const newTasks = updates.tasks;
+
+      const oldCompletedCount = oldTasks.filter(t => t.completed).length;
+      const oldProgress = oldTasks.length > 0 ? (oldCompletedCount / oldTasks.length) * 100 : 0;
+
+      const newCompletedCount = newTasks.filter(t => t.completed).length;
+      const newProgress = newTasks.length > 0 ? (newCompletedCount / newTasks.length) * 100 : 0;
+
+      // Log if checklist just reached 100%
+      if (oldProgress < 100 && newProgress === 100 && newTasks.length > 0) {
+        await addSiteActivity(siteId, `Checklist complétée à 100%`);
+      }
+    }
+
+    // Handle assignment changes and log activities
     const newAssignedUserIds = updates.assignedUserIds ?? oldData.assignedUserIds ?? [];
     const oldAssignedUserIds = oldData.assignedUserIds ?? [];
 
     const newlyAssignedIds = newAssignedUserIds.filter(id => !oldAssignedUserIds.includes(id));
+    const removedAssignedIds = oldAssignedUserIds.filter(id => !newAssignedUserIds.includes(id));
     const stillAssignedIds = oldAssignedUserIds.filter(id => newAssignedUserIds.includes(id));
+
+    // Log activity for newly assigned members
+    for (const userId of newlyAssignedIds) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        await addSiteActivity(siteId, `${user.name} assigné(e) à ce chantier`);
+      }
+    }
+
+    // Log activity for removed members
+    for (const userId of removedAssignedIds) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        await addSiteActivity(siteId, `${user.name} retiré(e) de ce chantier`);
+      }
+    }
 
     // Send notification to newly assigned users
     if (newlyAssignedIds.length > 0) {
@@ -602,6 +677,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const closePrestation = async (prestationId: string) => {
+    if (!companyId) return;
+    const prestRef = doc(db, 'companies', companyId, 'prestations', prestationId);
+    const prestSnap = await getDoc(prestRef);
+    if (!prestSnap.exists()) return;
+    const prestation = prestSnap.data() as Prestation;
+
+    await updateDoc(prestRef, {
+      closedAt: new Date().toISOString()
+    });
+
+    // Notify assigned users that the prestation has been closed
+    if (prestation.assignedUserIds && prestation.assignedUserIds.length > 0) {
+      await triggerNotifications(
+        prestation.assignedUserIds,
+        `Prestation : ${prestation.name}`,
+        `La prestation a été clôturée`,
+        'prestation_update',
+        prestationId
+      );
+    }
+  };
+
   const addSiteComment = async (siteId: string, text: string) => {
     if (!companyId) return;
     await addDoc(collection(db, 'companies', companyId, 'sites', siteId, 'comments'), {
@@ -609,6 +707,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user: getCurrentUserName(),
       timestamp: new Date().toISOString()
     });
+    // Log activity for comment addition
+    await addSiteActivity(siteId, `Commentaire ajouté: "${text}"`);
   };
 
   const getSiteComments = (siteId: string, callback: (comments: SiteComment[]) => void) => {
@@ -675,12 +775,64 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await updateDoc(prestRef, updates);
 
-    // Handle assignment changes
+    // Log activity for status changes
+    if (updates.status && updates.status !== oldData.status) {
+      await addPrestationActivity(prestationId, `Statut passé de "${oldData.status}" à "${updates.status}"`);
+    }
+
+    // Log activity for address changes
+    if (updates.address && updates.address !== oldData.address) {
+      await addPrestationActivity(prestationId, `Adresse modifiée de "${oldData.address}" à "${updates.address}"`);
+    }
+
+    // Log activity for date changes
+    if (updates.startDate && updates.startDate !== oldData.startDate) {
+      await addPrestationActivity(prestationId, `Date de début modifiée de "${oldData.startDate}" à "${updates.startDate}"`);
+    }
+    if (updates.endDate && updates.endDate !== oldData.endDate) {
+      await addPrestationActivity(prestationId, `Date de fin modifiée de "${oldData.endDate}" à "${updates.endDate}"`);
+    }
+
+    // Log activity for checklist 100% completion
+    if (updates.tasks) {
+      const oldTasks = oldData.tasks || [];
+      const newTasks = updates.tasks;
+
+      const oldCompletedCount = oldTasks.filter(t => t.completed).length;
+      const oldProgress = oldTasks.length > 0 ? (oldCompletedCount / oldTasks.length) * 100 : 0;
+
+      const newCompletedCount = newTasks.filter(t => t.completed).length;
+      const newProgress = newTasks.length > 0 ? (newCompletedCount / newTasks.length) * 100 : 0;
+
+      // Log if checklist just reached 100%
+      if (oldProgress < 100 && newProgress === 100 && newTasks.length > 0) {
+        await addPrestationActivity(prestationId, `Checklist complétée à 100%`);
+      }
+    }
+
+    // Handle assignment changes and log activities
     const newAssignedUserIds = updates.assignedUserIds ?? oldData.assignedUserIds ?? [];
     const oldAssignedUserIds = oldData.assignedUserIds ?? [];
 
     const newlyAssignedIds = newAssignedUserIds.filter(id => !oldAssignedUserIds.includes(id));
+    const removedAssignedIds = oldAssignedUserIds.filter(id => !newAssignedUserIds.includes(id));
     const stillAssignedIds = oldAssignedUserIds.filter(id => newAssignedUserIds.includes(id));
+
+    // Log activity for newly assigned members
+    for (const userId of newlyAssignedIds) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        await addPrestationActivity(prestationId, `${user.name} assigné(e) à cette prestation`);
+      }
+    }
+
+    // Log activity for removed members
+    for (const userId of removedAssignedIds) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        await addPrestationActivity(prestationId, `${user.name} retiré(e) de cette prestation`);
+      }
+    }
 
     // Send notification to newly assigned users
     if (newlyAssignedIds.length > 0) {
@@ -778,13 +930,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await deleteDoc(doc(db, 'companies', companyId, 'checklists', id));
   };
 
-  const assignChecklistToSite = async (siteId: string, checklist: ChecklistTemplate) => {
+  const assignChecklistToSite = async (siteId: string, checklist: ChecklistTemplate, type: 'site' | 'prestation' = 'site') => {
     if (!companyId) return;
-    const siteRef = doc(db, 'companies', companyId, 'sites', siteId);
+    const collectionName = type === 'site' ? 'sites' : 'prestations';
+    const siteRef = doc(db, 'companies', companyId, collectionName, siteId);
     const siteSnap = await getDoc(siteRef);
     if (!siteSnap.exists()) return;
 
-    const currentTasks = (siteSnap.data() as Site).tasks || [];
+    const currentTasks = (siteSnap.data() as Site | Prestation).tasks || [];
     const newTasks: SiteTask[] = checklist.items.map(item => ({
       id: `${checklist.id}-${item.id}-${Date.now()}`,
       label: item.label,
@@ -829,6 +982,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteUser = async (userEmail: string) => {
     const emailKey = userEmail.toLowerCase();
     await deleteDoc(doc(db, 'users', emailKey));
+  };
+
+  const deleteInvitation = async (token: string) => {
+    await deleteDoc(doc(db, 'invitations', token));
   };
 
   const uploadCompanyLogo = async (file: File): Promise<string> => {
@@ -897,19 +1054,56 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await deleteDoc(doc(db, 'companies', companyId, 'sites', siteId, 'documents', docId));
   };
 
+  const getSiteActivities = (siteId: string, callback: (activities: LeadActivity[]) => void) => {
+    if (!companyId) return () => {};
+    const q = query(collection(db, 'companies', companyId, 'sites', siteId, 'activities'), orderBy('timestamp', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as LeadActivity)));
+    });
+  };
+
+  const getPrestationActivities = (prestationId: string, callback: (activities: LeadActivity[]) => void) => {
+    if (!companyId) return () => {};
+    const q = query(collection(db, 'companies', companyId, 'prestations', prestationId, 'activities'), orderBy('timestamp', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as LeadActivity)));
+    });
+  };
+
+  const addSiteActivity = async (siteId: string, description: string, type: string = 'update') => {
+    if (!companyId) return;
+    await addDoc(collection(db, 'companies', companyId, 'sites', siteId, 'activities'), {
+      type,
+      description,
+      user: getCurrentUserName(),
+      timestamp: new Date().toISOString()
+    });
+  };
+
+  const addPrestationActivity = async (prestationId: string, description: string, type: string = 'update') => {
+    if (!companyId) return;
+    await addDoc(collection(db, 'companies', companyId, 'prestations', prestationId, 'activities'), {
+      type,
+      description,
+      user: getCurrentUserName(),
+      timestamp: new Date().toISOString()
+    });
+  };
+
   return (
-    <DataContext.Provider value={{ 
-      sites, prestations, leads, clients, todos, users, checklists, userNotifications, company, loading, permissionError, companyId,
-      setCompanyId, loginWithEmail, createCompany, inviteUser, checkInvitation,
+    <DataContext.Provider value={{
+      sites, prestations, leads, clients, todos, users, checklists, userNotifications, pendingInvitations, company, loading, permissionError, companyId,
+      setCompanyId, loginWithEmail, createCompany, inviteUser, checkInvitation, deleteInvitation,
       addLead, updateLead, updateLeadStage, deleteLead, addLeadComment, getLeadComments, getLeadActivities,
       addSite, updateSite, deleteSite, closeSite, addSiteComment, getSiteComments, transferLeadDataToSite,
-      addPrestation, updatePrestation, deletePrestation,
+      addPrestation, updatePrestation, deletePrestation, closePrestation,
       addClient, updateClient, deleteClient,
       addTodo, toggleTodo, deleteTodo,
       addChecklistTemplate, updateChecklistTemplate, deleteChecklistTemplate,
       assignChecklistToSite,
       updateCompany, saveUser, deleteUser,
       uploadCompanyLogo, uploadUserAvatar, uploadAvatarDuringSignup, uploadSiteDocument, getSiteDocuments, deleteSiteDocument,
+      getSiteActivities, getPrestationActivities,
       checkCapacity, addNotification, markNotificationRead, markAllNotificationsRead
     }}>
       {children}

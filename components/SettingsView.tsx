@@ -7,6 +7,7 @@ import { SUBSCRIPTION_PLANS } from '../constants';
 import { Company, User as UserType } from '../types';
 import UserModal from './UserModal';
 import ChangePasswordModal from './ChangePasswordModal';
+import ConfirmDeleteUserModal from './ConfirmDeleteUserModal';
 import { AdminSubscriptionManager } from './AdminSubscriptionManager';
 import { auth } from '../lib/firebase';
 
@@ -21,7 +22,7 @@ const HABILITATION_ICONS: Record<string, { icon: React.ReactNode, color: string 
 };
 
 const SettingsView: React.FC = () => {
-  const { company, users, updateCompany, deleteUser, uploadCompanyLogo, uploadUserAvatar, saveUser } = useData();
+  const { company, users, pendingInvitations, updateCompany, deleteUser, uploadCompanyLogo, uploadUserAvatar, saveUser, deleteInvitation } = useData();
   const { planConfig, getUsagePercentage, isUnlimited } = useSubscription();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,6 +33,8 @@ const SettingsView: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
   const companyLogoRef = useRef<HTMLInputElement>(null);
   const userAvatarRef = useRef<HTMLInputElement>(null);
   
@@ -588,7 +591,7 @@ const SettingsView: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-lg">Collaborateurs</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Gestion des droits ({users.length})</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Gestion des droits ({users.length + pendingInvitations.length})</p>
                   </div>
                 </div>
                 <button 
@@ -632,8 +635,8 @@ const SettingsView: React.FC = () => {
                         <td className="px-6 py-5">
                           <div className="flex justify-center">
                             <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter border ${
-                              user.role === 'Administrateur' 
-                                ? 'bg-purple-50 text-purple-600 border-purple-100' 
+                              user.role === 'Administrateur'
+                                ? 'bg-purple-50 text-purple-600 border-purple-100'
                                 : user.role === 'Conducteur de travaux'
                                   ? 'bg-blue-50 text-blue-600 border-blue-100'
                                   : 'bg-slate-50 text-slate-500 border-slate-200'
@@ -662,18 +665,81 @@ const SettingsView: React.FC = () => {
                         </td>
                         <td className="px-8 py-5 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
+                            <button
                               onClick={() => { setSelectedUser(user); setIsUserModalOpen(true); }}
                               className="p-2 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 hover:border-emerald-100 transition-all"
                             >
                               <Edit2 size={14} />
                             </button>
-                            <button 
-                              onClick={() => deleteUser(user.email)}
+                            <button
+                              onClick={() => { setUserToDelete(user); setIsConfirmDeleteModalOpen(true); }}
                               className="p-2 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all"
                             >
                               <Trash2 size={14} />
                             </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {pendingInvitations.map((invitation: any) => (
+                      <tr key={invitation.token} className="hover:bg-amber-50/50 transition-colors group opacity-75">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 font-black text-xs group-hover:bg-amber-200 transition-colors">
+                              {invitation.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-800 leading-tight">{invitation.name}</p>
+                              <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
+                                <Mail size={10} /> {invitation.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex justify-center">
+                            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter border ${
+                              invitation.role === 'Administrateur'
+                                ? 'bg-purple-50 text-purple-600 border-purple-100'
+                                : invitation.role === 'Conducteur de travaux'
+                                  ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                  : 'bg-slate-50 text-slate-500 border-slate-200'
+                            }`}>
+                              {invitation.role === 'Administrateur' ? <Shield size={10} /> : invitation.role === 'Conducteur de travaux' ? <ShieldCheck size={10} /> : <HardHat size={10} />}
+                              {invitation.role}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {invitation.habilitations && invitation.habilitations.length > 0 ? (
+                              invitation.habilitations.map((hId: string) => {
+                                const cfg = HABILITATION_ICONS[hId];
+                                return (
+                                  <div key={hId} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-tighter ${cfg?.color || 'bg-slate-50 text-slate-400'}`} title={hId}>
+                                    {cfg?.icon}
+                                    <span className="truncate max-w-[60px]">{hId}</span>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <span className="text-[8px] font-black text-slate-300 uppercase italic">Aucune</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
+                              En attente
+                            </span>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => deleteInvitation(invitation.token)}
+                                className="p-2 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -931,6 +997,13 @@ const SettingsView: React.FC = () => {
         isOpen={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}
         currentUser={auth.currentUser}
+      />
+
+      <ConfirmDeleteUserModal
+        isOpen={isConfirmDeleteModalOpen}
+        onClose={() => setIsConfirmDeleteModalOpen(false)}
+        user={userToDelete}
+        onConfirm={deleteUser}
       />
     </div>
   );

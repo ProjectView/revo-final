@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
@@ -20,6 +20,9 @@ const Pipeline: React.FC = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [selectedConvertedSiteId, setSelectedConvertedSiteId] = useState<string | null>(null);
   const [selectedConvertedPrestationId, setSelectedConvertedPrestationId] = useState<string | null>(null);
+  const [hoveredLeadId, setHoveredLeadId] = useState<string | null>(null);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [isRestoringId, setIsRestoringId] = useState<string | null>(null);
   
   const stages = useMemo(() => company?.pipelineStages || DEFAULT_STAGES, [company]);
   
@@ -32,6 +35,17 @@ const Pipeline: React.FC = () => {
   };
 
   const getLeadsForStage = (stage: string) => leads.filter(l => l.stage === stage);
+
+  const getArchivedLeads = () => leads.filter(l => l.stage === 'Perdu');
+
+  const handleRestoreLead = async (leadId: string) => {
+    setIsRestoringId(leadId);
+    try {
+      await updateLeadStage(leadId, stages[0]);
+    } finally {
+      setIsRestoringId(null);
+    }
+  };
 
   const onDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.setData('leadId', leadId);
@@ -51,7 +65,13 @@ const Pipeline: React.FC = () => {
 
   const handleWinLead = (e: React.MouseEvent, lead: Lead) => {
     e.stopPropagation();
-    updateLeadStage(lead.id, 'Gagné');
+    triggerConfetti();
+    setSelectedLeadToConvert(lead);
+  };
+
+  const handleLoseLead = (e: React.MouseEvent, lead: Lead) => {
+    e.stopPropagation();
+    updateLeadStage(lead.id, 'Perdu');
   };
 
   const handleConversionSuccess = (newId: string, type: 'site' | 'prestation') => {
@@ -116,8 +136,20 @@ const Pipeline: React.FC = () => {
           <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Pipeline Commerciale</h1>
           <p className="text-slate-500 text-base font-semibold mt-1 uppercase tracking-widest">Opportunités & Prévisions</p>
         </div>
-        <div className="flex gap-4">
-          <button 
+        <div className="flex gap-4 items-center">
+          <button
+            onClick={() => setIsArchiveModalOpen(true)}
+            className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-300 rounded-2xl transition-all shadow-sm group relative"
+            title="Voir les opportunités archivées"
+          >
+            <Folder size={22} />
+            {getArchivedLeads().length > 0 && (
+              <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                {getArchivedLeads().length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={openSettings}
             className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
             title="Paramètres de la pipeline"
@@ -140,41 +172,44 @@ const Pipeline: React.FC = () => {
           const isWonStage = stage === 'Gagné';
 
           return (
-            <div 
-              key={stage} 
+            <div
+              key={stage}
               onDragOver={onDragOver}
               onDrop={(e) => onDrop(e, stage)}
-              className={`flex-shrink-0 w-[320px] flex flex-col rounded-[2.5rem] bg-white border ${isWonStage ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'} shadow-sm p-4 h-full overflow-hidden transition-all hover:shadow-xl`}
+              className="flex-shrink-0 w-[320px] flex flex-col rounded-[2.5rem] bg-white border border-slate-100 shadow-sm p-4 h-full overflow-hidden transition-all hover:shadow-xl"
             >
               <div className="flex items-center justify-between mb-4 px-3 pt-2">
                 <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${getStageColor(stage)} shadow-sm ${isWonStage ? 'animate-pulse' : ''}`}></div>
-                  <h3 className={`text-[11px] font-black uppercase tracking-[0.2em] ${isWonStage ? 'text-emerald-800' : 'text-slate-800'}`}>{stage}</h3>
+                  <div className={`w-2.5 h-2.5 rounded-full ${getStageColor(stage)} shadow-sm`}></div>
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-800">{stage}</h3>
                   <span className="text-[9px] font-black text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-100 shadow-sm">
                     {stageLeads.length}
                   </span>
                 </div>
-                {isWonStage && <Trophy size={14} className="text-emerald-500" />}
               </div>
 
-              <div className={`mx-2 mb-4 px-4 py-2.5 rounded-xl border flex items-center justify-between shadow-inner ${isWonStage ? 'bg-emerald-100/50 border-emerald-100' : 'bg-slate-50/50 border-slate-100'}`}>
-                 <span className={`text-[9px] font-black uppercase tracking-widest ${isWonStage ? 'text-emerald-600' : 'text-slate-400'}`}>Volume</span>
-                 <span className={`text-sm font-black ${isWonStage ? 'text-emerald-900' : 'text-slate-900'}`}>{totalValue.toLocaleString()} <span className="text-[10px] uppercase ml-0.5">€</span></span>
+              <div className="mx-2 mb-4 px-4 py-2.5 rounded-xl border border-slate-100 flex items-center justify-between shadow-inner bg-slate-50/50">
+                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Volume</span>
+                 <span className="text-sm font-black text-slate-900">{totalValue.toLocaleString()} <span className="text-[10px] uppercase ml-0.5">€</span></span>
               </div>
 
               <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1 scrollbar-hide px-1 pb-4">
-                {stageLeads.map(lead => (
-                  <div 
+                {stageLeads.map(lead => {
+                  const isLostLead = lead.stage === 'Perdu';
+                  return (
+                  <div
                     key={lead.id}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, lead.id)}
+                    draggable={!isLostLead}
+                    onDragStart={(e) => !isLostLead && onDragStart(e, lead.id)}
                     onClick={() => setSelectedLeadId(lead.id)}
-                    className={`bg-white p-4 rounded-[1.5rem] border shadow-sm hover:shadow-xl transition-all cursor-grab active:cursor-grabbing group flex flex-col ${isWonStage ? 'border-emerald-200 ring-1 ring-emerald-50' : 'border-slate-100 hover:border-emerald-200'}`}
+                    onMouseEnter={() => setHoveredLeadId(lead.id)}
+                    onMouseLeave={() => setHoveredLeadId(null)}
+                    className={`bg-white rounded-[1.5rem] border border-slate-100 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all group flex flex-col ${isLostLead ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'} ${hoveredLeadId === lead.id ? 'p-5' : 'p-4'}`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm ${isWonStage ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600'}`}>
-                          {isWonStage ? <Trophy size={14} /> : <User size={14} />}
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600">
+                          <User size={14} />
                         </div>
                         <span className="text-xs font-black text-slate-800 truncate max-w-[140px]">{lead.leadName}</span>
                       </div>
@@ -200,26 +235,26 @@ const Pipeline: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Action de conversion */}
-                    {isWonStage ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); triggerConfetti(); setSelectedLeadToConvert(lead); }}
-                        className="mt-3 w-full bg-emerald-900 text-white py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95"
-                      >
-                         Démarrer le projet
-                      </button>
-                    ) : (
-                      (lead.stage === 'Négociation' || lead.stage === 'Devis envoyé') && (
-                        <button 
+                    {/* Action buttons - appear on hover (hidden for lost leads) */}
+                    {hoveredLeadId === lead.id && !isLostLead && (
+                      <div className="mt-3 flex gap-2">
+                        <button
                           onClick={(e) => handleWinLead(e, lead)}
-                          className="mt-3 w-full bg-emerald-900/5 hover:bg-emerald-900 text-emerald-900 hover:text-white py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 border border-emerald-900/10"
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-1 shadow-lg shadow-emerald-600/30 active:scale-95"
                         >
-                          <Trophy size={12} /> Gagner
+                          <Trophy size={12} /> Gagné
                         </button>
-                      )
+                        <button
+                          onClick={(e) => handleLoseLead(e, lead)}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-1 shadow-lg shadow-red-600/30 active:scale-95"
+                        >
+                          Perdu
+                        </button>
+                      </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 
                 <button 
                   onClick={() => setIsModalOpen(true)}
@@ -262,6 +297,71 @@ const Pipeline: React.FC = () => {
           prestationId={selectedConvertedPrestationId}
           onClose={() => setSelectedConvertedPrestationId(null)}
         />
+      )}
+
+      {/* --- Archives Modal --- */}
+      {isArchiveModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsArchiveModalOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 max-h-[80vh] flex-col">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-slate-200 rounded-2xl flex items-center justify-center text-slate-600 shadow-lg">
+                  <Folder size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">Opportunités archivées</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Leads perdus</p>
+                </div>
+              </div>
+              <button onClick={() => setIsArchiveModalOpen(false)} className="p-2 text-slate-400 hover:bg-white rounded-full transition-colors"><X size={24} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8">
+              {getArchivedLeads().length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-300">
+                  <Folder size={32} className="opacity-20 mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Aucune opportunité archivée</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {getArchivedLeads().map(lead => (
+                    <div key={lead.id} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-slate-200 transition-all group">
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-slate-800">{lead.project}</p>
+                        <p className="text-[9px] text-slate-400 font-bold mt-1">{lead.leadName}</p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => handleRestoreLead(lead.id)}
+                          disabled={isRestoringId === lead.id}
+                          className="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                          title="Restaurer cette opportunité"
+                        >
+                          {isRestoringId === lead.id ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <>
+                              <RotateCcw size={16} />
+                              <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Restaurer</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setSelectedLeadId(lead.id)}
+                          className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-red-600 hover:border-red-200 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          title="Voir les détails"
+                        >
+                          <User size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* --- Pipeline Settings Modal --- */}
