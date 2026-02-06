@@ -25,6 +25,7 @@ const SiteList: React.FC = () => {
   // États des filtres
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<Status[]>([]);
 
   // Statuts par défaut
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
@@ -64,18 +65,27 @@ const SiteList: React.FC = () => {
       const matchesStart = !dateStart || siteDate >= new Date(dateStart);
       const matchesEnd = !dateEnd || siteDate <= new Date(dateEnd);
 
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(s.status);
+
       const isNotClosed = !s.closedAt;
 
-      return matchesSearch && matchesStart && matchesEnd && isNotClosed;
+      return matchesSearch && matchesStart && matchesEnd && matchesStatus && isNotClosed;
     });
-  }, [sites, searchTerm, dateStart, dateEnd]);
+  }, [sites, searchTerm, dateStart, dateEnd, selectedStatuses]);
 
-  const activeFiltersCount = [dateStart, dateEnd].filter(Boolean).length;
+  const activeFiltersCount = [dateStart, dateEnd, selectedStatuses.length > 0 ? 'status' : null].filter(Boolean).length;
 
   const resetFilters = () => {
     setDateStart('');
     setDateEnd('');
     setSearchTerm('');
+    setSelectedStatuses([]);
+  };
+
+  const toggleStatusFilter = (status: Status) => {
+    setSelectedStatuses(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
   };
 
   const setThisMonth = () => {
@@ -151,35 +161,61 @@ const SiteList: React.FC = () => {
 
           {/* Expanded Filters */}
           {showFilters && (
-            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Calendar size={12} /> Début après le
-                </label>
-                <input 
-                  type="date" 
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
-                />
+            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <Calendar size={12} /> Début après le
+                  </label>
+                  <input
+                    type="date"
+                    value={dateStart}
+                    onChange={(e) => setDateStart(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <Calendar size={12} /> Fin avant le
+                  </label>
+                  <input
+                    type="date"
+                    value={dateEnd}
+                    onChange={(e) => setDateEnd(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
+                  />
+                </div>
+                <div className="flex flex-col justify-end gap-2">
+                  <div className="flex gap-2">
+                    <button onClick={setThisMonth} className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all">Ce mois-ci</button>
+                    <button onClick={resetFilters} className="flex-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all flex items-center justify-center gap-2">
+                      <X size={14} /> Reset
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Calendar size={12} /> Fin avant le
-                </label>
-                <input 
-                  type="date" 
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
-                />
-              </div>
-              <div className="flex flex-col justify-end gap-2">
-                <div className="flex gap-2">
-                  <button onClick={setThisMonth} className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all">Ce mois-ci</button>
-                  <button onClick={resetFilters} className="flex-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all flex items-center justify-center gap-2">
-                    <X size={14} /> Reset
-                  </button>
+
+              {/* Status Filter */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Filtrer par Statut</label>
+                <div className="flex flex-wrap gap-2">
+                  {siteStatuses.map(status => {
+                    const isSelected = selectedStatuses.includes(status);
+                    const style = getStatusStyle(status);
+                    return (
+                      <button
+                        key={status}
+                        onClick={() => toggleStatusFilter(status)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 ${
+                          isSelected
+                            ? `${style} border-current shadow-md`
+                            : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
