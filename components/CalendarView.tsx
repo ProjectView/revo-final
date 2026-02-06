@@ -251,14 +251,15 @@ const CalendarView: React.FC = () => {
     setCurrentDate(newDate);
   };
 
-  const onSiteDragStart = (e: React.DragEvent, siteId: string, draggedDateStr: string) => {
-    const site = sites.find(s => s.id === siteId);
-    if (isReadOnly('site', siteId) || site?.closedAt) {
+  const onItemDragStart = (e: React.DragEvent, itemId: string, draggedDateStr: string, isPrestation: boolean = false) => {
+    const item = isPrestation ? prestations.find(p => p.id === itemId) : sites.find(s => s.id === itemId);
+    if (isReadOnly(isPrestation ? 'prestation' : 'site', itemId) || item?.closedAt) {
       e.preventDefault();
       return;
     }
-    e.dataTransfer.setData('siteId', siteId);
+    e.dataTransfer.setData('itemId', itemId);
     e.dataTransfer.setData('draggedDate', draggedDateStr);
+    e.dataTransfer.setData('isPrestation', isPrestation ? 'true' : 'false');
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -269,32 +270,41 @@ const CalendarView: React.FC = () => {
 
   const onDayDrop = async (e: React.DragEvent, targetDate: Date) => {
     e.preventDefault();
-    const siteId = e.dataTransfer.getData('siteId');
+    const itemId = e.dataTransfer.getData('itemId');
     const draggedDateStr = e.dataTransfer.getData('draggedDate');
-    const site = sites.find(s => s.id === siteId);
-    if (site && draggedDateStr) {
-      const originalStart = new Date(site.startDate);
+    const isPrestation = e.dataTransfer.getData('isPrestation') === 'true';
+
+    const item = isPrestation ? prestations.find(p => p.id === itemId) : sites.find(s => s.id === itemId);
+    if (item && draggedDateStr) {
+      const originalStart = new Date(item.startDate);
       const draggedDay = new Date(draggedDateStr);
       const offsetMs = draggedDay.getTime() - originalStart.getTime();
-      const durationMs = new Date(site.endDate).getTime() - originalStart.getTime();
+      const durationMs = new Date(item.endDate).getTime() - originalStart.getTime();
       const newStart = new Date(targetDate.getTime() - offsetMs);
       const newEnd = new Date(newStart.getTime() + durationMs);
 
       const newStartStr = toLocalISOString(newStart);
       const newEndStr = toLocalISOString(newEnd);
 
-      const capacity = checkCapacity(newStartStr, newEndStr, siteId);
+      const capacity = checkCapacity(newStartStr, newEndStr, itemId);
       if (capacity.exceeds) {
         addNotification(
-          `Alerte Capacité : Ce déplacement place ${capacity.maxCount + 1} chantiers en simultané sur cette période (seuil : ${company?.maxSimultaneousSites}).`,
+          `Alerte Capacité : Ce déplacement place ${capacity.maxCount + 1} ${isPrestation ? 'prestations' : 'chantiers'} en simultané sur cette période (seuil : ${company?.maxSimultaneousSites}).`,
           'warning'
         );
       }
 
-      await updateSite(siteId, {
-        startDate: newStartStr,
-        endDate: newEndStr
-      });
+      if (isPrestation) {
+        await updatePrestation(itemId, {
+          startDate: newStartStr,
+          endDate: newEndStr
+        });
+      } else {
+        await updateSite(itemId, {
+          startDate: newStartStr,
+          endDate: newEndStr
+        });
+      }
     }
   };
 
@@ -488,12 +498,13 @@ const CalendarView: React.FC = () => {
                         const periods = getSitePeriods(site);
                         const isStartOfAny = periods.some(p => dStr === p.startDate);
                         const isEndOfAny = periods.some(p => dStr === p.endDate);
+                        const isPrestation = 'category' in site && !!site.category;
                         const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
                         return (
                           <div
                             key={site.id}
                             draggable={!resizing && !siteReadOnly}
-                            onDragStart={(e) => onSiteDragStart(e, site.id, dStr)}
+                            onDragStart={(e) => onItemDragStart(e, site.id, dStr, isPrestation)}
                             onClick={() => handleSelectItem(site)}
                             style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }}
                             className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${getStatusColor(site.status)} ${isStartOfAny ? 'rounded-l-xl ml-2' : ''} ${isEndOfAny ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
@@ -556,35 +567,45 @@ const CalendarView: React.FC = () => {
                 ))}
               </div>
               <div className="flex-1 flex">
-                {currentWeekDays.map((date, dayIdx) => (
-                  <div key={dayIdx} className="flex-1 border-r border-slate-100 relative group">
-                    {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
-                    {filteredSites.map(site => {
-                      const dStr = toLocalISOString(date);
-                      if (dStr < site.startDate || dStr > site.endDate) return null;
-                      const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
-                      const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
-                      const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
-                      if (cStart >= cEnd) return null;
+                {currentWeekDays.map((date, dayIdx) => {
+                  const dStr = toLocalISOString(date);
+                  return (
+                    <div
+                      key={dayIdx}
+                      className="flex-1 border-r border-slate-100 relative group"
+                      data-date={dStr}
+                      onDragOver={onDayDragOver}
+                      onDrop={(e) => onDayDrop(e, date)}
+                    >
+                      {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
+                      {filteredSites.map(site => {
+                        if (dStr < site.startDate || dStr > site.endDate) return null;
+                        const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
+                        const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
+                        const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
+                        if (cStart >= cEnd) return null;
 
-                      // Use slot-based positioning across entire duration
-                      const slotIndex = siteSlots[site.id] || 0;
-                      const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
-                      const itemLeft = slotIndex * (100 / maxSlots);
-                      const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
+                        // Use slot-based positioning across entire duration
+                        const slotIndex = siteSlots[site.id] || 0;
+                        const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
+                        const itemLeft = slotIndex * (100 / maxSlots);
+                        const isPrestation = 'category' in site && !!site.category;
+                        const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
 
-                      return (
-                        <div
-                          key={site.id}
-                          onClick={() => handleSelectItem(site)}
-                          style={{
-                            top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
-                            height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
-                            width: `${itemWidth}%`,
-                            left: `${itemLeft}%`
-                          }}
-                          className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${getStatusColor(site.status)} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-pointer hover:scale-[1.01] hover:z-20'}`}
-                        >
+                        return (
+                          <div
+                            key={site.id}
+                            draggable={!siteReadOnly}
+                            onDragStart={(e) => onItemDragStart(e, site.id, dStr, isPrestation)}
+                            onClick={() => handleSelectItem(site)}
+                            style={{
+                              top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
+                              height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
+                              width: `${itemWidth}%`,
+                              left: `${itemLeft}%`
+                            }}
+                            className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${getStatusColor(site.status)} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-grab active:cursor-grabbing hover:scale-[1.01] hover:z-20'}`}
+                          >
                           <p className="text-xs font-black uppercase tracking-tight text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
                             {site.name}
                           </p>
@@ -593,10 +614,11 @@ const CalendarView: React.FC = () => {
                             <span>{dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</span>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -628,62 +650,51 @@ const CalendarView: React.FC = () => {
         </div>
 
         {/* Type and Status Filters */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           {/* Type Filter */}
-          <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-1 h-6 bg-emerald-600 rounded-full" />
-              <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Affichage du Calendrier</span>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              {(['site', 'prestation'] as const).map(type => {
-                const isSelected = showTypes.includes(type);
-                const label = type === 'site' ? 'Chantiers' : 'Prestations';
-                const icon = type === 'site' ? '🏗️' : '⚙️';
-                return (
-                  <button
-                    key={type}
-                    onClick={() => toggleTypeFilter(type)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 ${
-                      isSelected
-                        ? 'bg-white text-emerald-700 border-emerald-500 shadow-md'
-                        : 'bg-white/50 border-slate-200 text-slate-500 hover:border-emerald-300 hover:bg-white/70'
-                    }`}
-                  >
-                    <span className="text-lg">{icon}</span>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrer par type :</span>
+            {(['site', 'prestation'] as const).map(type => {
+              const isSelected = showTypes.includes(type);
+              const label = type === 'site' ? 'Chantiers' : 'Prestations';
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleTypeFilter(type)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter border transition-all ${
+                    isSelected
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 border-2 shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-emerald-600' : 'bg-slate-300'}`} />
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Status Filter */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-1 h-6 bg-slate-400 rounded-full" />
-              <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Filtrer par Statut</span>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              {statuses.map(status => {
-                const style = getStatusStyle(status);
-                const isSelected = selectedStatuses.includes(status);
-                return (
-                  <button
-                    key={status}
-                    onClick={() => toggleStatusFilter(status)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 ${
-                      isSelected
-                        ? `${style.bg} ${style.text} ${style.border} shadow-md`
-                        : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-white/70'
-                    }`}
-                  >
-                    <div className={`w-2 h-2 rounded-full ${style.bg}`} />
-                    {status}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrer par statut :</span>
+            {statuses.map(status => {
+              const style = getStatusStyle(status);
+              const isSelected = selectedStatuses.includes(status);
+              return (
+                <button
+                  key={status}
+                  onClick={() => toggleStatusFilter(status)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter border transition-all ${
+                    isSelected
+                      ? `${style.bg} ${style.text} ${style.border} border-2 shadow-sm`
+                      : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${style.bg}`} />
+                  {status}
+                </button>
+              );
+            })}
           </div>
         </div>
 
