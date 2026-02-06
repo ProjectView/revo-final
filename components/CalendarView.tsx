@@ -1,19 +1,33 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle, X, Lock } from 'lucide-react';
-import { Site, Status } from '../types';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Calendar as CalendarIcon, ExternalLink, AlertTriangle, X, Lock, Filter } from 'lucide-react';
+import { Site, Status, Prestation } from '../types';
 import SiteDetailModal from './SiteDetailModal';
+import PrestationDetailModal from './PrestationDetailModal';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 
 type CalendarMode = 'Semaine' | 'Mois' | 'Année';
+type ItemType = 'site' | 'prestation';
 
 const CalendarView: React.FC = () => {
-  const { sites, updateSite, checkCapacity, company, addNotification } = useData();
+  const { sites, prestations, updateSite, updatePrestation, checkCapacity, company, addNotification } = useData();
   const { isReadOnly } = useSubscription();
   const [viewMode, setViewMode] = useState<CalendarMode>('Mois');
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [selectedPrestation, setSelectedPrestation] = useState<Prestation | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showTypes, setShowTypes] = useState<ItemType[]>(() => {
+    const stored = localStorage.getItem('revo_calendar_types');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        return ['site', 'prestation'];
+      }
+    }
+    return ['site', 'prestation'];
+  });
 
   // Statuts par défaut
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
@@ -42,6 +56,26 @@ const CalendarView: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('revo_calendar_filters', JSON.stringify(selectedStatuses));
   }, [selectedStatuses]);
+
+  // Save showTypes to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('revo_calendar_types', JSON.stringify(showTypes));
+  }, [showTypes]);
+
+  const toggleTypeFilter = (type: ItemType) => {
+    setShowTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleSelectItem = (item: Site | Prestation) => {
+    // Check if it's a prestation (has category property)
+    if ('category' in item && item.category) {
+      setSelectedPrestation(item as Prestation);
+    } else {
+      setSelectedSite(item as Site);
+    }
+  };
 
   // State for resize handling
   const [resizing, setResizing] = useState<{ siteId: string; direction: 'start' | 'end' } | null>(null);
@@ -83,8 +117,18 @@ const CalendarView: React.FC = () => {
   };
 
   const filteredSites = useMemo(() => {
-    return sites.filter(s => selectedStatuses.includes(s.status));
-  }, [sites, selectedStatuses]);
+    let items: Site[] = [];
+
+    if (showTypes.includes('site')) {
+      items = items.concat(sites.filter(s => selectedStatuses.includes(s.status)));
+    }
+
+    if (showTypes.includes('prestation')) {
+      items = items.concat(prestations.filter(p => selectedStatuses.includes(p.status)));
+    }
+
+    return items;
+  }, [sites, prestations, selectedStatuses, showTypes]);
 
   const weekDays = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
   const weekDaysShort = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -144,6 +188,22 @@ const CalendarView: React.FC = () => {
       return d;
     });
   }, [currentDate]);
+
+  // Helper pour déterminer si un site est actif à une date donnée
+  const isSiteActiveOnDate = (site: Site, dateStr: string) => {
+    if (site.datePeriods && site.datePeriods.length > 0) {
+      return site.datePeriods.some(period => dateStr >= period.startDate && dateStr <= period.endDate);
+    }
+    return dateStr >= site.startDate && dateStr <= site.endDate;
+  };
+
+  // Helper pour obtenir toutes les périodes d'un site (interventions multiples)
+  const getSitePeriods = (site: Site) => {
+    if (site.datePeriods && site.datePeriods.length > 0) {
+      return site.datePeriods;
+    }
+    return [{ id: `${site.id}_default`, startDate: site.startDate, endDate: site.endDate, startTime: site.startTime, endTime: site.endTime }];
+  };
 
   const siteSlots = useMemo(() => {
     const slots: Record<string, number> = {};
@@ -361,7 +421,7 @@ const CalendarView: React.FC = () => {
                   {monthSites.length === 0 ? <p className="text-[10px] text-slate-300 italic px-1">Aucune activité</p> : (
                     <div className="space-y-1.5 max-h-[120px] overflow-y-auto scrollbar-hide pr-1">
                       {monthSites.map(site => (
-                        <button key={site.id} onClick={() => setSelectedSite(site)} className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors group/item text-left">
+                        <button key={site.id} onClick={() => handleSelectItem(site)} className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 transition-colors group/item text-left">
                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotColor(site.status)}`} />
                           <span className="text-[10px] font-black text-slate-600 truncate uppercase tracking-tighter flex-1">{site.name}</span>
                           <ExternalLink size={10} className="text-slate-300 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -394,7 +454,7 @@ const CalendarView: React.FC = () => {
                 const dStr = toLocalISOString(day);
 
                 // Calcul du chevauchement pour ce jour précis
-                const daySites = filteredSites.filter(s => dStr >= s.startDate && dStr <= s.endDate);
+                const daySites = filteredSites.filter(s => isSiteActiveOnDate(s, dStr));
                 const isOverLimit = daySites.length > limit;
 
                 return (
@@ -423,21 +483,22 @@ const CalendarView: React.FC = () => {
                     </div>
                     <div className="flex-1 relative mt-2 px-1">
                       {filteredSites.map(site => {
-                        if (dStr < site.startDate || dStr > site.endDate) return null;
+                        if (!isSiteActiveOnDate(site, dStr)) return null;
                         const slotIndex = siteSlots[site.id] || 0;
-                        const isStart = dStr === site.startDate;
-                        const isEnd = dStr === site.endDate;
+                        const periods = getSitePeriods(site);
+                        const isStartOfAny = periods.some(p => dStr === p.startDate);
+                        const isEndOfAny = periods.some(p => dStr === p.endDate);
                         const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
                         return (
                           <div
                             key={site.id}
                             draggable={!resizing && !siteReadOnly}
                             onDragStart={(e) => onSiteDragStart(e, site.id, dStr)}
-                            onClick={() => setSelectedSite(site)}
+                            onClick={() => handleSelectItem(site)}
                             style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }}
-                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${getStatusColor(site.status)} ${isStart ? 'rounded-l-xl ml-2' : ''} ${isEnd ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
+                            className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${getStatusColor(site.status)} ${isStartOfAny ? 'rounded-l-xl ml-2' : ''} ${isEndOfAny ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
                           >
-                            {isStart && !siteReadOnly && (
+                            {isStartOfAny && !siteReadOnly && (
                               <div
                                 onMouseDown={(e) => onResizeStart(e, site.id, 'start')}
                                 onTouchStart={(e) => onResizeStart(e, site.id, 'start')}
@@ -447,9 +508,9 @@ const CalendarView: React.FC = () => {
                             )}
                             <div className="flex items-center gap-2 flex-1 pointer-events-none">
                               {siteReadOnly && <Lock size={10} />}
-                              {(isStart || day.getDay() === 1) && <p className="text-[11px] truncate uppercase tracking-tight">{site.name}</p>}
+                              {(isStartOfAny || day.getDay() === 1) && <p className="text-[11px] truncate uppercase tracking-tight">{site.name}</p>}
                             </div>
-                            {isEnd && !siteReadOnly && (
+                            {isEndOfAny && !siteReadOnly && (
                               <div
                                 onMouseDown={(e) => onResizeStart(e, site.id, 'end')}
                                 onTouchStart={(e) => onResizeStart(e, site.id, 'end')}
@@ -515,7 +576,7 @@ const CalendarView: React.FC = () => {
                       return (
                         <div
                           key={site.id}
-                          onClick={() => setSelectedSite(site)}
+                          onClick={() => handleSelectItem(site)}
                           style={{
                             top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
                             height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
@@ -566,32 +627,70 @@ const CalendarView: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrer par statut :</span>
-          {statuses.map(status => {
-            const style = getStatusStyle(status);
-            const isSelected = selectedStatuses.includes(status);
-            return (
-              <button
-                key={status}
-                onClick={() => toggleStatusFilter(status)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter border transition-all ${
-                  isSelected
-                    ? `${style.bg} ${style.text} ${style.border} border-2 shadow-sm`
-                    : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
-                }`}
-              >
-                <div className={`w-2 h-2 rounded-full ${style.bg}`} />
-                {status}
-              </button>
-            );
-          })}
+        {/* Type and Status Filters */}
+        <div className="flex flex-col gap-6">
+          {/* Type Filter */}
+          <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border-2 border-emerald-200 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-1 h-6 bg-emerald-600 rounded-full" />
+              <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Affichage du Calendrier</span>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {(['site', 'prestation'] as const).map(type => {
+                const isSelected = showTypes.includes(type);
+                const label = type === 'site' ? 'Chantiers' : 'Prestations';
+                const icon = type === 'site' ? '🏗️' : '⚙️';
+                return (
+                  <button
+                    key={type}
+                    onClick={() => toggleTypeFilter(type)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 ${
+                      isSelected
+                        ? 'bg-white text-emerald-700 border-emerald-500 shadow-md'
+                        : 'bg-white/50 border-slate-200 text-slate-500 hover:border-emerald-300 hover:bg-white/70'
+                    }`}
+                  >
+                    <span className="text-lg">{icon}</span>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-1 h-6 bg-slate-400 rounded-full" />
+              <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Filtrer par Statut</span>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {statuses.map(status => {
+                const style = getStatusStyle(status);
+                const isSelected = selectedStatuses.includes(status);
+                return (
+                  <button
+                    key={status}
+                    onClick={() => toggleStatusFilter(status)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 ${
+                      isSelected
+                        ? `${style.bg} ${style.text} ${style.border} shadow-md`
+                        : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-white/70'
+                    }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${style.bg}`} />
+                    {status}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {viewMode === 'Année' ? renderYearView() : viewMode === 'Mois' ? renderMonthView() : renderWeekView()}
       </div>
       <SiteDetailModal siteId={selectedSite?.id || null} onClose={() => setSelectedSite(null)} />
+      <PrestationDetailModal prestationId={selectedPrestation?.id || null} onClose={() => setSelectedPrestation(null)} />
     </>
   );
 };
