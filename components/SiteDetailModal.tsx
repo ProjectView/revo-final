@@ -154,7 +154,7 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
       case 'checklist':
         return <ChecklistTab site={site} isReadOnly={siteReadOnly} onUpdateTasks={(tasks) => updateSite(site.id, { tasks })} />;
       case 'docs':
-        return <DocsTab siteId={site.id} isReadOnly={siteReadOnly} />;
+        return <DocsTab siteId={site.id} site={site} isReadOnly={siteReadOnly} onUpdate={(updates) => updateSite(site.id, updates)} />;
       case 'activities':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">

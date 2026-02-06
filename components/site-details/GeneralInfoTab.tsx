@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Calendar, MapPin, Clock, MessageSquare, Users, Phone, Mail, Loader2, ChevronDown, AlertTriangle, Send, Navigation } from 'lucide-react';
-import { Site, Client, SiteComment } from '../../types';
+import { Calendar, MapPin, Clock, MessageSquare, Users, Phone, Mail, Loader2, ChevronDown, AlertTriangle, Send, Navigation, Edit3, Trash2, Check, X } from 'lucide-react';
+import { Site, Client, SiteComment, DatePeriod } from '../../types';
 import { useData } from '../../context/DataContext';
+import DatePeriodsManager from '../DatePeriodsManager';
 
 interface GeneralInfoTabProps {
   site: Site;
@@ -24,14 +25,24 @@ interface AddressSuggestion {
 }
 
 const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing, isReadOnly, onUpdate, onOpenAssignModal }) => {
-  const { clients, users, checkCapacity, company, addSiteComment, getSiteComments } = useData();
+  const { clients, users, checkCapacity, company, addSiteComment, getSiteComments, updateSiteComment, deleteSiteComment } = useData();
   const [addressSearch, setAddressSearch] = useState(site.address);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [comments, setComments] = useState<SiteComment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
   const suggestionRef = useRef<HTMLDivElement>(null);
+
+  // Récupérer le nom de l'utilisateur actuel
+  const currentUserName = useMemo(() => {
+    const email = localStorage.getItem('revo_auth');
+    if (!email) return 'Inconnu';
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    return user ? user.name : email;
+  }, [users]);
 
   useEffect(() => {
     if (site.id) {
@@ -103,6 +114,24 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
     window.open(mapsUrl, '_blank');
   };
 
+  const handleEditComment = (commentId: string, text: string) => {
+    setEditingCommentId(commentId);
+    setEditingText(text);
+  };
+
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editingText.trim()) return;
+    await updateSiteComment(site.id, commentId, editingText.trim());
+    setEditingCommentId(null);
+    setEditingText('');
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+      await deleteSiteComment(site.id, commentId);
+    }
+  };
+
   const assignedUsers = users.filter(u => site.assignedUserIds?.includes(u.id));
 
   if (isEditing) {
@@ -157,32 +186,52 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
             <input type="date" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold" value={site.endDate} onChange={e => onUpdate && onUpdate({ endDate: e.target.value })} />
           </div>
         </div>
+
+        {/* Gestionnaire de périodes multiples */}
+        <div className="pt-4 border-t border-slate-100">
+          <DatePeriodsManager
+            periods={site.datePeriods || []}
+            isEditing={true}
+            isReadOnly={isReadOnly}
+            onUpdate={(periods) => onUpdate && onUpdate({ datePeriods: periods })}
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Début du chantier</label>
-          <div className="flex items-center gap-3 text-slate-700">
-            <Calendar size={16} className="text-emerald-600" />
-            <span className="text-sm font-bold">{new Date(site.startDate).toLocaleDateString('fr-FR')}</span>
-            <Clock size={16} className="text-slate-400 ml-auto" />
-            <span className="text-sm font-medium">{site.startTime || '08:00'}</span>
+      {/* Affichage des périodes multiples si disponibles */}
+      {site.datePeriods && site.datePeriods.length > 0 ? (
+        <DatePeriodsManager
+          periods={site.datePeriods}
+          isEditing={false}
+          isReadOnly={isReadOnly}
+          onUpdate={() => {}}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Début du chantier</label>
+            <div className="flex items-center gap-3 text-slate-700">
+              <Calendar size={16} className="text-emerald-600" />
+              <span className="text-sm font-bold">{new Date(site.startDate).toLocaleDateString('fr-FR')}</span>
+              <Clock size={16} className="text-slate-400 ml-auto" />
+              <span className="text-sm font-medium">{site.startTime || '08:00'}</span>
+            </div>
+          </div>
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Fin prévue</label>
+            <div className="flex items-center gap-3 text-slate-700">
+              <Calendar size={16} className="text-emerald-600" />
+              <span className="text-sm font-bold">{new Date(site.endDate).toLocaleDateString('fr-FR')}</span>
+              <Clock size={16} className="text-slate-400 ml-auto" />
+              <span className="text-sm font-medium">{site.endTime || '17:30'}</span>
+            </div>
           </div>
         </div>
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Fin prévue</label>
-          <div className="flex items-center gap-3 text-slate-700">
-            <Calendar size={16} className="text-emerald-600" />
-            <span className="text-sm font-bold">{new Date(site.endDate).toLocaleDateString('fr-FR')}</span>
-            <Clock size={16} className="text-slate-400 ml-auto" />
-            <span className="text-sm font-medium">{site.endTime || '17:30'}</span>
-          </div>
-        </div>
-      </div>
+      )}
 
       <div className="space-y-3">
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Équipe assignée</h3>
@@ -279,17 +328,80 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
               <p className="text-[10px] font-black uppercase tracking-widest italic">Aucun commentaire historisé</p>
             </div>
           ) : (
-            comments.map(c => (
-              <div key={c.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-emerald-900 uppercase tracking-tighter">{c.user}</span>
-                  <span className="text-[9px] font-bold text-slate-400">
-                    {new Date(c.timestamp).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </span>
+            comments.map(c => {
+              const isOwnComment = c.user === currentUserName;
+              const isEditing = editingCommentId === c.id;
+
+              return (
+                <div key={c.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-[10px] font-black text-emerald-900 uppercase tracking-tighter">{c.user}</span>
+                      {isOwnComment && (
+                        <span className="text-[8px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md">Vous</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold text-slate-400">
+                        {new Date(c.timestamp).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {isOwnComment && !isReadOnly && (
+                        <div className="flex gap-1">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={() => handleSaveEdit(c.id)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"
+                                title="Enregistrer"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditingText('');
+                                }}
+                                className="p-1 text-slate-400 hover:bg-slate-100 rounded-lg transition-all"
+                                title="Annuler"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEditComment(c.id, c.text)}
+                                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                                title="Modifier"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteComment(c.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Supprimer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {isEditing ? (
+                    <textarea
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      className="w-full bg-white border border-emerald-300 rounded-lg p-3 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{c.text}</p>
+                  )}
                 </div>
-                <p className="text-xs text-slate-700 leading-relaxed font-medium">{c.text}</p>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

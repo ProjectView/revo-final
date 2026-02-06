@@ -1,16 +1,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Image as ImageIcon, Download, MoreVertical, FilePlus, Loader2, Trash2, Eye, X } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Download, MoreVertical, FilePlus, Loader2, Trash2, Eye, X, Link as LinkIcon, Cloud, Edit3 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
-import { SiteDocument } from '../../types';
+import { Site, SiteDocument } from '../../types';
 import ConfirmationModal from '../ConfirmationModal';
 
 interface DocsTabProps {
   siteId: string;
+  site?: Site;
   isReadOnly?: boolean;
+  onUpdate?: (updates: Partial<Site>) => void;
 }
 
-const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
+const DocsTab: React.FC<DocsTabProps> = ({ siteId, site, isReadOnly, onUpdate }) => {
   const { uploadSiteDocument, getSiteDocuments, deleteSiteDocument, users } = useData();
   const [documents, setDocuments] = useState<SiteDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -18,6 +20,8 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
   const [selectedDocForPreview, setSelectedDocForPreview] = useState<SiteDocument | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [docToDelete, setDocToDelete] = useState<SiteDocument | null>(null);
+  const [cloudLink, setCloudLink] = useState(site?.cloudLink || '');
+  const [isEditingCloudLink, setIsEditingCloudLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -68,6 +72,28 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
     }
   };
 
+  const handleSaveCloudLink = () => {
+    if (onUpdate && cloudLink.trim()) {
+      onUpdate({ cloudLink: cloudLink.trim() });
+      setIsEditingCloudLink(false);
+    }
+  };
+
+  const handleDeleteCloudLink = () => {
+    if (onUpdate) {
+      onUpdate({ cloudLink: '' });
+    }
+  };
+
+  const getCloudServiceIcon = () => {
+    const url = cloudLink.toLowerCase();
+    if (url.includes('drive.google')) return '🔵'; // Google Drive
+    if (url.includes('onedrive') || url.includes('sharepoint')) return '🟢'; // OneDrive
+    if (url.includes('dropbox')) return '🔵'; // Dropbox
+    if (url.includes('icloud')) return '⚪'; // iCloud
+    return '☁️'; // Generic cloud
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Upload Zone */}
@@ -101,6 +127,95 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, isReadOnly }) => {
           <button className="mt-6 px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-emerald-600 hover:border-emerald-100 shadow-sm transition-all">
             Parcourir les fichiers
           </button>
+        )}
+      </div>
+
+      {/* Cloud Link Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Lien vers le cloud</h3>
+        </div>
+
+        {isEditingCloudLink ? (
+          <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL du service cloud</label>
+              <input
+                type="url"
+                placeholder="https://drive.google.com/... ou https://onedrive.live.com/..."
+                value={cloudLink}
+                onChange={(e) => setCloudLink(e.target.value)}
+                className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-slate-700"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveCloudLink}
+                disabled={!cloudLink.trim()}
+                className="flex-1 py-2 px-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-all text-xs font-bold"
+              >
+                Enregistrer
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingCloudLink(false);
+                  setCloudLink(site?.cloudLink || '');
+                }}
+                className="flex-1 py-2 px-3 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-all text-xs font-bold"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        ) : cloudLink ? (
+          <a
+            href={cloudLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-4 bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-100 rounded-2xl hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">{getCloudServiceIcon()}</div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800 group-hover:text-emerald-700">Service cloud</p>
+                  <p className="text-[10px] text-slate-500 font-medium truncate max-w-xs">{cloudLink}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <LinkIcon size={18} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+              </div>
+            </div>
+          </a>
+        ) : null}
+
+        {!isReadOnly && (
+          <div className="flex gap-2 px-2">
+            {cloudLink && !isEditingCloudLink && (
+              <>
+                <button
+                  onClick={() => setIsEditingCloudLink(true)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100 rounded-lg transition-all text-xs font-bold"
+                >
+                  <Edit3 size={14} /> Modifier
+                </button>
+                <button
+                  onClick={handleDeleteCloudLink}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 rounded-lg transition-all text-xs font-bold"
+                >
+                  <Trash2 size={14} /> Supprimer
+                </button>
+              </>
+            )}
+            {!cloudLink && !isEditingCloudLink && (
+              <button
+                onClick={() => setIsEditingCloudLink(true)}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all text-xs font-bold"
+              >
+                <Cloud size={14} /> Ajouter un lien cloud
+              </button>
+            )}
+          </div>
         )}
       </div>
 

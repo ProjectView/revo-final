@@ -192,20 +192,20 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                         } cursor-grab`
                     }`}
                   >
-                    {/* Client & ID */}
-                    <div className="flex justify-between items-start mb-2 sm:mb-3 gap-2">
-                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                        <div className={`w-6 sm:w-8 h-6 sm:h-8 rounded-lg flex-shrink-0 ${client?.color || 'bg-slate-100'} flex items-center justify-center text-white text-[8px] sm:text-[10px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
+                    {/* Company Logo & Name with ID */}
+                    <div className="flex justify-between items-start mb-3 sm:mb-4 gap-2">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <div className={`w-8 sm:w-10 h-8 sm:h-10 rounded-lg flex-shrink-0 ${client?.color || 'bg-slate-100'} flex items-center justify-center text-white text-[10px] sm:text-[12px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
                           {client?.initials || '?'}
                         </div>
-                        <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">
-                          {client?.name || 'Inconnu'}
-                        </span>
+                        <p className="text-[11px] sm:text-[13px] font-black text-slate-700 uppercase tracking-wide truncate">
+                          {client?.company || 'Société'}
+                        </p>
                       </div>
                       <span className="text-[7px] sm:text-[9px] font-bold text-slate-300 uppercase tracking-widest flex-shrink-0">#{site.id.substring(0, 4)}</span>
                     </div>
 
-                    {/* Title */}
+                    {/* Site Name Title */}
                     <h4 className={`text-[12px] sm:text-[13px] font-black leading-tight mb-2 sm:mb-3 transition-colors line-clamp-2 ${
                       isTerminedStatus
                         ? 'text-slate-600 group-hover:text-slate-800'
@@ -220,12 +220,26 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
                         <MapPin size={10} className="sm:size-[12px] shrink-0" />
                         <span className="font-bold truncate italic">{site.address}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2 text-slate-400 text-[8px] sm:text-[10px]">
-                        <Calendar size={10} className="sm:size-[12px] shrink-0" />
-                        <span className="font-black uppercase tracking-wider">
-                          {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                        </span>
-                      </div>
+                      {/* Interventions ou Date simple */}
+                      {site.datePeriods && site.datePeriods.length > 0 ? (
+                        <div className="space-y-1">
+                          {site.datePeriods.map((period, idx) => (
+                            <div key={period.id} className="flex items-center gap-1.5 sm:gap-2 text-slate-400 text-[8px] sm:text-[9px]">
+                              <Calendar size={10} className="sm:size-[12px] shrink-0" />
+                              <span className="font-black uppercase tracking-wider">
+                                Int. {idx + 1}: {new Date(period.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} → {new Date(period.endDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-slate-400 text-[8px] sm:text-[10px]">
+                          <Calendar size={10} className="sm:size-[12px] shrink-0" />
+                          <span className="font-black uppercase tracking-wider">
+                            {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Footer */}

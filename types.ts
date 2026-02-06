@@ -118,6 +118,14 @@ export interface SiteComment {
   timestamp: string;
 }
 
+export interface DatePeriod {
+  id: string;
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  endTime?: string;
+}
+
 export interface Site {
   id: string;
   name: string;
@@ -134,6 +142,8 @@ export interface Site {
   color?: string;
   tasks?: SiteTask[];
   assignedUserIds?: string[];
+  datePeriods?: DatePeriod[]; // Périodes multiples pour les chantiers en plusieurs phases
+  cloudLink?: string; // Lien vers un service cloud (Google Drive, OneDrive, Dropbox, etc.)
   closedAt?: string; // Date de clôture du chantier (ISO timestamp)
 }
 

@@ -55,6 +55,8 @@ interface DataContextType {
   closeSite: (siteId: string) => Promise<void>;
   addSiteComment: (siteId: string, text: string) => Promise<void>;
   getSiteComments: (siteId: string, callback: (comments: SiteComment[]) => void) => () => void;
+  updateSiteComment: (siteId: string, commentId: string, text: string) => Promise<void>;
+  deleteSiteComment: (siteId: string, commentId: string) => Promise<void>;
   transferLeadDataToSite: (leadId: string, siteId: string, type?: 'site' | 'prestation') => Promise<void>;
   addPrestation: (prestation: Omit<Prestation, 'id'>) => Promise<string>;
   updatePrestation: (prestationId: string, updates: Partial<Prestation>) => Promise<void>;
@@ -719,6 +721,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const updateSiteComment = async (siteId: string, commentId: string, text: string) => {
+    if (!companyId) return;
+    const commentRef = doc(db, 'companies', companyId, 'sites', siteId, 'comments', commentId);
+    await updateDoc(commentRef, {
+      text,
+      editedAt: new Date().toISOString()
+    });
+    await addSiteActivity(siteId, `Commentaire modifié: "${text}"`);
+  };
+
+  const deleteSiteComment = async (siteId: string, commentId: string) => {
+    if (!companyId) return;
+    const commentRef = doc(db, 'companies', companyId, 'sites', siteId, 'comments', commentId);
+    await deleteDoc(commentRef);
+    await addSiteActivity(siteId, `Commentaire supprimé`);
+  };
+
   const transferLeadDataToSite = async (leadId: string, siteId: string, type: 'site' | 'prestation' = 'site') => {
     if (!companyId) return;
 
@@ -1095,7 +1114,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sites, prestations, leads, clients, todos, users, checklists, userNotifications, pendingInvitations, company, loading, permissionError, companyId,
       setCompanyId, loginWithEmail, createCompany, inviteUser, checkInvitation, deleteInvitation,
       addLead, updateLead, updateLeadStage, deleteLead, addLeadComment, getLeadComments, getLeadActivities,
-      addSite, updateSite, deleteSite, closeSite, addSiteComment, getSiteComments, transferLeadDataToSite,
+      addSite, updateSite, deleteSite, closeSite, addSiteComment, getSiteComments, updateSiteComment, deleteSiteComment, transferLeadDataToSite,
       addPrestation, updatePrestation, deletePrestation, closePrestation,
       addClient, updateClient, deleteClient,
       addTodo, toggleTodo, deleteTodo,

@@ -251,15 +251,14 @@ const CalendarView: React.FC = () => {
     setCurrentDate(newDate);
   };
 
-  const onItemDragStart = (e: React.DragEvent, itemId: string, draggedDateStr: string, isPrestation: boolean = false) => {
-    const item = isPrestation ? prestations.find(p => p.id === itemId) : sites.find(s => s.id === itemId);
-    if (isReadOnly(isPrestation ? 'prestation' : 'site', itemId) || item?.closedAt) {
+  const onSiteDragStart = (e: React.DragEvent, siteId: string, draggedDateStr: string) => {
+    const site = sites.find(s => s.id === siteId);
+    if (isReadOnly('site', siteId) || site?.closedAt) {
       e.preventDefault();
       return;
     }
-    e.dataTransfer.setData('itemId', itemId);
+    e.dataTransfer.setData('siteId', siteId);
     e.dataTransfer.setData('draggedDate', draggedDateStr);
-    e.dataTransfer.setData('isPrestation', isPrestation ? 'true' : 'false');
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -270,41 +269,32 @@ const CalendarView: React.FC = () => {
 
   const onDayDrop = async (e: React.DragEvent, targetDate: Date) => {
     e.preventDefault();
-    const itemId = e.dataTransfer.getData('itemId');
+    const siteId = e.dataTransfer.getData('siteId');
     const draggedDateStr = e.dataTransfer.getData('draggedDate');
-    const isPrestation = e.dataTransfer.getData('isPrestation') === 'true';
-
-    const item = isPrestation ? prestations.find(p => p.id === itemId) : sites.find(s => s.id === itemId);
-    if (item && draggedDateStr) {
-      const originalStart = new Date(item.startDate);
+    const site = sites.find(s => s.id === siteId);
+    if (site && draggedDateStr) {
+      const originalStart = new Date(site.startDate);
       const draggedDay = new Date(draggedDateStr);
       const offsetMs = draggedDay.getTime() - originalStart.getTime();
-      const durationMs = new Date(item.endDate).getTime() - originalStart.getTime();
+      const durationMs = new Date(site.endDate).getTime() - originalStart.getTime();
       const newStart = new Date(targetDate.getTime() - offsetMs);
       const newEnd = new Date(newStart.getTime() + durationMs);
 
       const newStartStr = toLocalISOString(newStart);
       const newEndStr = toLocalISOString(newEnd);
 
-      const capacity = checkCapacity(newStartStr, newEndStr, itemId);
+      const capacity = checkCapacity(newStartStr, newEndStr, siteId);
       if (capacity.exceeds) {
         addNotification(
-          `Alerte Capacité : Ce déplacement place ${capacity.maxCount + 1} ${isPrestation ? 'prestations' : 'chantiers'} en simultané sur cette période (seuil : ${company?.maxSimultaneousSites}).`,
+          `Alerte Capacité : Ce déplacement place ${capacity.maxCount + 1} chantiers en simultané sur cette période (seuil : ${company?.maxSimultaneousSites}).`,
           'warning'
         );
       }
 
-      if (isPrestation) {
-        await updatePrestation(itemId, {
-          startDate: newStartStr,
-          endDate: newEndStr
-        });
-      } else {
-        await updateSite(itemId, {
-          startDate: newStartStr,
-          endDate: newEndStr
-        });
-      }
+      await updateSite(siteId, {
+        startDate: newStartStr,
+        endDate: newEndStr
+      });
     }
   };
 
@@ -498,13 +488,12 @@ const CalendarView: React.FC = () => {
                         const periods = getSitePeriods(site);
                         const isStartOfAny = periods.some(p => dStr === p.startDate);
                         const isEndOfAny = periods.some(p => dStr === p.endDate);
-                        const isPrestation = 'category' in site && !!site.category;
                         const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
                         return (
                           <div
                             key={site.id}
                             draggable={!resizing && !siteReadOnly}
-                            onDragStart={(e) => onItemDragStart(e, site.id, dStr, isPrestation)}
+                            onDragStart={(e) => onSiteDragStart(e, site.id, dStr)}
                             onClick={() => handleSelectItem(site)}
                             style={{ top: `${slotIndex * MONTH_EVENT_HEIGHT}px` }}
                             className={`absolute left-0 right-0 h-[24px] flex items-center px-3 transition-all z-10 text-white shadow-sm font-black ${getStatusColor(site.status)} ${isStartOfAny ? 'rounded-l-xl ml-2' : ''} ${isEndOfAny ? 'rounded-r-xl mr-2' : ''} group ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:brightness-110'}`}
@@ -567,45 +556,35 @@ const CalendarView: React.FC = () => {
                 ))}
               </div>
               <div className="flex-1 flex">
-                {currentWeekDays.map((date, dayIdx) => {
-                  const dStr = toLocalISOString(date);
-                  return (
-                    <div
-                      key={dayIdx}
-                      className="flex-1 border-r border-slate-100 relative group"
-                      data-date={dStr}
-                      onDragOver={onDayDragOver}
-                      onDrop={(e) => onDayDrop(e, date)}
-                    >
-                      {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
-                      {filteredSites.map(site => {
-                        if (dStr < site.startDate || dStr > site.endDate) return null;
-                        const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
-                        const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
-                        const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
-                        if (cStart >= cEnd) return null;
+                {currentWeekDays.map((date, dayIdx) => (
+                  <div key={dayIdx} className="flex-1 border-r border-slate-100 relative group">
+                    {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => <div key={i} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-slate-100 group-hover:bg-slate-50/30 transition-colors"></div>)}
+                    {filteredSites.map(site => {
+                      const dStr = toLocalISOString(date);
+                      if (dStr < site.startDate || dStr > site.endDate) return null;
+                      const startVal = dStr === site.startDate ? parseTime(site.startTime) : START_HOUR;
+                      const endVal = dStr === site.endDate ? parseTime(site.endTime) : END_HOUR;
+                      const cStart = Math.max(START_HOUR, startVal), cEnd = Math.min(END_HOUR, endVal);
+                      if (cStart >= cEnd) return null;
 
-                        // Use slot-based positioning across entire duration
-                        const slotIndex = siteSlots[site.id] || 0;
-                        const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
-                        const itemLeft = slotIndex * (100 / maxSlots);
-                        const isPrestation = 'category' in site && !!site.category;
-                        const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
+                      // Use slot-based positioning across entire duration
+                      const slotIndex = siteSlots[site.id] || 0;
+                      const itemWidth = maxSlots > 1 ? 100 / maxSlots : 100;
+                      const itemLeft = slotIndex * (100 / maxSlots);
+                      const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
 
-                        return (
-                          <div
-                            key={site.id}
-                            draggable={!siteReadOnly}
-                            onDragStart={(e) => onItemDragStart(e, site.id, dStr, isPrestation)}
-                            onClick={() => handleSelectItem(site)}
-                            style={{
-                              top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
-                              height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
-                              width: `${itemWidth}%`,
-                              left: `${itemLeft}%`
-                            }}
-                            className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${getStatusColor(site.status)} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-grab active:cursor-grabbing hover:scale-[1.01] hover:z-20'}`}
-                          >
+                      return (
+                        <div
+                          key={site.id}
+                          onClick={() => handleSelectItem(site)}
+                          style={{
+                            top: `${(cStart - START_HOUR) * HOUR_HEIGHT}px`,
+                            height: `${(cEnd - cStart) * HOUR_HEIGHT}px`,
+                            width: `${itemWidth}%`,
+                            left: `${itemLeft}%`
+                          }}
+                          className={`absolute p-2 border-l-4 text-white shadow-md z-10 transition-all flex flex-col items-center justify-start ${getStatusColor(site.status)} border-white/30 ${siteReadOnly ? 'opacity-60 cursor-not-allowed' : 'opacity-95 cursor-pointer hover:scale-[1.01] hover:z-20'}`}
+                        >
                           <p className="text-xs font-black uppercase tracking-tight text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate-180' }}>
                             {site.name}
                           </p>
@@ -614,11 +593,10 @@ const CalendarView: React.FC = () => {
                             <span>{dStr === site.startDate ? site.startTime : '07:00'} - {dStr === site.endDate ? site.endTime : '21:00'}</span>
                           </div>
                         </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
