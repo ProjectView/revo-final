@@ -20,7 +20,7 @@ interface PrestationDetailModalProps {
 type TabType = 'info' | 'checklist' | 'docs' | 'activities';
 
 const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestationId, onClose }) => {
-  const { prestations, clients, updatePrestation, deletePrestation, closePrestation, getPrestationActivities } = useData();
+  const { prestations, clients, updatePrestation, deletePrestation, closePrestation, getPrestationActivities, isExternalUser } = useData();
   const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [activities, setActivities] = useState<LeadActivity[]>([]);
@@ -62,7 +62,8 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
   if (!prestationId || !prestation || !editedPrestation) return null;
 
   const client = clients.find(c => c.id === prestation.clientId);
-  const isClientReadOnly = isReadOnly('client', prestation.clientId) || !!prestation.closedAt;
+  const baseReadOnly = isReadOnly('client', prestation.clientId) || !!prestation.closedAt;
+  const isClientReadOnly = baseReadOnly || isExternalUser;
   const statuses: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
 
   const getStatusColor = (status: Status) => {
@@ -138,6 +139,7 @@ const PrestationDetailModal: React.FC<PrestationDetailModalProps> = ({ prestatio
             isEditing={isEditing && !isClientReadOnly}
             onUpdate={(updates) => setEditedPrestation({ ...editedPrestation, ...updates })}
             onOpenAssignModal={() => !isClientReadOnly && setIsAssignModalOpen(true)}
+            isReadOnly={isExternalUser ? false : isClientReadOnly}
           />
         );
       case 'checklist':

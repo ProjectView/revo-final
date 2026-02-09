@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User as UserIcon, Mail, Shield, ShieldCheck, HardHat, Save, Loader2, AlertCircle, CheckCircle2, Zap, Radiation, Beaker, Lock, Send, Plus, UserCog, Trash2 } from 'lucide-react';
+import { X, User as UserIcon, Mail, Shield, ShieldCheck, HardHat, Save, Loader2, AlertCircle, CheckCircle2, Zap, Radiation, Beaker, Lock, Send, Plus, UserCog, Trash2, Eye } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { User, CustomRole, CustomHabilitation } from '../types';
@@ -23,6 +23,7 @@ const DEFAULT_ROLES = [
   { id: 'Administrateur', name: 'Administrateur', description: 'Accès total', icon: Shield },
   { id: 'Conducteur de travaux', name: 'Conducteur de travaux', description: 'Gestion chantiers', icon: ShieldCheck },
   { id: 'Technicien', name: 'Technicien', description: 'Saisie terrain', icon: HardHat },
+  { id: 'Utilisateur Externe', name: 'Utilisateur Externe', description: 'Accès limité sous-traitant', icon: Eye },
 ];
 
 const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {

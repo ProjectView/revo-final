@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Search, Check, User as UserIcon, HardHat, ShieldCheck, Loader2, Radiation, Beaker, Lock, Zap, Filter } from 'lucide-react';
+import { X, Search, Check, User as UserIcon, HardHat, ShieldCheck, Loader2, Radiation, Beaker, Lock, Zap, Filter, Eye } from 'lucide-react';
 import { User } from '../types';
 import { useData } from '../context/DataContext';
 
@@ -67,6 +67,7 @@ const AssignUsersModal: React.FC<AssignUsersModalProps> = ({ isOpen, onClose, as
     switch (role) {
       case 'Administrateur': return <ShieldCheck size={14} className="text-purple-500" />;
       case 'Conducteur de travaux': return <HardHat size={14} className="text-blue-500" />;
+      case 'Utilisateur Externe': return <Eye size={14} className="text-orange-500" />;
       default: return <UserIcon size={14} className="text-slate-400" />;
     }
   };

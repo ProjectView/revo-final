@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase, MapPin, Phone, CheckCircle2 } from 'lucide-react';
+import { Building2, Users, Shield, Globe, Camera, Plus, Mail, Trash2, Edit2, ShieldCheck, HardHat, UserCircle, Save, Loader2, User, Key, Bell, Smartphone, Gauge, Zap, Radiation, Beaker, Lock, CreditCard, X, Check, Users as UsersIcon, Briefcase, MapPin, Phone, CheckCircle2, Eye } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
@@ -639,9 +639,11 @@ const SettingsView: React.FC = () => {
                                 ? 'bg-purple-50 text-purple-600 border-purple-100'
                                 : user.role === 'Conducteur de travaux'
                                   ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                  : 'bg-slate-50 text-slate-500 border-slate-200'
+                                  : user.role === 'Utilisateur Externe'
+                                    ? 'bg-orange-50 text-orange-600 border-orange-100'
+                                    : 'bg-slate-50 text-slate-500 border-slate-200'
                             }`}>
-                              {user.role === 'Administrateur' ? <Shield size={10} /> : user.role === 'Conducteur de travaux' ? <ShieldCheck size={10} /> : <HardHat size={10} />}
+                              {user.role === 'Administrateur' ? <Shield size={10} /> : user.role === 'Conducteur de travaux' ? <ShieldCheck size={10} /> : user.role === 'Utilisateur Externe' ? <Eye size={10} /> : <HardHat size={10} />}
                               {user.role}
                             </span>
                           </div>
@@ -703,9 +705,11 @@ const SettingsView: React.FC = () => {
                                 ? 'bg-purple-50 text-purple-600 border-purple-100'
                                 : invitation.role === 'Conducteur de travaux'
                                   ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                  : 'bg-slate-50 text-slate-500 border-slate-200'
+                                  : invitation.role === 'Utilisateur Externe'
+                                    ? 'bg-orange-50 text-orange-600 border-orange-100'
+                                    : 'bg-slate-50 text-slate-500 border-slate-200'
                             }`}>
-                              {invitation.role === 'Administrateur' ? <Shield size={10} /> : invitation.role === 'Conducteur de travaux' ? <ShieldCheck size={10} /> : <HardHat size={10} />}
+                              {invitation.role === 'Administrateur' ? <Shield size={10} /> : invitation.role === 'Conducteur de travaux' ? <ShieldCheck size={10} /> : invitation.role === 'Utilisateur Externe' ? <Eye size={10} /> : <HardHat size={10} />}
                               {invitation.role}
                             </span>
                           </div>

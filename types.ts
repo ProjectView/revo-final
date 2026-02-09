@@ -75,7 +75,7 @@ export interface Company {
   };
 }
 
-export type DefaultRole = 'Administrateur' | 'Conducteur de travaux' | 'Technicien';
+export type DefaultRole = 'Administrateur' | 'Conducteur de travaux' | 'Technicien' | 'Utilisateur Externe';
 
 export interface User {
   id: string;

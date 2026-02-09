@@ -11,6 +11,7 @@ import ChecklistManager from './components/ChecklistManager';
 import SettingsView from './components/SettingsView';
 import Login from './components/Login';
 import { View } from './types';
+import { EXTERNAL_ALLOWED_VIEWS } from './constants';
 import { Menu, Loader2, AlertTriangle, X } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -20,7 +21,7 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = check en cours
-  const { loading, permissionError, setCompanyId, loginWithEmail } = useData();
+  const { loading, permissionError, setCompanyId, loginWithEmail, isExternalUser } = useData();
   const [showErrorBanner, setShowErrorBanner] = useState(true);
   const authCheckRef = React.useRef(false);
 
@@ -49,6 +50,13 @@ const AppContent: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Garde de navigation pour les utilisateurs externes
+  useEffect(() => {
+    if (!loading && isExternalUser && !EXTERNAL_ALLOWED_VIEWS.includes(currentView)) {
+      setCurrentView('sites');
+    }
+  }, [loading, isExternalUser, currentView]);
 
   const handleLogin = (email: string) => {
     // onAuthStateChanged prendra le relais automatiquement

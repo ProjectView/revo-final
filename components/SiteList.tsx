@@ -12,7 +12,7 @@ import { useSubscription } from '../hooks/useSubscription';
 type ViewMode = 'list' | 'kanban' | 'map';
 
 const SiteList: React.FC = () => {
-  const { sites, clients, addSite, updateSite, company, updateCompany } = useData();
+  const { sites, clients, addSite, updateSite, company, updateCompany, isExternalUser } = useData();
   const { isReadOnly } = useSubscription();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
@@ -124,17 +124,21 @@ const SiteList: React.FC = () => {
                 </button>
               ))}
             </div>
-            <button
-              onClick={openSettings}
-              className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
-              title="Paramètres des statuts"
-            >
-              <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
-            </button>
-            <button onClick={() => setIsNewSiteModalOpen(true)}
-              className="w-full sm:w-auto bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
-              <Plus size={20} /> Nouveau chantier
-            </button>
+            {!isExternalUser && (
+              <button
+                onClick={openSettings}
+                className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
+                title="Paramètres des statuts"
+              >
+                <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+              </button>
+            )}
+            {!isExternalUser && (
+              <button onClick={() => setIsNewSiteModalOpen(true)}
+                className="w-full sm:w-auto bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
+                <Plus size={20} /> Nouveau chantier
+              </button>
+            )}
           </div>
         </div>
 
@@ -238,13 +242,15 @@ const SiteList: React.FC = () => {
             <p className="text-slate-400 text-sm font-semibold mt-4 text-center max-w-sm leading-relaxed uppercase tracking-widest">
               Votre tableau de production est vide. Commencez par planifier votre première intervention.
             </p>
-            <button 
-              onClick={() => setIsNewSiteModalOpen(true)}
-              className="mt-12 bg-emerald-900 text-white px-12 py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 hover:bg-emerald-800 transition-all flex items-center gap-4 group/btn"
-            >
-              <Plus size={20} className="group-hover/btn:rotate-90 transition-transform duration-300" /> 
-              Créer mon premier chantier
-            </button>
+            {!isExternalUser && (
+              <button
+                onClick={() => setIsNewSiteModalOpen(true)}
+                className="mt-12 bg-emerald-900 text-white px-12 py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 hover:bg-emerald-800 transition-all flex items-center gap-4 group/btn"
+              >
+                <Plus size={20} className="group-hover/btn:rotate-90 transition-transform duration-300" />
+                Créer mon premier chantier
+              </button>
+            )}
           </div>
         ) : filteredSites.length === 0 ? (
           <div className="py-32 flex flex-col items-center justify-center text-slate-300 space-y-4 bg-white/50 rounded-[3rem] border border-dashed border-slate-200 animate-in fade-in">

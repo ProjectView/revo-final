@@ -20,7 +20,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, storage, auth } from '../lib/firebase';
 import { Site, Lead, Client, TodoTask, Company, ChecklistTemplate, SiteTask, User, SiteDocument, Prestation, LeadComment, LeadActivity, AppNotification, UserNotification, SiteComment } from '../types';
 import { AlertTriangle, Info, CheckCircle, XCircle, X } from 'lucide-react';
-import { SUBSCRIPTION_PLANS } from '../constants';
+import { SUBSCRIPTION_PLANS, EXTERNAL_ROLE } from '../constants';
 
 interface DataContextType {
   sites: Site[];
@@ -87,6 +87,8 @@ interface DataContextType {
   addNotification: (message: string, type?: AppNotification['type']) => void;
   markNotificationRead: (notifId: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
+  currentUser: User | undefined;
+  isExternalUser: boolean;
 }
 
 export const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -107,8 +109,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [permissionError, setPermissionError] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
+  const currentUserEmail = typeof window !== 'undefined' ? localStorage.getItem('revo_auth') : null;
+  const currentUser = users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase());
+  const isExternalUser = currentUser?.role === EXTERNAL_ROLE;
+
+  const visibleSites = isExternalUser && currentUser
+    ? sites.filter(s => s.assignedUserIds?.includes(currentUser.id))
+    : sites;
+  const visiblePrestations = isExternalUser && currentUser
+    ? prestations.filter(p => p.assignedUserIds?.includes(currentUser.id))
+    : prestations;
+
   const responsesReceived = useRef(0);
-  const TOTAL_STREAMS = 10; 
+  const TOTAL_STREAMS = 10;
 
   const setCompanyId = (id: string | null) => {
     // Ignore redundant calls with the same ID to prevent re-initialization loops
@@ -1111,7 +1124,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
-      sites, prestations, leads, clients, todos, users, checklists, userNotifications, pendingInvitations, company, loading, permissionError, companyId,
+      sites: visibleSites, prestations: visiblePrestations, leads, clients, todos, users, checklists, userNotifications, pendingInvitations, company, loading, permissionError, companyId,
+      currentUser, isExternalUser,
       setCompanyId, loginWithEmail, createCompany, inviteUser, checkInvitation, deleteInvitation,
       addLead, updateLead, updateLeadStage, deleteLead, addLeadComment, getLeadComments, getLeadActivities,
       addSite, updateSite, deleteSite, closeSite, addSiteComment, getSiteComments, updateSiteComment, deleteSiteComment, transferLeadDataToSite,

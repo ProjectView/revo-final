@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { LogOut, ChevronLeft, ChevronRight, X, Building2, Bell } from 'lucide-react';
-import { NAV_ITEMS } from '../constants';
+import { NAV_ITEMS, EXTERNAL_NAV_ITEMS } from '../constants';
 import { View } from '../types';
 import { useData } from '../context/DataContext';
 import NotificationPanel from './NotificationPanel';
@@ -15,13 +15,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOpen, onCloseMobile, onLogout }) => {
-  const { company, users, userNotifications, loading } = useData();
+  const { company, userNotifications, loading, currentUser, isExternalUser } = useData();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
 
-  const currentUserEmail = localStorage.getItem('revo_auth');
-  const currentUser = users.length > 0 ? users.find(u => u.email.toLowerCase() === currentUserEmail?.toLowerCase()) : undefined;
   const unreadCount = userNotifications.filter(n => !n.read).length;
+  const navItems = isExternalUser ? EXTERNAL_NAV_ITEMS : NAV_ITEMS;
 
   const getUserInitials = (name: string = '') => {
     if (!name) return '?';
@@ -82,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto scrollbar-hide">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
@@ -154,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
                   <p className={`text-xs truncate font-semibold transition-colors ${
                     loading ? 'text-slate-400' : 'text-slate-500'
                   }`}>
-                    {currentUser?.email || currentUserEmail}
+                    {currentUser?.email || ''}
                   </p>
                 </div>
               )}

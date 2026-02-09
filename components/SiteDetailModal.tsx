@@ -21,7 +21,7 @@ interface SiteDetailModalProps {
 type TabType = 'info' | 'checklist' | 'docs' | 'activities';
 
 const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) => {
-  const { sites, clients, updateSite, deleteSite, closeSite, company, getSiteActivities } = useData();
+  const { sites, clients, updateSite, deleteSite, closeSite, company, getSiteActivities, isExternalUser } = useData();
   const { isReadOnly } = useSubscription();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [activities, setActivities] = useState<LeadActivity[]>([]);
@@ -90,7 +90,8 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
     { id: 'activities' as TabType, label: 'Activités', icon: <History size={16} /> },
   ];
 
-  const siteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
+  const baseSiteReadOnly = isReadOnly('site', site.id) || !!site.closedAt;
+  const siteReadOnly = baseSiteReadOnly || isExternalUser;
 
   const handleSave = async () => {
     if (siteReadOnly) return;
@@ -148,13 +149,13 @@ const SiteDetailModal: React.FC<SiteDetailModalProps> = ({ siteId, onClose }) =>
             isEditing={isEditing && !siteReadOnly}
             onUpdate={(updates) => setEditedSite({ ...editedSite, ...updates })}
             onOpenAssignModal={() => !siteReadOnly && setIsAssignModalOpen(true)}
-            isReadOnly={siteReadOnly}
+            isReadOnly={isExternalUser ? false : siteReadOnly}
           />
         );
       case 'checklist':
         return <ChecklistTab site={site} isReadOnly={siteReadOnly} onUpdateTasks={(tasks) => updateSite(site.id, { tasks })} />;
       case 'docs':
-        return <DocsTab siteId={site.id} site={site} isReadOnly={siteReadOnly} onUpdate={(updates) => updateSite(site.id, updates)} />;
+        return <DocsTab siteId={site.id} site={site} isReadOnly={isExternalUser ? false : siteReadOnly} onUpdate={(updates) => updateSite(site.id, updates)} />;
       case 'activities':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">

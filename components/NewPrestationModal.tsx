@@ -41,7 +41,11 @@ const getRandomColor = (): string => {
 };
 
 const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose }) => {
-  const { clients, addPrestation } = useData();
+  const { clients, addPrestation, company } = useData();
+  const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
+  const firstStatus = (company?.prestationStatuses && company.prestationStatuses.length > 0
+    ? company.prestationStatuses[0]
+    : DEFAULT_STATUSES[0]) as Status;
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -51,11 +55,25 @@ const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose
     startTime: '08:00',
     endTime: '17:30',
     budget: '',
-    status: 'NOUVEAU' as Status,
+    status: firstStatus,
     pipelineStage: 'Nouveau' as PipelineStage,
     coordinates: null as [number, number] | null,
     color: getRandomColor()
   });
+
+  const handleClientChange = (clientId: string) => {
+    const selectedClient = clients.find(c => c.id === clientId);
+    setFormData(prev => ({ ...prev, clientId }));
+    if (selectedClient?.address) {
+      setAddressSearch(selectedClient.address);
+      setFormData(prev => ({
+        ...prev,
+        clientId,
+        address: selectedClient.address || '',
+        coordinates: selectedClient.coordinates || null
+      }));
+    }
+  };
 
   const [addressSearch, setAddressSearch] = useState('');
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
@@ -118,7 +136,7 @@ const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose
       onClose();
       setFormData({
         name: '', address: '', clientId: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0],
-        startTime: '08:00', endTime: '17:30', budget: '', status: 'NOUVEAU',
+        startTime: '08:00', endTime: '17:30', budget: '', status: firstStatus,
         pipelineStage: 'Nouveau', coordinates: null, color: getRandomColor()
       });
       setAddressSearch('');
@@ -158,7 +176,7 @@ const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose
             <div className="space-y-4">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Client</label>
               <select required className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/10"
-                value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})}>
+                value={formData.clientId} onChange={e => handleClientChange(e.target.value)}>
                 <option value="">Choisir un client...</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.company} - {c.name}</option>)}
               </select>

@@ -14,6 +14,10 @@ export const NAV_ITEMS = [
   { id: 'settings' as View, label: 'Réglages', icon: <Settings size={20} /> },
 ];
 
+export const EXTERNAL_ROLE = 'Utilisateur Externe';
+export const EXTERNAL_ALLOWED_VIEWS: View[] = ['sites', 'prestations'];
+export const EXTERNAL_NAV_ITEMS = NAV_ITEMS.filter(item => EXTERNAL_ALLOWED_VIEWS.includes(item.id));
+
 export const MOCK_CLIENTS: Client[] = [
   { id: 'c1', name: 'Sylvain CUCULIERE', company: 'SOA', email: 'sylvain.cuculiere@soa-agencement.com', phone: '06 07 39 25 17', initials: 'SC', color: 'bg-purple-500' },
   { id: 'c2', name: 'mini toto', company: 'TOTO SCI', email: 'contact@toto.fr', phone: 'Non renseigné', initials: 'MT', color: 'bg-emerald-500' },
