@@ -8,9 +8,10 @@ import { doc, updateDoc } from 'firebase/firestore';
 
 interface LoginProps {
   onLogin: (email: string) => void;
+  onBackToLanding?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
   const { setCompanyId, loginWithEmail, createCompany, checkInvitation, saveUser, uploadAvatarDuringSignup } = useData();
   const [isRegistering, setIsRegistering] = useState(false);
   const [invitationData, setInvitationData] = useState<any>(null);
@@ -339,18 +340,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {!invitationData && (
             <div className="mt-8 pt-6 border-t border-slate-50 flex flex-col items-center gap-4">
               {isRegistering ? (
-                <button 
+                <button
                   onClick={() => { setIsRegistering(false); setError(null); }}
                   className="flex items-center gap-2 text-slate-400 hover:text-slate-600 text-xs font-bold transition-colors"
                 >
                   <ArrowLeft size={16} /> Retour à la connexion
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={() => { setIsRegistering(true); setError(null); }}
                   className="flex items-center gap-2 text-emerald-700 hover:text-emerald-900 text-xs font-black uppercase tracking-widest transition-colors"
                 >
                   <UserPlus size={16} /> Créer ma société
+                </button>
+              )}
+              {onBackToLanding && (
+                <button
+                  onClick={onBackToLanding}
+                  className="flex items-center gap-2 text-slate-300 hover:text-slate-500 text-[10px] font-bold uppercase tracking-widest transition-colors mt-2"
+                >
+                  <ArrowLeft size={14} /> Retour à l'accueil
                 </button>
               )}
             </div>

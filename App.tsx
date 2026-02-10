@@ -10,6 +10,7 @@ import ClientGrid from './components/ClientGrid';
 import ChecklistManager from './components/ChecklistManager';
 import SettingsView from './components/SettingsView';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import { View } from './types';
 import { EXTERNAL_ALLOWED_VIEWS } from './constants';
 import { Menu, Loader2, AlertTriangle, X } from 'lucide-react';
@@ -21,6 +22,7 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = check en cours
+  const [showLanding, setShowLanding] = useState(true);
   const { loading, permissionError, setCompanyId, loginWithEmail, isExternalUser } = useData();
   const [showErrorBanner, setShowErrorBanner] = useState(true);
   const authCheckRef = React.useRef(false);
@@ -69,6 +71,7 @@ const AppContent: React.FC = () => {
     authCheckRef.current = false;
     setCompanyId(null);
     setIsAuthenticated(false);
+    setShowLanding(true);
   };
 
   // État initial de branchement
@@ -81,7 +84,10 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+    if (showLanding) {
+      return <LandingPage onGoToLogin={() => setShowLanding(false)} />;
+    }
+    return <Login onLogin={handleLogin} onBackToLanding={() => setShowLanding(true)} />;
   }
 
   if (loading) {
