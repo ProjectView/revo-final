@@ -235,7 +235,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
         <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
       </div>
       
-      <div className="relative z-10 w-full max-w-lg px-6 py-12 animate-in fade-in zoom-in-95 duration-700">
+      <div className="relative z-10 w-full max-w-[95vw] sm:max-w-lg px-4 sm:px-6 py-8 sm:py-12 animate-in fade-in zoom-in-95 duration-700">
         <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-10 lg:p-14">
           
           <div className="flex flex-col items-center mb-10">

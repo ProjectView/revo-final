@@ -163,7 +163,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
   return (
     <>
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] animate-fade-in" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[160] flex flex-col animate-slide-in">
+      <div className="fixed inset-y-0 right-0 w-full max-w-[95vw] sm:max-w-lg bg-white shadow-2xl z-[160] flex flex-col animate-slide-in">
         {/* Header */}
         <div className="p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between mb-6">

@@ -173,7 +173,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, user }) => {
   return (
     <>
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] animate-fade-in" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-md:max-w-full max-w-md bg-white shadow-2xl z-[210] flex flex-col animate-slide-in">
+      <div className="fixed inset-y-0 right-0 w-full max-md:max-w-full max-w-[95vw] sm:max-w-md bg-white shadow-2xl z-[210] flex flex-col animate-slide-in">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-emerald-900 rounded-2xl flex items-center justify-center text-white shadow-lg">

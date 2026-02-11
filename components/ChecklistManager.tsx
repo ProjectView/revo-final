@@ -193,7 +193,7 @@ const ChecklistManager: React.FC = () => {
       {selectedTemplateForAssign && (
         <div className="fixed inset-0 z-[200] flex justify-end">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={() => !isAssigning && setSelectedTemplateForAssign(null)} />
-          <div className="relative w-full max-w-md bg-white shadow-2xl h-full flex flex-col animate-slide-in">
+          <div className="relative w-full max-w-[95vw] sm:max-w-md bg-white shadow-2xl h-full flex flex-col animate-slide-in">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-black text-slate-900 tracking-tight">Assigner au chantier</h2>

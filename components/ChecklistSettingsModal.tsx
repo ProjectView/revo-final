@@ -70,7 +70,7 @@ const ChecklistSettingsModal: React.FC<ChecklistSettingsModalProps> = ({ isOpen,
   return (
     <>
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[80] animate-fade-in" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-[90] flex flex-col animate-slide-in">
+      <div className="fixed inset-y-0 right-0 w-full max-w-[95vw] sm:max-w-lg bg-white shadow-2xl z-[90] flex flex-col animate-slide-in">
         {/* Header */}
         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-4">

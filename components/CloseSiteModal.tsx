@@ -34,7 +34,7 @@ const CloseSiteModal: React.FC<CloseSiteModalProps> = ({ isOpen, site, onClose, 
         onClick={onClose}
       />
 
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl z-[210] animate-in zoom-in-95 fade-in duration-300 p-8 m-4">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[95vw] sm:max-w-lg bg-white rounded-[2.5rem] shadow-2xl z-[210] animate-in zoom-in-95 fade-in duration-300 p-8 m-4">
         <button
           onClick={onClose}
           className="absolute right-6 top-6 p-2 hover:bg-slate-50 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
