@@ -384,8 +384,8 @@ const CalendarView: React.FC = () => {
   const renderYearView = () => {
     const year = currentDate.getFullYear();
     return (
-      <div className="flex-1 min-h-0 overflow-y-auto px-1 scrollbar-hide pb-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 animate-in fade-in duration-500">
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 lg:px-1 scrollbar-hide pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-8 animate-in fade-in duration-500">
           {monthNames.map((name, monthIdx) => {
             const days = getDaysInMonth(year, monthIdx);
             const monthStart = new Date(year, monthIdx, 1);
@@ -443,12 +443,12 @@ const CalendarView: React.FC = () => {
 
     return (
       <div className="flex-1 min-h-0 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col animate-in fade-in duration-500 w-full">
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="min-w-[1200px] flex flex-col">
+        <div className="overflow-x-auto md:overflow-x-visible scrollbar-hide">
+          <div className="min-w-full md:min-w-[1200px] flex flex-col">
             <div className="grid grid-cols-7 border-b border-emerald-800 bg-emerald-900 sticky top-0 z-10">
-              {weekDays.map(day => <div key={day} className="py-5 text-center text-[10px] font-black text-emerald-50/90 uppercase tracking-[0.2em]">{day}</div>)}
+              {weekDays.map(day => <div key={day} className="py-3 md:py-5 text-center text-[8px] md:text-[10px] font-black text-emerald-50/90 uppercase tracking-tighter md:tracking-[0.2em]">{day}</div>)}
             </div>
-            <div className="grid grid-cols-7 bg-slate-100/20">
+            <div className="grid grid-cols-7 gap-0 bg-slate-100/20">
               {monthDays.map((day, i) => {
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
                 const dStr = toLocalISOString(day);
@@ -463,14 +463,14 @@ const CalendarView: React.FC = () => {
                     data-date={dStr}
                     onDragOver={onDayDragOver}
                     onDrop={(e) => onDayDrop(e, day)}
-                    className={`border-r border-b border-slate-100 flex flex-col relative min-h-[140px] transition-colors group
+                    className={`border-r border-b border-slate-100 flex flex-col relative min-h-[80px] md:min-h-[140px] transition-colors group
                       ${!isCurrentMonth ? 'bg-slate-50/40 opacity-40' : 'bg-white'}
                       ${isOverLimit ? 'bg-rose-50/50 ring-2 ring-inset ring-rose-100/50' : 'hover:bg-slate-50/80'}
                     `}
                   >
-                    <div className="flex justify-between items-center h-10 px-4 mt-2">
+                    <div className="flex justify-between items-center h-8 md:h-10 px-2 md:px-4 mt-1 md:mt-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-base font-black flex items-center justify-center transition-all ${day.toDateString() === new Date().toDateString() ? 'bg-emerald-600 text-white w-8 h-8 rounded-xl shadow-md' : 'text-slate-400'}`}>
+                        <span className={`text-sm md:text-base font-black flex items-center justify-center transition-all ${day.toDateString() === new Date().toDateString() ? 'bg-emerald-600 text-white w-6 md:w-8 h-6 md:h-8 rounded-lg md:rounded-xl shadow-md' : 'text-slate-400'}`}>
                           {day.getDate()}
                         </span>
                         {isOverLimit && (
