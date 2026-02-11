@@ -77,6 +77,14 @@ export interface Company {
 
 export type DefaultRole = 'Administrateur' | 'Conducteur de travaux' | 'Technicien' | 'Utilisateur Externe';
 
+export interface SessionInfo {
+  sessionId: string;
+  loginTime: string;
+  lastActivityTime: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -85,6 +93,8 @@ export interface User {
   role: string; // Peut être un rôle par défaut ou un rôle personnalisé
   avatar?: string;
   habilitations?: string[]; // Liste des habilitations détenues
+  activeSessions?: SessionInfo[]; // Sessions actives (limité à 1)
+  maxConcurrentSessions?: number; // Défaut: 1
 }
 
 export interface Client {

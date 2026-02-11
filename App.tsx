@@ -16,7 +16,8 @@ import { EXTERNAL_ALLOWED_VIEWS } from './constants';
 import { Menu, Loader2, AlertTriangle, X } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './lib/firebase';
+import { auth, db } from './lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -66,12 +67,38 @@ const AppContent: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    localStorage.removeItem('revo_auth');
-    authCheckRef.current = false;
-    setCompanyId(null);
-    setIsAuthenticated(false);
-    setShowLanding(true);
+    try {
+      // Clean up session before logout
+      const sessionId = sessionStorage.getItem('revo_session_id');
+      const email = localStorage.getItem('revo_auth');
+
+      if (sessionId && email) {
+        const userRef = doc(db, 'users', email);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data() as any;
+          const updatedSessions = (userData.activeSessions || [])
+            .filter((s: any) => s.sessionId !== sessionId);
+          await updateDoc(userRef, { activeSessions: updatedSessions });
+        }
+      }
+
+      await signOut(auth);
+      localStorage.removeItem('revo_auth');
+      sessionStorage.removeItem('revo_session_id');
+      authCheckRef.current = false;
+      setCompanyId(null);
+      setIsAuthenticated(false);
+      setShowLanding(true);
+    } catch (err) {
+      console.error('Logout error:', err);
+      // Force logout même en cas d'erreur
+      await signOut(auth);
+      localStorage.removeItem('revo_auth');
+      sessionStorage.removeItem('revo_session_id');
+      setIsAuthenticated(false);
+      setShowLanding(true);
+    }
   };
 
   // État initial de branchement

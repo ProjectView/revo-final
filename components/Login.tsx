@@ -4,7 +4,7 @@ import { LogIn, ShieldCheck, Loader2, Building2, UserPlus, ArrowLeft, User, Aler
 import { useData } from '../context/DataContext';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 interface LoginProps {
   onLogin: (email: string) => void;
@@ -65,9 +65,46 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
+      // Step 1: Check for existing sessions BEFORE Firebase Auth
+      const userRef = doc(db, 'users', cleanEmail);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data() as any;
+        const activeSessions = userData.activeSessions || [];
+        const maxConcurrentSessions = userData.maxConcurrentSessions || 1;
+
+        // If user already has an active session, reject login
+        if (activeSessions.length >= maxConcurrentSessions) {
+          setError("Vous êtes déjà connecté sur cet appareil. Veuillez vous déconnecter d'abord.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Step 2: Authenticate with Firebase
       await signInWithEmailAndPassword(auth, cleanEmail, password);
+
+      // Step 3: Get company ID and create new session
       const compId = await loginWithEmail(cleanEmail);
       if (compId) {
+        // Step 4: Generate unique session ID and store it
+        const sessionId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+        sessionStorage.setItem('revo_session_id', sessionId);
+
+        // Step 5: Update user document with new session
+        const now = new Date().toISOString();
+        const newSession = {
+          sessionId,
+          loginTime: now,
+          lastActivityTime: now,
+        };
+
+        const userRef = doc(db, 'users', cleanEmail);
+        await updateDoc(userRef, {
+          activeSessions: [newSession], // Remplace les sessions précédentes pour respecter la limite de 1
+        });
+
         setCompanyId(compId);
         onLogin(cleanEmail);
       } else {
@@ -80,6 +117,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
         setError("Email ou mot de passe incorrect.");
       } else if (err.code === 'auth/too-many-requests') {
         setError("Compte bloqué temporairement (trop d'essais).");
+      } else if (err.message === "Vous êtes déjà connecté") {
+        // Session limit error - already set above
       } else {
         setError("Erreur d'accès à la plateforme.");
       }
