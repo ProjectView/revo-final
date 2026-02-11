@@ -96,10 +96,10 @@ const PrestationList: React.FC = () => {
 
   return (
     <>
-      <div className="w-full h-screen flex flex-col px-6 lg:px-12 py-8 lg:py-10 animate-in fade-in duration-500 pb-24 lg:pb-12 gap-6 lg:gap-8">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      <div className="w-full h-screen flex flex-col px-4 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-10 animate-in fade-in duration-500 pb-24 lg:pb-12 gap-4 sm:gap-6 lg:gap-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Prestations</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Prestations</h1>
             <p className="text-slate-500 text-base font-semibold mt-1">Suivi des interventions et services.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -132,7 +132,7 @@ const PrestationList: React.FC = () => {
 
         {/* Search & Filter Bar - Compacted */}
         <div className="flex flex-col gap-3">
-          <div className="bg-white p-3 lg:p-3.5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-row gap-3 items-center w-full">
+          <div className="bg-white p-3 sm:p-3.5 lg:p-3.5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-row gap-2 sm:gap-3 items-center w-full">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
               <input type="text" placeholder="Rechercher une prestation..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -153,7 +153,7 @@ const PrestationList: React.FC = () => {
 
           {/* Expanded Filters */}
           {showFilters && (
-            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-6">
+            <div className="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-4 sm:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
