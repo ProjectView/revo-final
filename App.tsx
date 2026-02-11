@@ -26,7 +26,9 @@ const AppContent: React.FC = () => {
   const [showLanding, setShowLanding] = useState(true);
   const { loading, permissionError, setCompanyId, loginWithEmail, isExternalUser } = useData();
   const [showErrorBanner, setShowErrorBanner] = useState(true);
+  const [sessionTerminatedError, setSessionTerminatedError] = useState(false);
   const authCheckRef = React.useRef(false);
+  const sessionCheckIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -60,6 +62,56 @@ const AppContent: React.FC = () => {
       setCurrentView('sites');
     }
   }, [loading, isExternalUser, currentView]);
+
+  // Vérifier régulièrement si la session a été terminée par une autre connexion
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkSessionValidity = async () => {
+      try {
+        const sessionId = sessionStorage.getItem('revo_session_id');
+        const email = localStorage.getItem('revo_auth');
+
+        if (!sessionId || !email) return;
+
+        // Vérifier que la session est toujours valide en Firestore
+        const userRef = doc(db, 'users', email);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) return;
+
+        const userData = userSnap.data() as any;
+        const activeSessions = userData.activeSessions || [];
+
+        // Chercher la session courante dans les sessions actives
+        const currentSessionExists = activeSessions.some(
+          (s: any) => s.sessionId === sessionId
+        );
+
+        // Si la session n'existe plus, c'est qu'elle a été tuée par une nouvelle connexion
+        if (!currentSessionExists && activeSessions.length > 0) {
+          setSessionTerminatedError(true);
+          // Force logout
+          await signOut(auth);
+          localStorage.removeItem('revo_auth');
+          sessionStorage.removeItem('revo_session_id');
+          setIsAuthenticated(false);
+          setShowLanding(true);
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
+      }
+    };
+
+    // Vérifier toutes les 5 secondes
+    sessionCheckIntervalRef.current = setInterval(checkSessionValidity, 5000);
+
+    return () => {
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current);
+      }
+    };
+  }, [isAuthenticated]);
 
   const handleLogin = (email: string) => {
     // onAuthStateChanged prendra le relais automatiquement
@@ -151,6 +203,17 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-[#f8f9fa] overflow-hidden text-slate-900 relative">
+      {sessionTerminatedError && (
+        <div className="fixed top-0 inset-x-0 z-[200] bg-amber-600 text-white p-4 shadow-2xl flex items-center justify-center gap-4 animate-in slide-in-from-top duration-500">
+          <AlertTriangle size={24} className="shrink-0" />
+          <div className="flex-1 text-sm font-bold">
+            Votre session a été fermée car vous avez vous connecté depuis un autre appareil.
+          </div>
+          <button onClick={() => setSessionTerminatedError(false)} className="p-2 hover:bg-white/10 rounded-full">
+            <X size={20} />
+          </button>
+        </div>
+      )}
       {permissionError && showErrorBanner && (
         <div className="fixed top-0 inset-x-0 z-[200] bg-rose-600 text-white p-4 shadow-2xl flex items-center justify-center gap-4 animate-in slide-in-from-top duration-500">
           <AlertTriangle size={24} className="shrink-0" />

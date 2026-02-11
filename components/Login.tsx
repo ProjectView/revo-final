@@ -4,7 +4,7 @@ import { LogIn, ShieldCheck, Loader2, Building2, UserPlus, ArrowLeft, User, Aler
 import { useData } from '../context/DataContext';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, runTransaction } from 'firebase/firestore';
 
 interface LoginProps {
   onLogin: (email: string) => void;
@@ -65,50 +65,55 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // Step 1: Check for existing sessions BEFORE Firebase Auth
-      const userRef = doc(db, 'users', cleanEmail);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data() as any;
-        const activeSessions = userData.activeSessions || [];
-        const maxConcurrentSessions = userData.maxConcurrentSessions || 1;
-
-        // If user already has an active session, reject login
-        if (activeSessions.length >= maxConcurrentSessions) {
-          setError("Vous êtes déjà connecté sur cet appareil. Veuillez vous déconnecter d'abord.");
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Step 2: Authenticate with Firebase
+      // Step 1: Authenticate with Firebase FIRST
       await signInWithEmailAndPassword(auth, cleanEmail, password);
 
-      // Step 3: Get company ID and create new session
+      // Step 2: Get company ID
       const compId = await loginWithEmail(cleanEmail);
-      if (compId) {
-        // Step 4: Generate unique session ID and store it
-        const sessionId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      if (!compId) {
+        setError("Profil Firestore manquant. Contactez votre administrateur.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 3: Check and update sessions with transaction for atomicity
+      const userRef = doc(db, 'users', cleanEmail);
+      const sessionId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const now = new Date().toISOString();
+      const newSession = {
+        sessionId,
+        loginTime: now,
+        lastActivityTime: now,
+      };
+
+      // Use runTransaction to ensure atomic check-and-set
+      // This will REPLACE any existing session (terminating previous login)
+      const sessionCreated = await runTransaction(db, async (transaction) => {
+        const userSnap = await transaction.get(userRef);
+
+        // Whether user exists or not, we create/replace with new session
+        if (!userSnap.exists()) {
+          // User doesn't exist in Firestore yet, create with new session
+          transaction.set(userRef, {
+            activeSessions: [newSession],
+          }, { merge: true });
+        } else {
+          // User exists - REPLACE any existing session with the new one
+          // This effectively terminates the previous login on another device
+          transaction.update(userRef, {
+            activeSessions: [newSession],
+          });
+        }
+        return true;
+      });
+
+      if (sessionCreated) {
+        // Store sessionId locally
         sessionStorage.setItem('revo_session_id', sessionId);
-
-        // Step 5: Update user document with new session
-        const now = new Date().toISOString();
-        const newSession = {
-          sessionId,
-          loginTime: now,
-          lastActivityTime: now,
-        };
-
-        const userRef = doc(db, 'users', cleanEmail);
-        await updateDoc(userRef, {
-          activeSessions: [newSession], // Remplace les sessions précédentes pour respecter la limite de 1
-        });
-
         setCompanyId(compId);
         onLogin(cleanEmail);
       } else {
-        setError("Profil Firestore manquant. Contactez votre administrateur.");
+        setError("Erreur lors de la création de la session.");
         setIsSubmitting(false);
       }
     } catch (err: any) {
@@ -117,8 +122,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
         setError("Email ou mot de passe incorrect.");
       } else if (err.code === 'auth/too-many-requests') {
         setError("Compte bloqué temporairement (trop d'essais).");
-      } else if (err.message === "Vous êtes déjà connecté") {
-        // Session limit error - already set above
       } else {
         setError("Erreur d'accès à la plateforme.");
       }
