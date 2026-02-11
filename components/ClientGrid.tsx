@@ -34,7 +34,7 @@ const ClientGrid: React.FC = () => {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Annuaire Clients</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Annuaire Clients</h1>
           <p className="text-slate-500 text-sm font-semibold uppercase tracking-widest flex items-center gap-2">
             <Users2 size={16} className="text-emerald-600" />
             Base de contacts centralisée
@@ -42,7 +42,7 @@ const ClientGrid: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsNewClientModalOpen(true)}
-          className="w-full lg:w-auto bg-emerald-900 text-white px-8 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-emerald-900/20 active:scale-95 hover:bg-emerald-800 transition-all group"
+          className="w-full lg:w-auto bg-emerald-900 text-white px-6 sm:px-8 py-4 sm:py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-emerald-900/20 active:scale-95 hover:bg-emerald-800 transition-all group"
         >
           <UserPlus size={20} className="group-hover:scale-110 transition-transform" /> 
           Nouveau Client

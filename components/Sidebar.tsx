@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-[110] lg:static bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ease-in-out relative
+          fixed inset-y-0 left-0 z-[110] lg:relative bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ease-in-out
           ${isMobileOpen ? 'translate-x-0 w-64 sm:w-72' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed && !isMobileOpen ? 'w-24' : 'w-64 sm:w-72 lg:w-72'}
         `}

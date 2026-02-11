@@ -38,8 +38,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const limitWarningSites = !canAddSite().allowed;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-12 w-full space-y-10 animate-in fade-in slide-in-from-top-4 duration-700">
-      <SubscriptionBanner />
+    <div className="p-4 sm:p-6 lg:p-12 w-full max-w-full overflow-x-hidden space-y-10 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div className="overflow-hidden">
+        <SubscriptionBanner />
+      </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
         <div>

@@ -114,28 +114,30 @@ const SiteList: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Chantiers</h1>
             <p className="text-slate-500 text-base font-semibold mt-1">Vue d'ensemble et suivi de production.</p>
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="flex bg-white rounded-2xl border border-slate-200 p-1.5 shadow-sm w-full sm:w-auto">
-              {(['list', 'kanban', 'map'] as ViewMode[]).map(mode => (
-                <button key={mode} onClick={() => setViewMode(mode)}
-                  className={`flex-1 px-5 py-2.5 rounded-xl flex items-center justify-center gap-3 text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>
-                  {mode === 'list' && <List size={18}/>} {mode === 'kanban' && <Kanban size={18}/>} {mode === 'map' && <Map size={18}/>}
-                  <span className="hidden sm:inline">{mode === 'list' ? 'Liste' : mode}</span>
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex bg-white rounded-2xl border border-slate-200 p-1.5 shadow-sm flex-1 sm:flex-initial sm:w-auto">
+                {(['list', 'kanban', 'map'] as ViewMode[]).map(mode => (
+                  <button key={mode} onClick={() => setViewMode(mode)}
+                    className={`flex-1 px-4 sm:px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 sm:gap-3 text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>
+                    {mode === 'list' && <List size={18}/>} {mode === 'kanban' && <Kanban size={18}/>} {mode === 'map' && <Map size={18}/>}
+                    <span className="hidden sm:inline">{mode === 'list' ? 'Liste' : mode}</span>
+                  </button>
+                ))}
+              </div>
+              {!isExternalUser && (
+                <button
+                  onClick={openSettings}
+                  className="p-3 sm:p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group flex-shrink-0"
+                  title="Paramètres des statuts"
+                >
+                  <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
                 </button>
-              ))}
+              )}
             </div>
             {!isExternalUser && (
-              <button
-                onClick={openSettings}
-                className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
-                title="Paramètres des statuts"
-              >
-                <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
-              </button>
-            )}
-            {!isExternalUser && (
               <button onClick={() => setIsNewSiteModalOpen(true)}
-                className="w-full sm:w-auto bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
+                className="w-full sm:w-auto bg-[#1a4d44] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
                 <Plus size={20} /> Nouveau chantier
               </button>
             )}

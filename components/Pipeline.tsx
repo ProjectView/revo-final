@@ -131,18 +131,18 @@ const Pipeline: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-      <div className="px-10 pt-10 pb-8 flex items-center justify-between flex-shrink-0">
+      <div className="px-4 sm:px-6 lg:px-10 pt-6 sm:pt-8 lg:pt-10 pb-4 sm:pb-6 lg:pb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 flex-shrink-0">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Pipeline Commerciale</h1>
-          <p className="text-slate-500 text-base font-semibold mt-1 uppercase tracking-widest">Opportunités & Prévisions</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Pipeline Commerciale</h1>
+          <p className="text-slate-500 text-sm sm:text-base font-semibold mt-1 uppercase tracking-widest">Opportunités & Prévisions</p>
         </div>
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-3 sm:gap-4 items-center">
           <button
             onClick={() => setIsArchiveModalOpen(true)}
-            className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-300 rounded-2xl transition-all shadow-sm group relative"
+            className="p-3 sm:p-4 bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-300 rounded-2xl transition-all shadow-sm group relative"
             title="Voir les opportunités archivées"
           >
-            <Folder size={22} />
+            <Folder size={20} />
             {getArchivedLeads().length > 0 && (
               <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
                 {getArchivedLeads().length}
@@ -151,21 +151,21 @@ const Pipeline: React.FC = () => {
           </button>
           <button
             onClick={openSettings}
-            className="p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
+            className="p-3 sm:p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
             title="Paramètres de la pipeline"
           >
-            <Settings size={22} className="group-hover:rotate-90 transition-transform duration-500" />
+            <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-[#1a4d44] text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95"
+            className="bg-[#1a4d44] text-white px-5 sm:px-8 py-3 sm:py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest flex items-center gap-2 sm:gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95"
           >
-            <Plus size={20} /> Nouvelle opportunité
+            <Plus size={18} /> <span className="hidden sm:inline">Nouvelle</span> opportunité
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-8 overflow-x-auto px-10 pb-10 scrollbar-hide items-stretch">
+      <div className="flex-1 flex gap-4 sm:gap-6 lg:gap-8 overflow-x-auto px-4 sm:px-6 lg:px-10 pb-6 sm:pb-8 lg:pb-10 scrollbar-hide items-stretch">
         {stages.map(stage => {
           const stageLeads = getLeadsForStage(stage);
           const totalValue = stageLeads.reduce((sum, l) => sum + l.budget, 0);
@@ -176,7 +176,7 @@ const Pipeline: React.FC = () => {
               key={stage}
               onDragOver={onDragOver}
               onDrop={(e) => onDrop(e, stage)}
-              className="flex-shrink-0 w-[320px] flex flex-col rounded-[2.5rem] bg-white border border-slate-100 shadow-sm p-4 h-full overflow-hidden transition-all hover:shadow-xl"
+              className="flex-shrink-0 w-[260px] sm:w-[290px] lg:w-[320px] flex flex-col rounded-[2rem] sm:rounded-[2.5rem] bg-white border border-slate-100 shadow-sm p-3 sm:p-4 h-full overflow-hidden transition-all hover:shadow-xl"
             >
               <div className="flex items-center justify-between mb-4 px-3 pt-2">
                 <div className="flex items-center gap-3">
@@ -235,9 +235,9 @@ const Pipeline: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Action buttons - appear on hover (hidden for lost leads) */}
-                    {hoveredLeadId === lead.id && !isLostLead && (
-                      <div className="mt-3 flex gap-2">
+                    {/* Action buttons - always visible on mobile, hover on desktop */}
+                    {!isLostLead && (
+                      <div className={`mt-3 flex gap-2 ${hoveredLeadId === lead.id ? 'flex' : 'flex sm:hidden'}`}>
                         <button
                           onClick={(e) => handleWinLead(e, lead)}
                           className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-1 shadow-lg shadow-emerald-600/30 active:scale-95"

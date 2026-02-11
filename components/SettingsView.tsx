@@ -182,10 +182,10 @@ const SettingsView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-700">
-      <div className="p-8 pb-4 flex items-center justify-between">
+      <div className="p-4 sm:p-6 lg:p-8 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Réglages</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">Personnalisez votre espace de travail et gérez votre compte.</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Réglages</h1>
+          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-1">Personnalisez votre espace de travail et gérez votre compte.</p>
         </div>
         {saveSuccess && (
           <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-100 flex items-center gap-2 animate-in slide-in-from-top-2">
@@ -194,14 +194,14 @@ const SettingsView: React.FC = () => {
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden px-8 pb-8 gap-8 min-w-0">
-        {/* Navigation Sidebar */}
-        <div className="w-64 flex-shrink-0 flex flex-col gap-2">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden px-4 sm:px-6 lg:px-8 pb-8 gap-4 lg:gap-8 min-w-0">
+        {/* Navigation Sidebar - horizontal scroll on mobile, vertical on desktop */}
+        <div className="lg:w-64 flex-shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2 lg:pb-0">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
+            className={`flex items-center gap-2 lg:gap-3 px-4 lg:px-5 py-3 lg:py-4 rounded-2xl text-xs lg:text-sm font-black transition-all whitespace-nowrap ${
               activeTab === 'profile'
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 lg:translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
@@ -209,9 +209,9 @@ const SettingsView: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('general')}
-            className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
+            className={`flex items-center gap-2 lg:gap-3 px-4 lg:px-5 py-3 lg:py-4 rounded-2xl text-xs lg:text-sm font-black transition-all whitespace-nowrap ${
               activeTab === 'general'
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 lg:translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
@@ -219,9 +219,9 @@ const SettingsView: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
+            className={`flex items-center gap-2 lg:gap-3 px-4 lg:px-5 py-3 lg:py-4 rounded-2xl text-xs lg:text-sm font-black transition-all whitespace-nowrap ${
               activeTab === 'users'
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 lg:translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
@@ -229,9 +229,9 @@ const SettingsView: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('subscription')}
-            className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
+            className={`flex items-center gap-2 lg:gap-3 px-4 lg:px-5 py-3 lg:py-4 rounded-2xl text-xs lg:text-sm font-black transition-all whitespace-nowrap ${
               activeTab === 'subscription'
-                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 translate-x-1'
+                ? 'bg-emerald-900 text-white shadow-lg shadow-emerald-900/20 lg:translate-x-1'
                 : 'bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-600 border border-slate-100 shadow-sm'
             }`}
           >
@@ -240,10 +240,10 @@ const SettingsView: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-4 scrollbar-hide min-w-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-0 lg:pr-4 scrollbar-hide min-w-0">
           {activeTab === 'profile' && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10">
+              <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] border border-slate-100 shadow-sm p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 lg:space-y-10">
                 <div className="flex items-center gap-8">
                   <div className="relative group">
                     <input 

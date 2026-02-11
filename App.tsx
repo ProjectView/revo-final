@@ -244,7 +244,7 @@ const AppContent: React.FC = () => {
         onLogout={handleLogout}
       />
       
-      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth bg-slate-50/50">
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden h-screen relative scroll-smooth bg-slate-50/50 w-full">
         <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-emerald-50/20 to-transparent pointer-events-none"></div>
         <div className={`relative z-10 w-full pb-20 lg:pb-0 ${permissionError && showErrorBanner ? 'pt-16' : ''}`}>
           {renderContent()}

@@ -607,22 +607,22 @@ const CalendarView: React.FC = () => {
 
   return (
     <>
-      <div className="w-full h-full px-6 lg:px-12 py-8 lg:py-10 flex flex-col space-y-8 overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 flex-shrink-0">
+      <div className="w-full h-full px-4 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-10 flex flex-col space-y-4 sm:space-y-6 lg:space-y-8 overflow-hidden pb-24 lg:pb-10">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 lg:gap-8 flex-shrink-0">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Calendrier Opérationnel</h1>
-            <p className="text-slate-500 text-base font-semibold mt-1">Données réelles synchronisées.</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Calendrier Opérationnel</h1>
+            <p className="text-slate-500 text-sm sm:text-base font-semibold mt-1">Données réelles synchronisées.</p>
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
             <div className="flex bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm w-full sm:w-auto">
-              {['Semaine', 'Mois', 'Année'].map(mode => <button key={mode} onClick={() => setViewMode(mode as any)} className={`flex-1 sm:px-8 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>{mode}</button>)}
+              {['Semaine', 'Mois', 'Année'].map(mode => <button key={mode} onClick={() => setViewMode(mode as any)} className={`flex-1 sm:px-8 py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-xs font-black transition-all uppercase tracking-widest ${viewMode === mode ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>{mode}</button>)}
             </div>
-            <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm w-full sm:w-auto justify-between min-w-[240px]">
-              <button onClick={handlePrev} className="p-3 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronLeft size={22} /></button>
-              <span className="px-6 font-black text-slate-800 text-sm uppercase tracking-widest text-center">
+            <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm w-full sm:w-auto justify-between min-w-[220px] sm:min-w-[240px]">
+              <button onClick={handlePrev} className="p-2.5 sm:p-3 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronLeft size={20} /></button>
+              <span className="px-3 sm:px-6 font-black text-slate-800 text-xs sm:text-sm uppercase tracking-widest text-center">
                 {viewMode === 'Année' ? currentDate.getFullYear() : viewMode === 'Mois' ? currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : `Sem. ${currentWeekDays[0].getDate()} ${currentWeekDays[0].toLocaleDateString('fr-FR', { month: 'short' })}`}
               </span>
-              <button onClick={handleNext} className="p-3 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronRight size={22} /></button>
+              <button onClick={handleNext} className="p-2.5 sm:p-3 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><ChevronRight size={20} /></button>
             </div>
           </div>
         </div>

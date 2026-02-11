@@ -70,20 +70,20 @@ const ChecklistManager: React.FC = () => {
   };
 
   return (
-    <div className="w-full px-6 lg:px-12 py-8 lg:py-10 space-y-8 lg:space-y-10 animate-in fade-in duration-700 pb-24 lg:pb-12">
+    <div className="w-full px-4 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-10 space-y-6 sm:space-y-8 lg:space-y-10 animate-in fade-in duration-700 pb-24 lg:pb-12">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-8">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Modèles de Checklist</h1>
-          <p className="text-slate-500 text-base font-semibold mt-1">Standards de contrôle et procédures opérationnelles.</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Modèles de Checklist</h1>
+          <p className="text-slate-500 text-sm sm:text-base font-semibold mt-1">Standards de contrôle et procédures opérationnelles.</p>
         </div>
         <div className="flex gap-3 w-full lg:w-auto">
           <button onClick={() => setIsSettingsModalOpen(true)}
-            className="p-5 border border-slate-200 bg-white rounded-[1.5rem] text-slate-400 hover:text-slate-600 hover:border-emerald-200 transition-all shadow-sm">
-            <Settings2 size={22} />
+            className="p-4 sm:p-5 border border-slate-200 bg-white rounded-[1.5rem] text-slate-400 hover:text-slate-600 hover:border-emerald-200 transition-all shadow-sm">
+            <Settings2 size={20} />
           </button>
           <button onClick={() => setIsNewTemplateModalOpen(true)}
-            className="flex-1 lg:flex-none bg-[#1a4d44] text-white px-8 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
-            <Plus size={22} /> Nouveau Template
+            className="flex-1 lg:flex-none bg-[#1a4d44] text-white px-6 sm:px-8 py-4 sm:py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-emerald-800 transition-all active:scale-95">
+            <Plus size={20} /> Nouveau Template
           </button>
         </div>
       </div>
