@@ -25,7 +25,7 @@ interface AddressSuggestion {
 }
 
 const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing, isReadOnly, onUpdate, onOpenAssignModal }) => {
-  const { clients, users, checkCapacity, company, addSiteComment, getSiteComments, updateSiteComment, deleteSiteComment } = useData();
+  const { clients, users, checkCapacity, company, addSiteComment, getSiteComments, updateSiteComment, deleteSiteComment, currentUser: ctxUser } = useData();
   const [addressSearch, setAddressSearch] = useState(site.address);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
@@ -38,11 +38,12 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
 
   // Récupérer le nom de l'utilisateur actuel
   const currentUserName = useMemo(() => {
+    if (ctxUser) return ctxUser.name;
     const email = localStorage.getItem('revo_auth');
     if (!email) return 'Inconnu';
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     return user ? user.name : email;
-  }, [users]);
+  }, [users, ctxUser]);
 
   useEffect(() => {
     if (site.id) {

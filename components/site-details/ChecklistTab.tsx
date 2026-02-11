@@ -12,7 +12,7 @@ interface ChecklistTabProps {
 }
 
 const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateTasks, type = 'site' }) => {
-  const { checklists, assignChecklistToSite, users } = useData();
+  const { checklists, assignChecklistToSite, users, currentUser: ctxUser } = useData();
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
@@ -35,6 +35,7 @@ const ChecklistTab: React.FC<ChecklistTabProps> = ({ site, isReadOnly, onUpdateT
   const filteredTasks = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
 
   const getCurrentUserName = () => {
+    if (ctxUser) return ctxUser.name;
     const email = localStorage.getItem('revo_auth');
     if (!email) return 'Inconnu';
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());

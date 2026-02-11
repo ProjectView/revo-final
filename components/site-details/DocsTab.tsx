@@ -13,7 +13,7 @@ interface DocsTabProps {
 }
 
 const DocsTab: React.FC<DocsTabProps> = ({ siteId, site, isReadOnly, onUpdate }) => {
-  const { uploadSiteDocument, getSiteDocuments, deleteSiteDocument, users } = useData();
+  const { uploadSiteDocument, getSiteDocuments, deleteSiteDocument, currentUser: ctxUser } = useData();
   const [documents, setDocuments] = useState<SiteDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -37,8 +37,8 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, site, isReadOnly, onUpdate })
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    // Use the auth email from localStorage
-    const currentUser = localStorage.getItem('revo_auth') || 'Inconnu';
+    // Use context user name, fallback to email from localStorage
+    const currentUser = ctxUser?.name || localStorage.getItem('revo_auth') || 'Inconnu';
 
     try {
       for (let i = 0; i < files.length; i++) {

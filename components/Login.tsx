@@ -108,8 +108,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
       });
 
       if (sessionCreated) {
-        // Store sessionId locally
+        // Store sessionId and auth email locally BEFORE setCompanyId
         sessionStorage.setItem('revo_session_id', sessionId);
+        localStorage.setItem('revo_auth', cleanEmail);
         setCompanyId(compId);
         onLogin(cleanEmail);
       } else {
@@ -197,6 +198,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
           await updateDoc(doc(db, 'invitations', token), { status: 'accepted' });
         }
 
+        localStorage.setItem('revo_auth', cleanEmail);
         setCompanyId(invitationData.companyId);
         onLogin(cleanEmail);
       } else {
@@ -209,6 +211,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
         }
         await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const newCompId = await createCompany(companyName, cleanEmail, userName);
+        localStorage.setItem('revo_auth', cleanEmail);
         setCompanyId(newCompId);
         onLogin(cleanEmail);
       }

@@ -122,13 +122,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const responsesReceived = useRef(0);
   const TOTAL_STREAMS = 10;
+  const cachedUserName = useRef<string | null>(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   const setCompanyId = (id: string | null) => {
-    // Ignore redundant calls with the same ID to prevent re-initialization loops
-    if (companyId === id) return;
-
     if (id) localStorage.setItem('revo_company_id', id);
     else localStorage.removeItem('revo_company_id');
+
+    if (companyId === id) {
+      // Same ID but may need to reload (e.g., after login when previous listeners failed)
+      responsesReceived.current = 0;
+      setPermissionError(false);
+      if (id) setLoading(true);
+      setReloadTrigger(prev => prev + 1);
+      return;
+    }
+
     setCompanyIdState(id);
     responsesReceived.current = 0;
     setPermissionError(false);
@@ -159,7 +168,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userRef = doc(db, 'users', email.toLowerCase());
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-        return userSnap.data().companyId;
+        const data = userSnap.data();
+        // Cache the user name immediately for use before Firestore streams load
+        if (data.name) {
+          cachedUserName.current = data.name;
+        }
+        return data.companyId;
       }
     } catch (e) {
       console.error("Erreur loginWithEmail:", e);
@@ -400,13 +414,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(timeoutId);
       unsubCompany(); unsubSites(); unsubPrestations(); unsubLeads(); unsubClients(); unsubTodos(); unsubChecklists(); unsubUsers(); unsubNotifs(); unsubInvitations();
     };
-  }, [companyId]);
+  }, [companyId, reloadTrigger]);
 
   const getCurrentUserName = () => {
     const email = localStorage.getItem('revo_auth');
-    if (!email) return 'Inconnu';
+    if (!email) return cachedUserName.current || 'Inconnu';
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    return user ? user.name : email;
+    if (user) return user.name;
+    // Fallback to cached name from loginWithEmail before streams are loaded
+    if (cachedUserName.current) return cachedUserName.current;
+    return email;
   };
 
   const triggerNotifications = async (targetUserIds: string[] | undefined, title: string, message: string, type: UserNotification['type'], relatedId: string) => {

@@ -114,7 +114,8 @@ const AppContent: React.FC = () => {
   }, [isAuthenticated]);
 
   const handleLogin = (email: string) => {
-    // onAuthStateChanged prendra le relais automatiquement
+    // Store auth email in localStorage (onAuthStateChanged might be skipped by authCheckRef)
+    localStorage.setItem('revo_auth', email.toLowerCase());
     setIsAuthenticated(true);
   };
 
