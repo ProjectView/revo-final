@@ -108,10 +108,10 @@ const SiteList: React.FC = () => {
 
   return (
     <>
-      <div className="w-full h-screen flex flex-col px-6 lg:px-12 py-8 lg:py-10 animate-in fade-in duration-500 pb-24 lg:pb-12 gap-6 lg:gap-8">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      <div className="w-full h-screen flex flex-col px-4 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-10 animate-in fade-in duration-500 pb-24 lg:pb-12 gap-4 sm:gap-6 lg:gap-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-8">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Chantiers</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Chantiers</h1>
             <p className="text-slate-500 text-base font-semibold mt-1">Vue d'ensemble et suivi de production.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -144,7 +144,7 @@ const SiteList: React.FC = () => {
 
         {/* Search & Filter Bar - Compacted */}
         <div className="flex flex-col gap-3">
-          <div className="bg-white p-3 lg:p-3.5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-row gap-3 items-center w-full">
+          <div className="bg-white p-3 sm:p-3.5 lg:p-3.5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-row gap-2 sm:gap-3 items-center w-full">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
               <input type="text" placeholder="Rechercher un chantier..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -165,7 +165,7 @@ const SiteList: React.FC = () => {
 
           {/* Expanded Filters */}
           {showFilters && (
-            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-6">
+            <div className="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-4 sm:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
@@ -229,16 +229,16 @@ const SiteList: React.FC = () => {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
         {sites.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-40 px-6 bg-white rounded-[4rem] border border-dashed border-slate-200 shadow-inner group animate-in zoom-in-95 duration-700">
-            <div className="relative mb-10">
-              <div className="w-36 h-36 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 group-hover:scale-110 transition-transform duration-700">
-                <HardHat size={72} strokeWidth={1} />
+          <div className="flex flex-col items-center justify-center py-20 sm:py-40 px-4 sm:px-6 bg-white rounded-[4rem] border border-dashed border-slate-200 shadow-inner group animate-in zoom-in-95 duration-700">
+            <div className="relative mb-6 sm:mb-10">
+              <div className="w-28 sm:w-36 h-28 sm:h-36 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 group-hover:scale-110 transition-transform duration-700">
+                <HardHat size={64} strokeWidth={1} className="sm:scale-100 scale-75" />
               </div>
-              <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-emerald-900 rounded-3xl flex items-center justify-center text-white shadow-2xl rotate-12 group-hover:rotate-0 transition-all duration-500">
-                <Plus size={28} />
+              <div className="absolute -bottom-4 -right-4 w-12 sm:w-16 h-12 sm:h-16 bg-emerald-900 rounded-3xl flex items-center justify-center text-white shadow-2xl rotate-12 group-hover:rotate-0 transition-all duration-500">
+                <Plus size={24} className="sm:scale-100 scale-75" />
               </div>
             </div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight text-center">Aucun chantier actif</h3>
+            <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight text-center">Aucun chantier actif</h3>
             <p className="text-slate-400 text-sm font-semibold mt-4 text-center max-w-sm leading-relaxed uppercase tracking-widest">
               Votre tableau de production est vide. Commencez par planifier votre première intervention.
             </p>
@@ -261,57 +261,107 @@ const SiteList: React.FC = () => {
         ) : (
           <>
             {viewMode === 'list' && (
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden w-full animate-in slide-in-from-bottom-4 flex flex-col">
-                <div className="overflow-x-auto overflow-y-auto scrollbar-hide flex-1">
-                  <table className="w-full text-left border-collapse min-w-[1100px]">
-                    <thead>
-                      <tr className="bg-slate-50/50 border-b border-slate-100">
-                        <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Chantier</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Client</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Planning</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Budget</th>
-                        <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredSites.map(site => {
-                        const client = clients.find(c => c.id === site.clientId);
-                        const siteIsReadOnly = isReadOnly('site', site.id);
-                        return (
-                          <tr key={site.id} onClick={() => setSelectedSiteId(site.id)} className={`transition-all cursor-pointer group relative ${
-                            siteIsReadOnly ? 'opacity-60 bg-slate-50' : 'hover:bg-emerald-50/40'
-                          }`}>
-                            <td className="px-10 py-8">
-                              <div className="flex items-center gap-3">
-                                {siteIsReadOnly && <Lock size={16} className="text-rose-500 flex-shrink-0" />}
-                                <div>
-                                  <h4 className="font-black text-slate-800 text-base group-hover:text-emerald-900 transition-colors">{site.name}</h4>
-                                  <p className="text-xs font-bold text-slate-400 mt-2 tracking-tight flex items-center gap-2 italic">{site.address}</p>
-                                </div>
+              <>
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4 animate-in slide-in-from-bottom-4 flex flex-col">
+                  {filteredSites.map(site => {
+                    const client = clients.find(c => c.id === site.clientId);
+                    const siteIsReadOnly = isReadOnly('site', site.id);
+                    return (
+                      <div
+                        key={site.id}
+                        onClick={() => setSelectedSiteId(site.id)}
+                        className={`bg-white rounded-2xl border border-slate-100 p-4 cursor-pointer transition-all ${
+                          siteIsReadOnly ? 'opacity-60' : 'hover:shadow-lg hover:border-emerald-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {siteIsReadOnly && <Lock size={14} className="text-rose-500" />}
+                              <h4 className="font-black text-slate-800 text-sm">{site.name}</h4>
+                            </div>
+                            <p className="text-xs text-slate-400 font-bold">{site.address}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black border whitespace-nowrap ml-2 ${getStatusStyle(site.status)}`}>
+                            {site.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-tight mb-1">Date</p>
+                            <p className="font-black text-slate-700">
+                              {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-tight mb-1">Client</p>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-6 h-6 rounded-lg ${client?.color || 'bg-slate-200'} flex items-center justify-center text-white text-[10px] font-black`}>
+                                {client?.initials || '?'}
                               </div>
-                            </td>
-                            <td className="px-8 py-8">
-                              <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-xl ${client?.color || 'bg-slate-200'} flex items-center justify-center text-white text-xs font-black shadow-sm group-hover:scale-110 transition-transform`}>{client?.initials || '?'}</div>
-                                <span className="text-sm text-slate-700 font-black">{client?.name || 'Inconnu'}</span>
-                              </div>
-                            </td>
-                            <td className="px-8 py-8 text-sm text-slate-600 font-bold">
-                              {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
-                            </td>
-                            <td className="px-8 py-8 font-black text-slate-900 text-base">
-                              {site.budget.toLocaleString()} <span className="text-slate-400 text-xs font-bold uppercase ml-1">€</span>
-                            </td>
-                            <td className="px-10 py-8 text-right">
-                              <span className={`px-5 py-2 rounded-xl text-xs font-black border tracking-wider shadow-sm inline-block ${getStatusStyle(site.status)}`}>{site.status}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              <span className="font-bold text-slate-700 truncate">{client?.name || 'Inconnu'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden w-full animate-in slide-in-from-bottom-4 flex flex-col">
+                  <div className="overflow-x-auto overflow-y-auto scrollbar-hide flex-1">
+                    <table className="w-full text-left border-collapse min-w-[1100px]">
+                      <thead>
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                          <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Chantier</th>
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Client</th>
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Planning</th>
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Budget</th>
+                          <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {filteredSites.map(site => {
+                          const client = clients.find(c => c.id === site.clientId);
+                          const siteIsReadOnly = isReadOnly('site', site.id);
+                          return (
+                            <tr key={site.id} onClick={() => setSelectedSiteId(site.id)} className={`transition-all cursor-pointer group relative ${
+                              siteIsReadOnly ? 'opacity-60 bg-slate-50' : 'hover:bg-emerald-50/40'
+                            }`}>
+                              <td className="px-10 py-8">
+                                <div className="flex items-center gap-3">
+                                  {siteIsReadOnly && <Lock size={16} className="text-rose-500 flex-shrink-0" />}
+                                  <div>
+                                    <h4 className="font-black text-slate-800 text-base group-hover:text-emerald-900 transition-colors">{site.name}</h4>
+                                    <p className="text-xs font-bold text-slate-400 mt-2 tracking-tight flex items-center gap-2 italic">{site.address}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-8 py-8">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-10 h-10 rounded-xl ${client?.color || 'bg-slate-200'} flex items-center justify-center text-white text-xs font-black shadow-sm group-hover:scale-110 transition-transform`}>{client?.initials || '?'}</div>
+                                  <span className="text-sm text-slate-700 font-black">{client?.name || 'Inconnu'}</span>
+                                </div>
+                              </td>
+                              <td className="px-8 py-8 text-sm text-slate-600 font-bold">
+                                {new Date(site.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
+                              </td>
+                              <td className="px-8 py-8 font-black text-slate-900 text-base">
+                                {site.budget.toLocaleString()} <span className="text-slate-400 text-xs font-bold uppercase ml-1">€</span>
+                              </td>
+                              <td className="px-10 py-8 text-right">
+                                <span className={`px-5 py-2 rounded-xl text-xs font-black border tracking-wider shadow-sm inline-block ${getStatusStyle(site.status)}`}>{site.status}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
             )}
 
             {viewMode === 'kanban' && <KanbanBoard sites={filteredSites} onSiteClick={(s) => setSelectedSiteId(s.id)} onStatusChange={async (siteId, newStatus) => await updateSite(siteId, { status: newStatus })} statuses={siteStatuses} />}

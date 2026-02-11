@@ -40,8 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
       <aside
         className={`
           fixed inset-y-0 left-0 z-[110] lg:static bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ease-in-out relative
-          ${isMobileOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'}
-          ${isCollapsed && !isMobileOpen ? 'w-24' : 'w-72'}
+          ${isMobileOpen ? 'translate-x-0 w-64 sm:w-72' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed && !isMobileOpen ? 'w-24' : 'w-64 sm:w-72 lg:w-72'}
         `}
       >
         {/* Top Section */}
@@ -84,7 +84,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isMobileOp
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => onViewChange(item.id)}
+              onClick={() => {
+                onViewChange(item.id);
+                if (isMobileOpen) onCloseMobile?.();
+              }}
               className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-200 group relative overflow-hidden ${
                 currentView === item.id
                   ? 'bg-emerald-50 text-emerald-800 font-black shadow-sm'
