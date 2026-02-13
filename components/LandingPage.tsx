@@ -737,6 +737,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                   </div>
                   <div className="mb-8">
                     <span className="text-5xl font-black text-slate-900">{plan.price === 0 ? 'Gratuit' : `${plan.price}\u00A0\u20AC`}</span>
+                    {plan.price !== 0 && <span className="text-sm text-slate-400 font-bold ml-1">HT</span>}
                     {plan.period && <span className="text-sm text-slate-400 font-bold">{plan.period}</span>}
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
