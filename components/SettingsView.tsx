@@ -848,7 +848,7 @@ const SettingsView: React.FC = () => {
                           <div className="px-8 py-6 border-b border-slate-100 bg-white">
                             <p className="text-base font-black text-slate-900">
                               {plan.isFree ? 'Gratuit' : `€${plan.pricing.monthly}`}
-                              {!plan.isFree && <span className="text-xs font-bold text-slate-500 ml-1">/mois</span>}
+                              {!plan.isFree && <span className="text-xs font-bold text-slate-500 ml-1">HT/mois</span>}
                             </p>
                           </div>
 

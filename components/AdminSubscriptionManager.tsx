@@ -205,7 +205,7 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
                   <p className="text-xs text-slate-600">{plan.tagline}</p>
                 </div>
                 <span className="text-xs font-bold text-slate-600">
-                  {plan.isFree ? 'Gratuit' : `€${plan.pricing[billingPeriod]}/mois`}
+                  {plan.isFree ? 'Gratuit' : `€${plan.pricing[billingPeriod]} HT/mois`}
                 </span>
               </div>
             </button>
