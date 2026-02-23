@@ -218,6 +218,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: 'Administrateur'
     });
 
+    // Email de bienvenue pour le créateur de compte
+    try {
+      await addDoc(collection(db, 'mail'), {
+        to: adminEmail.toLowerCase(),
+        message: {
+          subject: `🎉 Bienvenue sur REVO, ${adminName.split(' ')[0]} !`,
+          html: `
+            <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px;">
+              <div style="background-color: #ffffff; border-radius: 32px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);">
+                <div style="background-color: #064e3b; padding: 40px; text-align: center;">
+                  <div style="display: inline-block; background-color: #ffffff; width: 64px; height: 64px; border-radius: 16px; line-height: 64px; font-size: 32px; font-weight: 900; color: #064e3b; margin-bottom: 16px;">R</div>
+                  <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;">REVO BTP</h1>
+                </div>
+                <div style="padding: 40px; text-align: center;">
+                  <h2 style="color: #1e293b; font-size: 24px; font-weight: 800; margin-bottom: 16px;">Bienvenue, ${adminName.split(' ')[0]} ! 🚀</h2>
+                  <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+                    Votre espace <strong>${companyName}</strong> est prêt. Vous êtes connecté en tant qu'<strong>Administrateur</strong>.
+                  </p>
+                  <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+                    Gérez vos chantiers, invitez votre équipe et pilotez votre activité BTP depuis une seule plateforme.
+                  </p>
+                  <a href="${window.location.origin}" style="display: inline-block; background-color: #064e3b; color: #ffffff; padding: 18px 36px; border-radius: 16px; font-size: 14px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 10px 15px -3px rgba(6, 78, 59, 0.2);">
+                    Accéder à mon espace
+                  </a>
+                </div>
+                <div style="background-color: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                  <p style="color: #64748b; font-size: 11px; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Propulsé par REVO - La plateforme BTP nouvelle génération</p>
+                </div>
+              </div>
+            </div>
+          `
+        }
+      });
+    } catch (emailErr) {
+      console.warn("Erreur envoi email de bienvenue :", emailErr);
+    }
+
     return companyId;
   };
 
