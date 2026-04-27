@@ -534,11 +534,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = async (lead: Omit<Lead, 'id'>) => {
     if (!companyId) return;
-    const docRef = await addDoc(collection(db, 'companies', companyId, 'leads'), lead);
+    const userName = getCurrentUserName();
+    const leadWithMeta: Omit<Lead, 'id'> = {
+      ...lead,
+      createdBy: lead.createdBy || userName,
+      createdAt: lead.createdAt || new Date().toISOString(),
+    };
+    const docRef = await addDoc(collection(db, 'companies', companyId, 'leads'), leadWithMeta);
     await addDoc(collection(db, 'companies', companyId, 'leads', docRef.id, 'activities'), {
       type: 'creation',
       description: 'Prospect créé dans la pipeline',
-      user: getCurrentUserName(),
+      user: userName,
       timestamp: new Date().toISOString()
     });
   };

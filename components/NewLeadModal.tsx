@@ -28,7 +28,8 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     comment: '',
     stage: '',
     priority: 'Moyenne' as 'Haute' | 'Moyenne' | 'Basse',
-    clientId: undefined as string | undefined
+    clientId: undefined as string | undefined,
+    dueDate: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,13 +167,19 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
         delete leadData.clientId;
       }
 
+      // Empty dueDate must be omitted (Firestore rejects undefined, and
+      // we want this field absent rather than stored as "")
+      if (!leadData.dueDate) {
+        delete leadData.dueDate;
+      }
+
       await addLead(leadData);
       onClose();
       // Reset
       setFormData({
         leadName: '', company: '', email: '', phone: '', project: '',
         budget: '', address: '', coordinates: null, source: 'Bouche à oreille', comment: '',
-        stage: stages[0], priority: 'Moyenne', clientId: undefined
+        stage: stages[0], priority: 'Moyenne', clientId: undefined, dueDate: ''
       });
       setAddressSearch('');
     } finally {
@@ -348,6 +355,15 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><ChevronDown size={18} /></div>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Échéance prévue (optionnelle)</label>
+                <input
+                  type="date"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-700"
+                  value={formData.dueDate}
+                  onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+                />
               </div>
             </div>
           </form>

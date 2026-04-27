@@ -200,6 +200,10 @@ export interface Lead {
   stage: PipelineStage;
   priority: 'Haute' | 'Moyenne' | 'Basse';
   clientId?: string; // Client assigné à cette opportunité
+  coordinates?: [number, number]; // [lat, lng]
+  dueDate?: string; // ISO date — échéance prévue, utilisée pour le tri chronologique
+  createdBy?: string; // Nom de l'utilisateur qui a créé l'opportunité
+  createdAt?: string; // ISO timestamp à la création
 }
 
 export interface ChecklistItem {

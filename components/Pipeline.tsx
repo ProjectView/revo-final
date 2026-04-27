@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat } from 'lucide-react';
+import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat, CalendarClock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
@@ -34,7 +34,17 @@ const Pipeline: React.FC = () => {
     return 'bg-slate-400';
   };
 
-  const getLeadsForStage = (stage: string) => leads.filter(l => l.stage === stage);
+  const getLeadsForStage = (stage: string) => {
+    // Sort by dueDate ascending (soonest first); leads without a dueDate go to the end.
+    return leads
+      .filter(l => l.stage === stage)
+      .sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+      });
+  };
 
   const getArchivedLeads = () => leads.filter(l => l.stage === 'Perdu');
 
@@ -233,11 +243,19 @@ const Pipeline: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-2">
                       <div className="flex items-center gap-1.5 text-slate-900">
                         <DollarSign size={12} className="text-emerald-500" strokeWidth={3} />
                         <span className="text-sm font-black">{lead.budget.toLocaleString()}</span>
                       </div>
+                      {lead.dueDate && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                          <CalendarClock size={11} />
+                          <span>
+                            {new Date(lead.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Action buttons - always visible on mobile, hover on desktop */}
