@@ -31,12 +31,32 @@ const CalendarView: React.FC = () => {
 
   // Statuts par défaut
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
-  const statuses = useMemo(
+  const siteStatusesList = useMemo(
     () => (company?.siteStatuses && company.siteStatuses.length > 0
       ? company.siteStatuses as Status[]
       : DEFAULT_STATUSES),
     [company?.siteStatuses]
   );
+  const prestationStatusesList = useMemo(
+    () => (company?.prestationStatuses && company.prestationStatuses.length > 0
+      ? company.prestationStatuses as Status[]
+      : DEFAULT_STATUSES),
+    [company?.prestationStatuses]
+  );
+
+  // Statuses shown in the filter bar depend on which types are currently displayed.
+  const statuses = useMemo(() => {
+    const wantsSite = showTypes.includes('site');
+    const wantsPrestation = showTypes.includes('prestation');
+    if (wantsSite && !wantsPrestation) return siteStatusesList;
+    if (!wantsSite && wantsPrestation) return prestationStatusesList;
+    // Union, preserving order and removing duplicates.
+    const combined = [...siteStatusesList];
+    for (const s of prestationStatusesList) {
+      if (!combined.includes(s)) combined.push(s);
+    }
+    return combined;
+  }, [showTypes, siteStatusesList, prestationStatusesList]);
 
   // Initialize selectedStatuses from localStorage or use all statuses by default
   const [selectedStatuses, setSelectedStatuses] = useState<Status[]>(() => {
