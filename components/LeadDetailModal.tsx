@@ -18,7 +18,7 @@ interface LeadDetailModalProps {
 type TabType = 'details' | 'comments' | 'history';
 
 const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) => {
-  const { leads, updateLead, deleteLead, addLeadComment, getLeadComments, getLeadActivities, updateLeadStage } = useData();
+  const { leads, updateLead, deleteLead, addLeadComment, getLeadComments, getLeadActivities, updateLeadStage, company } = useData();
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +33,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
   const [showSadFace, setShowSadFace] = useState(false);
 
   const lead = leads.find(l => l.id === leadId);
+  const stageColor = (lead && company?.pipelineStageColors?.[lead.stage]) || 'bg-slate-400';
   const [editedLead, setEditedLead] = useState<Partial<Lead>>({});
 
   useEffect(() => {
@@ -181,7 +182,12 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                 ) : (
                   <h2 className="text-xl font-black text-slate-900">{lead.leadName}</h2>
                 )}
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Prospect • {lead.stage}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-1.5">
+                  <span>Prospect</span>
+                  <span className="text-slate-300">•</span>
+                  <span className={`inline-block w-2 h-2 rounded-full ${stageColor}`} aria-hidden="true" />
+                  <span className="text-slate-600">{lead.stage}</span>
+                </p>
               </div>
             </div>
 

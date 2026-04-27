@@ -9,6 +9,7 @@ import LeadDetailModal from './LeadDetailModal';
 import SiteDetailModal from './SiteDetailModal';
 import PrestationDetailModal from './PrestationDetailModal';
 import { useData } from '../context/DataContext';
+import { COLOR_PALETTE } from '../constants';
 
 const DEFAULT_STAGES = ['Nouvelle opportunité', 'En discussion', 'Gagné', 'Perdu'];
 
@@ -63,14 +64,18 @@ const Pipeline: React.FC = () => {
   };
   
   const stages = useMemo(() => company?.pipelineStages || DEFAULT_STAGES, [company]);
-  
-  const getStageColor = (stage: string) => {
+
+  // Smart fallback when no custom color is set for a stage.
+  const defaultStageColor = (stage: string): string => {
     if (stage === 'Gagné') return 'bg-emerald-500';
     if (stage === 'Perdu') return 'bg-red-500';
-    if (stage === 'Nouvelle opportunité') return 'bg-blue-500';
-    if (stage === 'En discussion') return 'bg-amber-500';
+    if (stage === 'Nouveau' || stage === 'Nouvelle opportunité' || stage === 'Nouveau lead') return 'bg-blue-500';
+    if (stage === 'En discussion' || stage === 'Négociation') return 'bg-amber-500';
     return 'bg-slate-400';
   };
+
+  const getStageColor = (stage: string): string =>
+    company?.pipelineStageColors?.[stage] || defaultStageColor(stage);
 
   const getLeadsForStage = (stage: string) => {
     return leads
@@ -168,25 +173,52 @@ const Pipeline: React.FC = () => {
   };
 
   // --- Pipeline Settings Logic ---
+  // editedStageColors is parallel to editedStages: same length, same indexes.
+  // This way renames don't break the color mapping.
   const [editedStages, setEditedStages] = useState<string[]>([]);
+  const [editedStageColors, setEditedStageColors] = useState<string[]>([]);
+
   const openSettings = () => {
-    setEditedStages([...stages]);
+    const initialStages = [...stages];
+    setEditedStages(initialStages);
+    setEditedStageColors(initialStages.map(s => getStageColor(s)));
     setIsSettingsOpen(true);
   };
 
   const saveStages = async () => {
-    await updateCompany({ pipelineStages: editedStages });
+    const colorsByName: Record<string, string> = {};
+    editedStages.forEach((name, idx) => {
+      if (name && editedStageColors[idx]) colorsByName[name] = editedStageColors[idx];
+    });
+    await updateCompany({
+      pipelineStages: editedStages,
+      pipelineStageColors: colorsByName,
+    });
     setIsSettingsOpen(false);
   };
 
-  const addStage = () => setEditedStages([...editedStages, 'Nouvelle étape']);
-  const removeStage = (index: number) => setEditedStages(editedStages.filter((_, i) => i !== index));
+  const addStage = () => {
+    setEditedStages([...editedStages, 'Nouvelle étape']);
+    setEditedStageColors([...editedStageColors, COLOR_PALETTE[0]]);
+  };
+  const removeStage = (index: number) => {
+    setEditedStages(editedStages.filter((_, i) => i !== index));
+    setEditedStageColors(editedStageColors.filter((_, i) => i !== index));
+  };
   const moveStage = (index: number, direction: 'up' | 'down') => {
-    const newStages = [...editedStages];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newStages.length) return;
+    if (targetIndex < 0 || targetIndex >= editedStages.length) return;
+    const newStages = [...editedStages];
+    const newColors = [...editedStageColors];
     [newStages[index], newStages[targetIndex]] = [newStages[targetIndex], newStages[index]];
+    [newColors[index], newColors[targetIndex]] = [newColors[targetIndex], newColors[index]];
     setEditedStages(newStages);
+    setEditedStageColors(newColors);
+  };
+  const setStageColor = (index: number, color: string) => {
+    const newColors = [...editedStageColors];
+    newColors[index] = color;
+    setEditedStageColors(newColors);
   };
 
   return (
@@ -547,25 +579,48 @@ const Pipeline: React.FC = () => {
                 </p>
               </div>
 
-              {editedStages.map((stage, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
-                  <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={18} /></div>
-                  <input 
-                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
-                    value={stage}
-                    onChange={(e) => {
-                      const updated = [...editedStages];
-                      updated[idx] = e.target.value;
-                      setEditedStages(updated);
-                    }}
-                  />
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => moveStage(idx, 'up')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
-                    <button onClick={() => moveStage(idx, 'down')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
-                    <button onClick={() => removeStage(idx)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+              {editedStages.map((stage, idx) => {
+                const currentColor = editedStageColors[idx] || COLOR_PALETTE[0];
+                return (
+                  <div key={idx} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 group space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={18} /></div>
+                      <div className={`w-3 h-3 rounded-full ${currentColor} shadow-sm shrink-0`} aria-hidden="true" />
+                      <input
+                        className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
+                        value={stage}
+                        onChange={(e) => {
+                          const updated = [...editedStages];
+                          updated[idx] = e.target.value;
+                          setEditedStages(updated);
+                        }}
+                      />
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => moveStage(idx, 'up')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
+                        <button onClick={() => moveStage(idx, 'down')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
+                        <button onClick={() => removeStage(idx)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pl-12">
+                      {COLOR_PALETTE.map(c => {
+                        const isSelected = currentColor === c;
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setStageColor(idx, c)}
+                            aria-label={`Couleur ${c}`}
+                            aria-pressed={isSelected}
+                            className={`w-5 h-5 rounded-full ${c} transition-all ${
+                              isSelected ? 'ring-2 ring-offset-1 ring-slate-900 scale-110' : 'opacity-60 hover:opacity-100 hover:scale-110'
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button 
                 onClick={addStage}
