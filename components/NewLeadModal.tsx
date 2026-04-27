@@ -3,22 +3,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, User, Building2, Mail, Phone, DollarSign, MapPin, Search, MessageSquare, ChevronDown, Loader2, Layout } from 'lucide-react';
 import { PipelineStage } from '../types';
 import { useData } from '../context/DataContext';
+import { useAddressSearch } from '../hooks/useAddressSearch';
 
 interface NewLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddLead?: (lead: any) => void;
-}
-
-interface AddressSuggestion {
-  label: string;
-  id: string;
-  name: string;
-  postcode: string;
-  city: string;
-  geometry: {
-    coordinates: [number, number];
-  };
 }
 
 const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
@@ -41,16 +31,29 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     clientId: undefined as string | undefined
   });
 
-  const [addressSearch, setAddressSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showContactSuggestions, setShowContactSuggestions] = useState(false);
   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
-  const suggestionRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
   const companyRef = useRef<HTMLDivElement>(null);
+
+  const {
+    addressSearch,
+    setAddressSearch,
+    suggestions,
+    isLoadingAddress,
+    showSuggestions,
+    suggestionRef,
+    handleAddressChange,
+    selectAddress,
+  } = useAddressSearch({
+    onChange: (val) => setFormData(prev => ({ ...prev, address: val })),
+    onSelect: (s) => setFormData(prev => ({
+      ...prev,
+      address: s.label,
+      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]],
+    })),
+  });
 
   useEffect(() => {
     if (stages.length > 0 && !formData.stage) {
@@ -60,9 +63,6 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
       if (contactRef.current && !contactRef.current.contains(event.target as Node)) {
         setShowContactSuggestions(false);
       }
@@ -73,38 +73,6 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleAddressChange = async (val: string) => {
-    setAddressSearch(val);
-    setFormData(prev => ({ ...prev, address: val }));
-    
-    if (val.length > 3) {
-      setIsLoadingAddress(true);
-      try {
-        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features.map((f: any) => ({ ...f.properties, geometry: f.geometry })));
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error("Erreur recherche adresse:", error);
-      } finally {
-        setIsLoadingAddress(false);
-      }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectAddress = (s: AddressSuggestion) => {
-    setAddressSearch(s.label);
-    setFormData(prev => ({
-      ...prev,
-      address: s.label,
-      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]] // [lat, lng]
-    }));
-    setShowSuggestions(false);
-  };
 
   const getContactSuggestions = () => {
     const search = formData.leadName.toLowerCase().trim();

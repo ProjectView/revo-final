@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, MapPin, Clock, MessageSquare, Users, Phone, Mail, Loader2, ChevronDown, AlertTriangle, Send, Navigation, Edit3, Trash2, Check, X } from 'lucide-react';
 import { Site, Client, SiteComment, DatePeriod } from '../../types';
 import { useData } from '../../context/DataContext';
+import { useAddressSearch } from '../../hooks/useAddressSearch';
 import DatePeriodsManager from '../DatePeriodsManager';
 
 interface GeneralInfoTabProps {
@@ -14,27 +15,29 @@ interface GeneralInfoTabProps {
   onOpenAssignModal?: () => void;
 }
 
-interface AddressSuggestion {
-  label: string;
-  name: string;
-  postcode: string;
-  city: string;
-  geometry: {
-    coordinates: [number, number];
-  };
-}
-
 const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing, isReadOnly, onUpdate, onOpenAssignModal }) => {
   const { clients, users, checkCapacity, company, addSiteComment, getSiteComments, updateSiteComment, deleteSiteComment, currentUser: ctxUser } = useData();
-  const [addressSearch, setAddressSearch] = useState(site.address);
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [comments, setComments] = useState<SiteComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  const suggestionRef = useRef<HTMLDivElement>(null);
+
+  const {
+    addressSearch,
+    suggestions,
+    isLoadingAddress,
+    showSuggestions,
+    suggestionRef,
+    handleAddressChange,
+    selectAddress,
+  } = useAddressSearch({
+    initialValue: site.address,
+    onChange: (val) => onUpdate?.({ address: val }),
+    onSelect: (s) => onUpdate?.({
+      address: s.label,
+      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]],
+    }),
+  });
 
   // Récupérer le nom de l'utilisateur actuel
   const currentUserName = useMemo(() => {
@@ -59,41 +62,6 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
     }
     return null;
   }, [site.startDate, site.endDate, site.id, checkCapacity]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleAddressChange = async (val: string) => {
-    setAddressSearch(val);
-    if (onUpdate) onUpdate({ address: val });
-    if (val.length > 3) {
-      setIsLoadingAddress(true);
-      try {
-        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features.map((f: any) => ({ ...f.properties, geometry: f.geometry })));
-        setShowSuggestions(true);
-      } catch (error) {} finally { setIsLoadingAddress(false); }
-    } else { setShowSuggestions(false); }
-  };
-
-  const selectAddress = (s: AddressSuggestion) => {
-    setAddressSearch(s.label);
-    if (onUpdate) {
-      onUpdate({ 
-        address: s.label,
-        coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]] // Conversion vers [lat, lng]
-      });
-    }
-    setShowSuggestions(false);
-  };
 
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();

@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Building2, Mail, Phone, MapPin, Briefcase, FileText, Edit3, Trash2, ExternalLink, TrendingUp, Calendar, Save, Loader2 } from 'lucide-react';
 import { Client, Site, Prestation } from '../types';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { useAddressSearch } from '../hooks/useAddressSearch';
 import { ReadOnlyBadge } from './ReadOnlyBadge';
 import SiteDetailModal from './SiteDetailModal';
 import PrestationDetailModal from './PrestationDetailModal';
@@ -12,17 +13,6 @@ import ConfirmationModal from './ConfirmationModal';
 interface ClientDetailModalProps {
   client: Client | null;
   onClose: () => void;
-}
-
-interface AddressSuggestion {
-  label: string;
-  id: string;
-  name: string;
-  postcode: string;
-  city: string;
-  geometry: {
-    coordinates: [number, number];
-  };
 }
 
 type TabType = 'overview' | 'projects' | 'docs';
@@ -39,12 +29,23 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Address Autocomplete states
-  const [addressSearch, setAddressSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const suggestionRef = useRef<HTMLDivElement>(null);
+  const {
+    addressSearch,
+    setAddressSearch,
+    suggestions,
+    isLoadingAddress,
+    showSuggestions,
+    suggestionRef,
+    handleAddressChange,
+    selectAddress,
+  } = useAddressSearch({
+    onChange: (val) => setEditedClient(prev => prev ? { ...prev, address: val } : prev),
+    onSelect: (s) => setEditedClient(prev => prev ? {
+      ...prev,
+      address: s.label,
+      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]],
+    } : prev),
+  });
 
   useEffect(() => {
     if (client) {
@@ -54,50 +55,6 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }
       setActiveTab('overview');
     }
   }, [client]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleAddressChange = async (val: string) => {
-    setAddressSearch(val);
-    if (editedClient) setEditedClient({ ...editedClient, address: val });
-    
-    if (val.length > 3) {
-      setIsLoadingAddress(true);
-      try {
-        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features.map((f: any) => ({ ...f.properties, geometry: f.geometry })));
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error("Erreur recherche adresse:", error);
-      } finally {
-        setIsLoadingAddress(false);
-      }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectAddress = (s: AddressSuggestion) => {
-    setAddressSearch(s.label);
-    if (editedClient) {
-      setEditedClient({ 
-        ...editedClient, 
-        address: s.label,
-        coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]]
-      });
-    }
-    setShowSuggestions(false);
-  };
 
   if (!client || !editedClient) return null;
 

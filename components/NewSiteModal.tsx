@@ -3,24 +3,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, HardHat, MapPin, Users, Calendar as CalendarIcon, DollarSign, Layout, Clock, Loader2, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { useAddressSearch } from '../hooks/useAddressSearch';
 import { Status, PipelineStage } from '../types';
 
 interface NewSiteModalProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-interface AddressSuggestion {
-  label: string;
-  score: number;
-  id: string;
-  name: string;
-  postcode: string;
-  city: string;
-  context: string;
-  geometry: {
-    coordinates: [number, number];
-  };
 }
 
 // --- Custom Range Date Picker Component ---
@@ -297,13 +285,26 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
     color: getRandomColor()
   });
 
-  const [addressSearch, setAddressSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const suggestionRef = useRef<HTMLDivElement>(null);
+
+  const {
+    addressSearch,
+    setAddressSearch,
+    suggestions,
+    isLoadingAddress,
+    showSuggestions,
+    suggestionRef,
+    handleAddressChange,
+    selectAddress,
+  } = useAddressSearch({
+    onChange: (val) => setFormData(prev => ({ ...prev, address: val })),
+    onSelect: (s) => setFormData(prev => ({
+      ...prev,
+      address: s.label,
+      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]],
+    })),
+  });
 
   const capacityWarning = useMemo(() => {
     if (formData.startDate && formData.endDate) {
@@ -312,49 +313,6 @@ const NewSiteModal: React.FC<NewSiteModalProps> = ({ isOpen, onClose }) => {
     }
     return null;
   }, [formData.startDate, formData.endDate, checkCapacity]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleAddressChange = async (val: string) => {
-    setAddressSearch(val);
-    setFormData(prev => ({ ...prev, address: val }));
-    
-    if (val.length > 3) {
-      setIsLoadingAddress(true);
-      try {
-        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features.map((f: any) => ({ ...f.properties, geometry: f.geometry })));
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error("Erreur recherche adresse:", error);
-      } finally {
-        setIsLoadingAddress(false);
-      }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectAddress = (s: AddressSuggestion) => {
-    const fullAddress = s.label;
-    setAddressSearch(fullAddress);
-    setFormData(prev => ({ 
-      ...prev, 
-      address: fullAddress,
-      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]]
-    }));
-    setShowSuggestions(false);
-  };
 
   const handleClientChange = (clientId: string) => {
     const selectedClient = clients.find(c => c.id === clientId);
