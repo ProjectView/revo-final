@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
+import { validateImageUpload, validateDocumentUpload, sanitizeFileName } from '../lib/uploadValidation';
 import { Site, Lead, Client, TodoTask, Company, ChecklistTemplate, SiteTask, User, SiteDocument, Prestation, LeadComment, LeadActivity, AppNotification, UserNotification, SiteComment } from '../types';
 import { AlertTriangle, Info, CheckCircle, XCircle, X } from 'lucide-react';
 import { SUBSCRIPTION_PLANS, EXTERNAL_ROLE } from '../constants';
@@ -272,7 +273,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const token = crypto.randomUUID();
     const inviteRef = doc(db, 'invitations', token);
     const inviteLink = `${window.location.origin}?invite=${token}`;
 
@@ -1076,6 +1077,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const uploadCompanyLogo = async (file: File): Promise<string> => {
     if (!companyId) throw new Error("No company context");
+    validateImageUpload(file);
     const storageRef = ref(storage, `companies/${companyId}/logo`);
     await uploadBytes(storageRef, file);
     const url = await getDownloadURL(storageRef);
@@ -1090,6 +1092,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const uploadAvatarDuringSignup = async (email: string, file: File): Promise<string> => {
+    validateImageUpload(file);
     const emailKey = email.toLowerCase();
     const storageRef = ref(storage, `users/${emailKey}/avatar`);
     await uploadBytes(storageRef, file);
@@ -1106,7 +1109,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const uploadSiteDocument = async (siteId: string, file: File, userName: string) => {
     if (!companyId) throw new Error("No company context");
-    const fileName = `${Date.now()}_${file.name}`;
+    validateDocumentUpload(file);
+    const fileName = `${Date.now()}_${sanitizeFileName(file.name)}`;
     const storageRef = ref(storage, `companies/${companyId}/sites/${siteId}/${fileName}`);
     await uploadBytes(storageRef, file);
     const url = await getDownloadURL(storageRef);
