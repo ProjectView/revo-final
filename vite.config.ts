@@ -132,6 +132,21 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            // Group large rarely-changing vendors into their own chunks so
+            // browsers cache them across deploys instead of re-downloading
+            // the whole app every time we ship a fix.
+            manualChunks: {
+              'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-leaflet': ['leaflet', 'react-leaflet'],
+              'vendor-icons': ['lucide-react'],
+            },
+          },
+        },
+      },
     };
 });
