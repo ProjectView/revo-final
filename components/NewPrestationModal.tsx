@@ -4,31 +4,12 @@ import { X, Wrench, MapPin, Users, DollarSign, Layout, Clock, Loader2, ChevronDo
 import { useData } from '../context/DataContext';
 import { Status, PipelineStage } from '../types';
 import { useAddressSearch } from '../hooks/useAddressSearch';
+import { getRandomPaletteColor as getRandomColor } from '../constants';
 
 interface NewPrestationModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-// Palette de couleurs (sans rouge pour éviter "invalidé")
-const COLOR_PALETTE = [
-  'bg-blue-600',
-  'bg-emerald-600',
-  'bg-purple-600',
-  'bg-amber-600',
-  'bg-cyan-600',
-  'bg-indigo-600',
-  'bg-teal-600',
-  'bg-orange-600',
-  'bg-pink-600',
-  'bg-lime-600',
-  'bg-sky-600',
-  'bg-slate-700'
-];
-
-const getRandomColor = (): string => {
-  return COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
-};
 
 const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose }) => {
   const { clients, addPrestation, company } = useData();

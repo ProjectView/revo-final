@@ -4,6 +4,7 @@ import { Calendar, MapPin, Clock, MessageSquare, Users, Phone, Mail, Loader2, Ch
 import { Site, Client, SiteComment, DatePeriod } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAddressSearch } from '../../hooks/useAddressSearch';
+import { COLOR_PALETTE } from '../../constants';
 import DatePeriodsManager from '../DatePeriodsManager';
 
 interface GeneralInfoTabProps {
@@ -153,6 +154,27 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({ site, client, isEditing
           <div className="grid grid-cols-2 gap-4">
             <input type="date" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold" value={site.startDate} onChange={e => onUpdate && onUpdate({ startDate: e.target.value })} />
             <input type="date" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold" value={site.endDate} onChange={e => onUpdate && onUpdate({ endDate: e.target.value })} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Couleur</label>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_PALETTE.map((c) => {
+                const isSelected = site.color === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => onUpdate && onUpdate({ color: c })}
+                    aria-label={`Couleur ${c}`}
+                    aria-pressed={isSelected}
+                    className={`w-8 h-8 rounded-full ${c} transition-all ${
+                      isSelected ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : 'hover:scale-110 opacity-80 hover:opacity-100'
+                    }`}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
 

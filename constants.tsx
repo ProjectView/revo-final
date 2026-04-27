@@ -18,6 +18,25 @@ export const EXTERNAL_ROLE = 'Utilisateur Externe';
 export const EXTERNAL_ALLOWED_VIEWS: View[] = ['sites', 'prestations'];
 export const EXTERNAL_NAV_ITEMS = NAV_ITEMS.filter(item => EXTERNAL_ALLOWED_VIEWS.includes(item.id));
 
+// Shared color palette for sites and prestations (no red — reserved for "invalidé").
+export const COLOR_PALETTE = [
+  'bg-blue-600',
+  'bg-emerald-600',
+  'bg-purple-600',
+  'bg-amber-600',
+  'bg-cyan-600',
+  'bg-indigo-600',
+  'bg-teal-600',
+  'bg-orange-600',
+  'bg-pink-600',
+  'bg-lime-600',
+  'bg-sky-600',
+  'bg-slate-700',
+];
+
+export const getRandomPaletteColor = (): string =>
+  COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+
 export const MOCK_CLIENTS: Client[] = [
   { id: 'c1', name: 'Sylvain CUCULIERE', company: 'SOA', email: 'sylvain.cuculiere@soa-agencement.com', phone: '06 07 39 25 17', initials: 'SC', color: 'bg-purple-500' },
   { id: 'c2', name: 'mini toto', company: 'TOTO SCI', email: 'contact@toto.fr', phone: 'Non renseigné', initials: 'MT', color: 'bg-emerald-500' },
