@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat, CalendarClock, Filter, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
@@ -177,6 +177,19 @@ const Pipeline: React.FC = () => {
   // This way renames don't break the color mapping.
   const [editedStages, setEditedStages] = useState<string[]>([]);
   const [editedStageColors, setEditedStageColors] = useState<string[]>([]);
+  const [openColorPickerIdx, setOpenColorPickerIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openColorPickerIdx === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`[data-color-picker="${openColorPickerIdx}"]`)) {
+        setOpenColorPickerIdx(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openColorPickerIdx]);
 
   const openSettings = () => {
     const initialStages = [...stages];
@@ -581,42 +594,53 @@ const Pipeline: React.FC = () => {
 
               {editedStages.map((stage, idx) => {
                 const currentColor = editedStageColors[idx] || COLOR_PALETTE[0];
+                const isPickerOpen = openColorPickerIdx === idx;
                 return (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 group space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={18} /></div>
-                      <div className={`w-3 h-3 rounded-full ${currentColor} shadow-sm shrink-0`} aria-hidden="true" />
-                      <input
-                        className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
-                        value={stage}
-                        onChange={(e) => {
-                          const updated = [...editedStages];
-                          updated[idx] = e.target.value;
-                          setEditedStages(updated);
-                        }}
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
+                    <div className="p-1.5 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={16} /></div>
+
+                    <div className="relative" data-color-picker={idx}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenColorPickerIdx(isPickerOpen ? null : idx)}
+                        aria-label="Choisir la couleur de l'étape"
+                        aria-expanded={isPickerOpen}
+                        className={`w-6 h-6 rounded-full ${currentColor} shadow-sm ring-1 ring-black/5 hover:scale-110 transition-transform`}
                       />
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => moveStage(idx, 'up')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
-                        <button onClick={() => moveStage(idx, 'down')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
-                        <button onClick={() => removeStage(idx)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
-                      </div>
+                      {isPickerOpen && (
+                        <div className="absolute left-0 top-full mt-2 z-10 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 grid grid-cols-6 gap-1.5 w-[180px]">
+                          {COLOR_PALETTE.map(c => {
+                            const isSelected = currentColor === c;
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => { setStageColor(idx, c); setOpenColorPickerIdx(null); }}
+                                aria-label={`Couleur ${c}`}
+                                aria-pressed={isSelected}
+                                className={`w-6 h-6 rounded-full ${c} transition-transform hover:scale-110 ${
+                                  isSelected ? 'ring-2 ring-slate-900 ring-offset-1' : ''
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex flex-wrap gap-1.5 pl-12">
-                      {COLOR_PALETTE.map(c => {
-                        const isSelected = currentColor === c;
-                        return (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => setStageColor(idx, c)}
-                            aria-label={`Couleur ${c}`}
-                            aria-pressed={isSelected}
-                            className={`w-5 h-5 rounded-full ${c} transition-all ${
-                              isSelected ? 'ring-2 ring-offset-1 ring-slate-900 scale-110' : 'opacity-60 hover:opacity-100 hover:scale-110'
-                            }`}
-                          />
-                        );
-                      })}
+
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
+                      value={stage}
+                      onChange={(e) => {
+                        const updated = [...editedStages];
+                        updated[idx] = e.target.value;
+                        setEditedStages(updated);
+                      }}
+                    />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => moveStage(idx, 'up')} className="p-1.5 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
+                      <button onClick={() => moveStage(idx, 'down')} className="p-1.5 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
+                      <button onClick={() => removeStage(idx)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 );
