@@ -1,20 +1,74 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Revo — Gestion de chantiers BTP
 
-# Run and deploy your AI Studio app
+Application web de gestion de chantiers, clients, prospects, plannings et prestations pour les entreprises du BTP.
 
-This contains everything you need to run your app locally.
+## Stack technique
 
-View your app in AI Studio: https://ai.studio/apps/drive/1O7upWHRbJM1ZG8tzkdGeBUjhb_ZQGadJ
+- **Frontend** : React 19 + TypeScript + Vite
+- **UI** : Tailwind CSS, Lucide icons
+- **Cartographie** : Leaflet / react-leaflet
+- **Backend & données** : Firebase (Auth, Firestore, Storage)
+- **IA** : Gemini API
+- **PWA** : vite-plugin-pwa
+- **Hébergement** : Netlify
 
-## Run Locally
+## Prérequis
 
-**Prerequisites:**  Node.js
+- Node.js 18+
+- Un projet Firebase configuré (Auth + Firestore + Storage)
+- Une clé API Gemini
 
+## Installation
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+```
+
+## Configuration
+
+Copier `.env.example` vers `.env.local` et renseigner les valeurs :
+
+```bash
+cp .env.example .env.local
+```
+
+Variables requises :
+
+| Variable | Description |
+|---|---|
+| `VITE_FIREBASE_API_KEY` | Clé API Firebase |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Domaine d'authentification Firebase |
+| `VITE_FIREBASE_DATABASE_URL` | URL de la base Firebase |
+| `VITE_FIREBASE_PROJECT_ID` | ID du projet Firebase |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Bucket Firebase Storage |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | ID de l'expéditeur de messages |
+| `VITE_FIREBASE_APP_ID` | ID de l'application Firebase |
+| `VITE_FIREBASE_MEASUREMENT_ID` | ID Analytics Firebase |
+| `VITE_GEMINI_API_KEY` | Clé API Gemini |
+
+Le fichier `.env.local` est ignoré par Git — ne jamais committer de secrets.
+
+## Scripts
+
+```bash
+npm run dev       # Serveur de développement (http://localhost:3000)
+npm run build     # Build de production dans dist/
+npm run preview   # Preview du build de production
+```
+
+## Déploiement
+
+Voir [DEPLOYMENT.md](./DEPLOYMENT.md) pour le guide complet (GitHub + Netlify).
+
+## Structure du projet
+
+```
+App.tsx              Point d'entrée de l'application
+components/          Composants UI (vues, modales, formulaires)
+context/             Contextes React (auth, données, …)
+hooks/               Hooks personnalisés
+lib/                 Configuration Firebase et utilitaires
+public/              Assets statiques et manifest PWA
+types.ts             Définitions TypeScript globales
+constants.tsx        Constantes globales
+```
