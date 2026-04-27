@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat, CalendarClock } from 'lucide-react';
+import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat, CalendarClock, Filter, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
@@ -23,6 +23,44 @@ const Pipeline: React.FC = () => {
   const [hoveredLeadId, setHoveredLeadId] = useState<string | null>(null);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isRestoringId, setIsRestoringId] = useState<string | null>(null);
+
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+  const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
+
+  const availableCreators = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of leads) {
+      if (l.createdBy) set.add(l.createdBy);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [leads]);
+
+  const activeFiltersCount = [
+    dateStart,
+    dateEnd,
+    selectedCreators.length > 0 ? 'creators' : null,
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setDateStart('');
+    setDateEnd('');
+    setSelectedCreators([]);
+  };
+
+  const setThisMonth = () => {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    setDateStart(first);
+    setDateEnd(last);
+  };
+
+  const toggleCreator = (name: string) => {
+    setSelectedCreators(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
   
   const stages = useMemo(() => company?.pipelineStages || DEFAULT_STAGES, [company]);
   
@@ -35,9 +73,21 @@ const Pipeline: React.FC = () => {
   };
 
   const getLeadsForStage = (stage: string) => {
-    // Sort by dueDate ascending (soonest first); leads without a dueDate go to the end.
     return leads
       .filter(l => l.stage === stage)
+      .filter(l => {
+        // Date range filter applies on dueDate. Leads without a dueDate are
+        // kept (otherwise enabling the filter hides every lead missing one).
+        if (l.dueDate) {
+          if (dateStart && l.dueDate < dateStart) return false;
+          if (dateEnd && l.dueDate > dateEnd) return false;
+        }
+        if (selectedCreators.length > 0) {
+          if (!l.createdBy || !selectedCreators.includes(l.createdBy)) return false;
+        }
+        return true;
+      })
+      // Sort by dueDate ascending (soonest first); leads without a dueDate go to the end.
       .sort((a, b) => {
         if (!a.dueDate && !b.dueDate) return 0;
         if (!a.dueDate) return 1;
@@ -160,6 +210,24 @@ const Pipeline: React.FC = () => {
             )}
           </button>
           <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border shadow-sm ${
+              activeFiltersCount > 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+            }`}
+            title="Filtrer les opportunités"
+          >
+            <Filter size={16} />
+            <span className="hidden sm:inline">Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="bg-emerald-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                {activeFiltersCount}
+              </span>
+            )}
+            {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <button
             onClick={openSettings}
             className="p-3 sm:p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
             title="Paramètres de la pipeline"
@@ -174,6 +242,72 @@ const Pipeline: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="px-4 sm:px-6 lg:px-10 pb-4 sm:pb-6 flex-shrink-0">
+          <div className="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar size={12} /> Échéance après le
+                </label>
+                <input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar size={12} /> Échéance avant le
+                </label>
+                <input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
+                />
+              </div>
+              <div className="flex flex-col justify-end gap-2">
+                <div className="flex gap-2">
+                  <button onClick={setThisMonth} className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all">Ce mois-ci</button>
+                  <button onClick={resetFilters} className="flex-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all flex items-center justify-center gap-2">
+                    <X size={14} /> Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Créateur de l'opportunité</label>
+              {availableCreators.length === 0 ? (
+                <p className="text-[11px] text-slate-400 font-medium italic">Aucun créateur identifié sur les opportunités existantes.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {availableCreators.map(name => {
+                    const isSelected = selectedCreators.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => toggleCreator(name)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 flex items-center gap-2 ${
+                          isSelected
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-md'
+                            : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <User size={12} />
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex gap-4 sm:gap-6 lg:gap-8 overflow-x-auto px-4 sm:px-6 lg:px-10 pb-6 sm:pb-8 lg:pb-10 scrollbar-hide items-stretch">
         {stages.map(stage => {
