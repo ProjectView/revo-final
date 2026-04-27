@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, Plus, List, Kanban, Map, HardHat, Ghost, FilterX, Construction, Calendar, X, ChevronDown, ChevronUp, Settings, Settings2, GripVertical, ArrowUp, ArrowDown, Trash2, Check, Lock } from 'lucide-react';
 import { Status, Site } from '../types';
 import SiteDetailModal from './SiteDetailModal';
@@ -8,8 +8,18 @@ import KanbanBoard from './KanbanBoard';
 import MapView from './MapView';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { COLOR_PALETTE } from '../constants';
 
 type ViewMode = 'list' | 'kanban' | 'map';
+
+// Smart fallback when no custom color is set for a site status.
+const defaultSiteStatusColor = (status: string): string => {
+  if (status === 'TERMINÉ') return 'bg-emerald-500';
+  if (status === 'EN COURS') return 'bg-orange-500';
+  if (status === 'EN RÉVISION') return 'bg-purple-500';
+  if (status === 'NOUVEAU') return 'bg-blue-500';
+  return 'bg-slate-400';
+};
 
 const SiteList: React.FC = () => {
   const { sites, clients, addSite, updateSite, company, updateCompany, isExternalUser } = useData();
@@ -36,24 +46,67 @@ const SiteList: React.FC = () => {
     [company?.siteStatuses]
   );
 
+  // Status colors are kept in a parallel array (same length and indexes as
+  // editedStatuses), so renaming or reordering doesn't break the mapping.
+  const [editedStatusColors, setEditedStatusColors] = useState<string[]>([]);
+  const [openColorPickerIdx, setOpenColorPickerIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openColorPickerIdx === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`[data-color-picker="${openColorPickerIdx}"]`)) {
+        setOpenColorPickerIdx(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openColorPickerIdx]);
+
+  const getSiteStatusColor = (status: string): string =>
+    company?.siteStatusColors?.[status] || defaultSiteStatusColor(status);
+
   const openSettings = () => {
-    setEditedStatuses([...(company?.siteStatuses || DEFAULT_STATUSES)]);
+    const initial = [...(company?.siteStatuses || DEFAULT_STATUSES)];
+    setEditedStatuses(initial);
+    setEditedStatusColors(initial.map(s => getSiteStatusColor(s)));
     setIsSettingsOpen(true);
   };
 
   const saveStatuses = async () => {
-    await updateCompany({ siteStatuses: editedStatuses });
+    const colorsByName: Record<string, string> = {};
+    editedStatuses.forEach((name, idx) => {
+      if (name && editedStatusColors[idx]) colorsByName[name] = editedStatusColors[idx];
+    });
+    await updateCompany({
+      siteStatuses: editedStatuses,
+      siteStatusColors: colorsByName,
+    });
     setIsSettingsOpen(false);
   };
 
-  const addStatus = () => setEditedStatuses([...editedStatuses, 'Nouveau statut']);
-  const removeStatus = (index: number) => setEditedStatuses(editedStatuses.filter((_, i) => i !== index));
+  const addStatus = () => {
+    setEditedStatuses([...editedStatuses, 'Nouveau statut']);
+    setEditedStatusColors([...editedStatusColors, COLOR_PALETTE[0]]);
+  };
+  const removeStatus = (index: number) => {
+    setEditedStatuses(editedStatuses.filter((_, i) => i !== index));
+    setEditedStatusColors(editedStatusColors.filter((_, i) => i !== index));
+  };
   const moveStatus = (index: number, direction: 'up' | 'down') => {
-    const newStatuses = [...editedStatuses];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newStatuses.length) return;
+    if (targetIndex < 0 || targetIndex >= editedStatuses.length) return;
+    const newStatuses = [...editedStatuses];
+    const newColors = [...editedStatusColors];
     [newStatuses[index], newStatuses[targetIndex]] = [newStatuses[targetIndex], newStatuses[index]];
+    [newColors[index], newColors[targetIndex]] = [newColors[targetIndex], newColors[index]];
     setEditedStatuses(newStatuses);
+    setEditedStatusColors(newColors);
+  };
+  const setStatusColor = (index: number, color: string) => {
+    const newColors = [...editedStatusColors];
+    newColors[index] = color;
+    setEditedStatusColors(newColors);
   };
 
   const filteredSites = useMemo(() => {
@@ -401,25 +454,59 @@ const SiteList: React.FC = () => {
                 </p>
               </div>
 
-              {editedStatuses.map((status, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
-                  <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={18} /></div>
-                  <input
-                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
-                    value={status}
-                    onChange={(e) => {
-                      const updated = [...editedStatuses];
-                      updated[idx] = e.target.value;
-                      setEditedStatuses(updated);
-                    }}
-                  />
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => moveStatus(idx, 'up')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
-                    <button onClick={() => moveStatus(idx, 'down')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
-                    <button onClick={() => removeStatus(idx)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+              {editedStatuses.map((status, idx) => {
+                const currentColor = editedStatusColors[idx] || COLOR_PALETTE[0];
+                const isPickerOpen = openColorPickerIdx === idx;
+                return (
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
+                    <div className="p-1.5 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={16} /></div>
+
+                    <div className="relative" data-color-picker={idx}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenColorPickerIdx(isPickerOpen ? null : idx)}
+                        aria-label="Choisir la couleur du statut"
+                        aria-expanded={isPickerOpen}
+                        className={`w-6 h-6 rounded-full ${currentColor} shadow-sm ring-1 ring-black/5 hover:scale-110 transition-transform`}
+                      />
+                      {isPickerOpen && (
+                        <div className="absolute left-0 top-full mt-2 z-10 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 grid grid-cols-6 gap-1.5 w-[180px]">
+                          {COLOR_PALETTE.map(c => {
+                            const isSelected = currentColor === c;
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => { setStatusColor(idx, c); setOpenColorPickerIdx(null); }}
+                                aria-label={`Couleur ${c}`}
+                                aria-pressed={isSelected}
+                                className={`w-6 h-6 rounded-full ${c} transition-transform hover:scale-110 ${
+                                  isSelected ? 'ring-2 ring-slate-900 ring-offset-1' : ''
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
+                      value={status}
+                      onChange={(e) => {
+                        const updated = [...editedStatuses];
+                        updated[idx] = e.target.value;
+                        setEditedStatuses(updated);
+                      }}
+                    />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => moveStatus(idx, 'up')} className="p-1.5 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
+                      <button onClick={() => moveStatus(idx, 'down')} className="p-1.5 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
+                      <button onClick={() => removeStatus(idx)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button
                 onClick={addStatus}

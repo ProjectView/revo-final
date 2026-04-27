@@ -42,7 +42,9 @@ export interface Company {
   pipelineStages?: string[]; // Nouvelle liste d'étapes personnalisables
   pipelineStageColors?: Record<string, string>; // Mapping nom d'étape → classe Tailwind (ex: "bg-emerald-500")
   siteStatuses?: string[]; // Statuts personnalisés pour les chantiers
+  siteStatusColors?: Record<string, string>; // Mapping nom de statut chantier → classe Tailwind
   prestationStatuses?: string[]; // Statuts personnalisés pour les prestations
+  prestationStatusColors?: Record<string, string>; // Mapping nom de statut prestation → classe Tailwind
   checklistCategories?: string[]; // Catégories personnalisées pour les checklists
   customRoles?: CustomRole[]; // Rôles personnalisés
   customHabilitations?: CustomHabilitation[]; // Habilitations personnalisées

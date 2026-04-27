@@ -120,7 +120,17 @@ const CalendarView: React.FC = () => {
     }
   };
 
-  const getStatusDotColor = (status: Status) => {
+  // Returns the user-defined dot color for a status, preferring the map of
+  // the currently-shown type. Falls back to legacy hardcoded defaults when
+  // no custom color is configured.
+  const getStatusDotColor = (status: Status): string => {
+    const wantsSite = showTypes.includes('site');
+    const wantsPrestation = showTypes.includes('prestation');
+    let custom: string | undefined;
+    if (wantsSite && !wantsPrestation) custom = company?.siteStatusColors?.[status];
+    else if (!wantsSite && wantsPrestation) custom = company?.prestationStatusColors?.[status];
+    else custom = company?.siteStatusColors?.[status] || company?.prestationStatusColors?.[status];
+    if (custom) return custom;
     switch (status) {
       case 'EN RÉVISION': return 'bg-purple-500';
       case 'NOUVEAU': return 'bg-blue-500';
@@ -688,7 +698,7 @@ const CalendarView: React.FC = () => {
                       : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
                   }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${style.bg}`} />
+                  <div className={`w-2 h-2 rounded-full ${getStatusDotColor(status)}`} />
                   {status}
                 </button>
               );
