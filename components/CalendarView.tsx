@@ -534,7 +534,7 @@ const CalendarView: React.FC = () => {
 
   const renderWeekView = () => {
     // Calculate max concurrent slots across entire week
-    const maxSlots = Math.max(...Object.values(siteSlots), 0) + 1; // +1 because slots are 0-indexed
+    const maxSlots = Math.max(0, ...(Object.values(siteSlots) as number[])) + 1; // +1 because slots are 0-indexed
 
     return (
       <div className="flex-1 min-h-0 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 w-full">
