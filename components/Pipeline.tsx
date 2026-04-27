@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2 } from 'lucide-react';
+import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
@@ -206,33 +206,38 @@ const Pipeline: React.FC = () => {
                     onMouseLeave={() => setHoveredLeadId(null)}
                     className={`bg-white rounded-[1.5rem] border border-slate-100 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all group flex flex-col ${isLostLead ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'} ${hoveredLeadId === lead.id ? 'p-5' : 'p-4'}`}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600">
-                          <User size={14} />
+                    <div className="flex justify-between items-start mb-3 gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 shrink-0">
+                          <HardHat size={14} />
                         </div>
-                        <span className="text-xs font-black text-slate-800 truncate max-w-[140px]">{lead.leadName}</span>
+                        <h4 className="text-sm font-black text-slate-900 leading-tight truncate group-hover:text-emerald-700 transition-colors">
+                          {lead.project}
+                        </h4>
                       </div>
-                      <div className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border ${
-                        lead.priority === 'Haute' ? 'bg-rose-50 text-rose-500 border-rose-100' : 
+                      <div className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border shrink-0 ${
+                        lead.priority === 'Haute' ? 'bg-rose-50 text-rose-500 border-rose-100' :
                         lead.priority === 'Moyenne' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-400 border-slate-200'
                       }`}>
                         {lead.priority}
                       </div>
                     </div>
 
-                    <h4 className="text-[13px] font-bold text-slate-600 leading-snug mb-3 group-hover:text-slate-900 transition-colors line-clamp-2">
-                      {lead.project}
-                    </h4>
+                    <div className="mb-3 pl-10 space-y-0.5">
+                      <p className="text-xs font-bold text-slate-700 truncate">
+                        {lead.company || 'Particulier'}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-400 truncate flex items-center gap-1">
+                        <User size={10} className="shrink-0" />
+                        <span className="truncate">{lead.leadName}</span>
+                      </p>
+                    </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                       <div className="flex items-center gap-1.5 text-slate-900">
                         <DollarSign size={12} className="text-emerald-500" strokeWidth={3} />
                         <span className="text-sm font-black">{lead.budget.toLocaleString()}</span>
                       </div>
-                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">
-                        {lead.company || 'Particulier'}
-                      </span>
                     </div>
 
                     {/* Action buttons - always visible on mobile, hover on desktop */}
