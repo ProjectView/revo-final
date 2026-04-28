@@ -8,7 +8,6 @@ Application web de gestion de chantiers, clients, prospects, plannings et presta
 - **UI** : Tailwind CSS, Lucide icons
 - **Cartographie** : Leaflet / react-leaflet
 - **Backend & données** : Firebase (Auth, Firestore, Storage)
-- **IA** : Gemini API
 - **PWA** : vite-plugin-pwa
 - **Hébergement** : Netlify
 
@@ -16,7 +15,6 @@ Application web de gestion de chantiers, clients, prospects, plannings et presta
 
 - Node.js 18+
 - Un projet Firebase configuré (Auth + Firestore + Storage)
-- Une clé API Gemini
 
 ## Installation
 
@@ -44,7 +42,6 @@ Variables requises :
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | ID de l'expéditeur de messages |
 | `VITE_FIREBASE_APP_ID` | ID de l'application Firebase |
 | `VITE_FIREBASE_MEASUREMENT_ID` | ID Analytics Firebase |
-| `VITE_GEMINI_API_KEY` | Clé API Gemini |
 
 Le fichier `.env.local` est ignoré par Git — ne jamais committer de secrets.
 
