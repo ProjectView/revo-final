@@ -78,7 +78,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToLanding }) => {
 
       // Step 3: Check and update sessions with transaction for atomicity
       const userRef = doc(db, 'users', cleanEmail);
-      const sessionId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const sessionId = crypto.randomUUID();
       const now = new Date().toISOString();
       const newSession = {
         sessionId,

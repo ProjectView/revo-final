@@ -31,12 +31,32 @@ const CalendarView: React.FC = () => {
 
   // Statuts par défaut
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
-  const statuses = useMemo(
+  const siteStatusesList = useMemo(
     () => (company?.siteStatuses && company.siteStatuses.length > 0
       ? company.siteStatuses as Status[]
       : DEFAULT_STATUSES),
     [company?.siteStatuses]
   );
+  const prestationStatusesList = useMemo(
+    () => (company?.prestationStatuses && company.prestationStatuses.length > 0
+      ? company.prestationStatuses as Status[]
+      : DEFAULT_STATUSES),
+    [company?.prestationStatuses]
+  );
+
+  // Statuses shown in the filter bar depend on which types are currently displayed.
+  const statuses = useMemo(() => {
+    const wantsSite = showTypes.includes('site');
+    const wantsPrestation = showTypes.includes('prestation');
+    if (wantsSite && !wantsPrestation) return siteStatusesList;
+    if (!wantsSite && wantsPrestation) return prestationStatusesList;
+    // Union, preserving order and removing duplicates.
+    const combined = [...siteStatusesList];
+    for (const s of prestationStatusesList) {
+      if (!combined.includes(s)) combined.push(s);
+    }
+    return combined;
+  }, [showTypes, siteStatusesList, prestationStatusesList]);
 
   // Initialize selectedStatuses from localStorage or use all statuses by default
   const [selectedStatuses, setSelectedStatuses] = useState<Status[]>(() => {
@@ -100,7 +120,17 @@ const CalendarView: React.FC = () => {
     }
   };
 
-  const getStatusDotColor = (status: Status) => {
+  // Returns the user-defined dot color for a status, preferring the map of
+  // the currently-shown type. Falls back to legacy hardcoded defaults when
+  // no custom color is configured.
+  const getStatusDotColor = (status: Status): string => {
+    const wantsSite = showTypes.includes('site');
+    const wantsPrestation = showTypes.includes('prestation');
+    let custom: string | undefined;
+    if (wantsSite && !wantsPrestation) custom = company?.siteStatusColors?.[status];
+    else if (!wantsSite && wantsPrestation) custom = company?.prestationStatusColors?.[status];
+    else custom = company?.siteStatusColors?.[status] || company?.prestationStatusColors?.[status];
+    if (custom) return custom;
     switch (status) {
       case 'EN RÉVISION': return 'bg-purple-500';
       case 'NOUVEAU': return 'bg-blue-500';
@@ -534,7 +564,7 @@ const CalendarView: React.FC = () => {
 
   const renderWeekView = () => {
     // Calculate max concurrent slots across entire week
-    const maxSlots = Math.max(...Object.values(siteSlots), 0) + 1; // +1 because slots are 0-indexed
+    const maxSlots = Math.max(0, ...(Object.values(siteSlots) as number[])) + 1; // +1 because slots are 0-indexed
 
     return (
       <div className="flex-1 min-h-0 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 w-full">
@@ -668,7 +698,7 @@ const CalendarView: React.FC = () => {
                       : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
                   }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${style.bg}`} />
+                  <div className={`w-2 h-2 rounded-full ${getStatusDotColor(status)}`} />
                   {status}
                 </button>
               );

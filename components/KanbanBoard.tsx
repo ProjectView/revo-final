@@ -16,7 +16,7 @@ interface KanbanBoardProps {
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusChange, statuses: customStatuses, type = 'site' }) => {
-  const { clients, users, closeSite, closePrestation } = useData();
+  const { clients, users, closeSite, closePrestation, company } = useData();
   const { isReadOnly } = useSubscription();
   const DEFAULT_STATUSES: Status[] = ['NOUVEAU', 'EN RÉVISION', 'EN COURS', 'TERMINÉ'];
   const statuses = customStatuses || DEFAULT_STATUSES;
@@ -25,7 +25,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ sites, onSiteClick, onStatusC
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [siteToClose, setSiteToClose] = useState<Site | null>(null);
 
+  const colorMap = type === 'prestation'
+    ? company?.prestationStatusColors
+    : company?.siteStatusColors;
+
   const getStatusColor = (status: Status) => {
+    if (colorMap?.[status]) return colorMap[status];
     switch (status) {
       case 'EN RÉVISION': return 'bg-purple-500';
       case 'NOUVEAU': return 'bg-blue-500';

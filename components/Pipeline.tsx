@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
-import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Settings2, DollarSign, User, MoreHorizontal, Trophy, Settings, X, GripVertical, Trash2, ArrowUp, ArrowDown, Check, Folder, RotateCcw, Loader2, HardHat, CalendarClock, Filter, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PipelineStage, Lead } from '../types';
 import NewLeadModal from './NewLeadModal';
@@ -9,6 +9,7 @@ import LeadDetailModal from './LeadDetailModal';
 import SiteDetailModal from './SiteDetailModal';
 import PrestationDetailModal from './PrestationDetailModal';
 import { useData } from '../context/DataContext';
+import { COLOR_PALETTE } from '../constants';
 
 const DEFAULT_STAGES = ['Nouvelle opportunité', 'En discussion', 'Gagné', 'Perdu'];
 
@@ -23,18 +24,82 @@ const Pipeline: React.FC = () => {
   const [hoveredLeadId, setHoveredLeadId] = useState<string | null>(null);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isRestoringId, setIsRestoringId] = useState<string | null>(null);
+
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+  const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
+
+  const availableCreators = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of leads) {
+      if (l.createdBy) set.add(l.createdBy);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [leads]);
+
+  const activeFiltersCount = [
+    dateStart,
+    dateEnd,
+    selectedCreators.length > 0 ? 'creators' : null,
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setDateStart('');
+    setDateEnd('');
+    setSelectedCreators([]);
+  };
+
+  const setThisMonth = () => {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    setDateStart(first);
+    setDateEnd(last);
+  };
+
+  const toggleCreator = (name: string) => {
+    setSelectedCreators(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
   
   const stages = useMemo(() => company?.pipelineStages || DEFAULT_STAGES, [company]);
-  
-  const getStageColor = (stage: string) => {
+
+  // Smart fallback when no custom color is set for a stage.
+  const defaultStageColor = (stage: string): string => {
     if (stage === 'Gagné') return 'bg-emerald-500';
     if (stage === 'Perdu') return 'bg-red-500';
-    if (stage === 'Nouvelle opportunité') return 'bg-blue-500';
-    if (stage === 'En discussion') return 'bg-amber-500';
+    if (stage === 'Nouveau' || stage === 'Nouvelle opportunité' || stage === 'Nouveau lead') return 'bg-blue-500';
+    if (stage === 'En discussion' || stage === 'Négociation') return 'bg-amber-500';
     return 'bg-slate-400';
   };
 
-  const getLeadsForStage = (stage: string) => leads.filter(l => l.stage === stage);
+  const getStageColor = (stage: string): string =>
+    company?.pipelineStageColors?.[stage] || defaultStageColor(stage);
+
+  const getLeadsForStage = (stage: string) => {
+    return leads
+      .filter(l => l.stage === stage)
+      .filter(l => {
+        // Date range filter applies on dueDate. Leads without a dueDate are
+        // kept (otherwise enabling the filter hides every lead missing one).
+        if (l.dueDate) {
+          if (dateStart && l.dueDate < dateStart) return false;
+          if (dateEnd && l.dueDate > dateEnd) return false;
+        }
+        if (selectedCreators.length > 0) {
+          if (!l.createdBy || !selectedCreators.includes(l.createdBy)) return false;
+        }
+        return true;
+      })
+      // Sort by dueDate ascending (soonest first); leads without a dueDate go to the end.
+      .sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+      });
+  };
 
   const getArchivedLeads = () => leads.filter(l => l.stage === 'Perdu');
 
@@ -108,25 +173,65 @@ const Pipeline: React.FC = () => {
   };
 
   // --- Pipeline Settings Logic ---
+  // editedStageColors is parallel to editedStages: same length, same indexes.
+  // This way renames don't break the color mapping.
   const [editedStages, setEditedStages] = useState<string[]>([]);
+  const [editedStageColors, setEditedStageColors] = useState<string[]>([]);
+  const [openColorPickerIdx, setOpenColorPickerIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openColorPickerIdx === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`[data-color-picker="${openColorPickerIdx}"]`)) {
+        setOpenColorPickerIdx(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openColorPickerIdx]);
+
   const openSettings = () => {
-    setEditedStages([...stages]);
+    const initialStages = [...stages];
+    setEditedStages(initialStages);
+    setEditedStageColors(initialStages.map(s => getStageColor(s)));
     setIsSettingsOpen(true);
   };
 
   const saveStages = async () => {
-    await updateCompany({ pipelineStages: editedStages });
+    const colorsByName: Record<string, string> = {};
+    editedStages.forEach((name, idx) => {
+      if (name && editedStageColors[idx]) colorsByName[name] = editedStageColors[idx];
+    });
+    await updateCompany({
+      pipelineStages: editedStages,
+      pipelineStageColors: colorsByName,
+    });
     setIsSettingsOpen(false);
   };
 
-  const addStage = () => setEditedStages([...editedStages, 'Nouvelle étape']);
-  const removeStage = (index: number) => setEditedStages(editedStages.filter((_, i) => i !== index));
+  const addStage = () => {
+    setEditedStages([...editedStages, 'Nouvelle étape']);
+    setEditedStageColors([...editedStageColors, COLOR_PALETTE[0]]);
+  };
+  const removeStage = (index: number) => {
+    setEditedStages(editedStages.filter((_, i) => i !== index));
+    setEditedStageColors(editedStageColors.filter((_, i) => i !== index));
+  };
   const moveStage = (index: number, direction: 'up' | 'down') => {
-    const newStages = [...editedStages];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newStages.length) return;
+    if (targetIndex < 0 || targetIndex >= editedStages.length) return;
+    const newStages = [...editedStages];
+    const newColors = [...editedStageColors];
     [newStages[index], newStages[targetIndex]] = [newStages[targetIndex], newStages[index]];
+    [newColors[index], newColors[targetIndex]] = [newColors[targetIndex], newColors[index]];
     setEditedStages(newStages);
+    setEditedStageColors(newColors);
+  };
+  const setStageColor = (index: number, color: string) => {
+    const newColors = [...editedStageColors];
+    newColors[index] = color;
+    setEditedStageColors(newColors);
   };
 
   return (
@@ -150,6 +255,24 @@ const Pipeline: React.FC = () => {
             )}
           </button>
           <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border shadow-sm ${
+              activeFiltersCount > 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+            }`}
+            title="Filtrer les opportunités"
+          >
+            <Filter size={16} />
+            <span className="hidden sm:inline">Filtres</span>
+            {activeFiltersCount > 0 && (
+              <span className="bg-emerald-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                {activeFiltersCount}
+              </span>
+            )}
+            {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <button
             onClick={openSettings}
             className="p-3 sm:p-4 bg-white border border-slate-200 text-slate-400 hover:text-emerald-700 hover:border-emerald-200 rounded-2xl transition-all shadow-sm group"
             title="Paramètres de la pipeline"
@@ -164,6 +287,72 @@ const Pipeline: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {showFilters && (
+        <div className="px-4 sm:px-6 lg:px-10 pb-4 sm:pb-6 flex-shrink-0">
+          <div className="bg-white border border-slate-100 rounded-[2rem] p-4 sm:p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar size={12} /> Échéance après le
+                </label>
+                <input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar size={12} /> Échéance avant le
+                </label>
+                <input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
+                />
+              </div>
+              <div className="flex flex-col justify-end gap-2">
+                <div className="flex gap-2">
+                  <button onClick={setThisMonth} className="flex-1 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all">Ce mois-ci</button>
+                  <button onClick={resetFilters} className="flex-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 transition-all flex items-center justify-center gap-2">
+                    <X size={14} /> Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Créateur de l'opportunité</label>
+              {availableCreators.length === 0 ? (
+                <p className="text-[11px] text-slate-400 font-medium italic">Aucun créateur identifié sur les opportunités existantes.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {availableCreators.map(name => {
+                    const isSelected = selectedCreators.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => toggleCreator(name)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter border-2 transition-all transform hover:scale-105 flex items-center gap-2 ${
+                          isSelected
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-md'
+                            : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <User size={12} />
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex gap-4 sm:gap-6 lg:gap-8 overflow-x-auto px-4 sm:px-6 lg:px-10 pb-6 sm:pb-8 lg:pb-10 scrollbar-hide items-stretch">
         {stages.map(stage => {
@@ -206,33 +395,46 @@ const Pipeline: React.FC = () => {
                     onMouseLeave={() => setHoveredLeadId(null)}
                     className={`bg-white rounded-[1.5rem] border border-slate-100 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all group flex flex-col ${isLostLead ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'} ${hoveredLeadId === lead.id ? 'p-5' : 'p-4'}`}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600">
-                          <User size={14} />
+                    <div className="flex justify-between items-start mb-3 gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 shrink-0">
+                          <HardHat size={14} />
                         </div>
-                        <span className="text-xs font-black text-slate-800 truncate max-w-[140px]">{lead.leadName}</span>
+                        <h4 className="text-sm font-black text-slate-900 leading-tight truncate group-hover:text-emerald-700 transition-colors">
+                          {lead.project}
+                        </h4>
                       </div>
-                      <div className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border ${
-                        lead.priority === 'Haute' ? 'bg-rose-50 text-rose-500 border-rose-100' : 
+                      <div className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border shrink-0 ${
+                        lead.priority === 'Haute' ? 'bg-rose-50 text-rose-500 border-rose-100' :
                         lead.priority === 'Moyenne' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-400 border-slate-200'
                       }`}>
                         {lead.priority}
                       </div>
                     </div>
 
-                    <h4 className="text-[13px] font-bold text-slate-600 leading-snug mb-3 group-hover:text-slate-900 transition-colors line-clamp-2">
-                      {lead.project}
-                    </h4>
+                    <div className="mb-3 pl-10 space-y-0.5">
+                      <p className="text-xs font-bold text-slate-700 truncate">
+                        {lead.company || 'Particulier'}
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-400 truncate flex items-center gap-1">
+                        <User size={10} className="shrink-0" />
+                        <span className="truncate">{lead.leadName}</span>
+                      </p>
+                    </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-50 gap-2">
                       <div className="flex items-center gap-1.5 text-slate-900">
                         <DollarSign size={12} className="text-emerald-500" strokeWidth={3} />
                         <span className="text-sm font-black">{lead.budget.toLocaleString()}</span>
                       </div>
-                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">
-                        {lead.company || 'Particulier'}
-                      </span>
+                      {lead.dueDate && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                          <CalendarClock size={11} />
+                          <span>
+                            {new Date(lead.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Action buttons - always visible on mobile, hover on desktop */}
@@ -390,25 +592,59 @@ const Pipeline: React.FC = () => {
                 </p>
               </div>
 
-              {editedStages.map((stage, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
-                  <div className="p-2 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={18} /></div>
-                  <input 
-                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
-                    value={stage}
-                    onChange={(e) => {
-                      const updated = [...editedStages];
-                      updated[idx] = e.target.value;
-                      setEditedStages(updated);
-                    }}
-                  />
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => moveStage(idx, 'up')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
-                    <button onClick={() => moveStage(idx, 'down')} className="p-2 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
-                    <button onClick={() => removeStage(idx)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+              {editedStages.map((stage, idx) => {
+                const currentColor = editedStageColors[idx] || COLOR_PALETTE[0];
+                const isPickerOpen = openColorPickerIdx === idx;
+                return (
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-100 group">
+                    <div className="p-1.5 text-slate-300 cursor-grab active:cursor-grabbing"><GripVertical size={16} /></div>
+
+                    <div className="relative" data-color-picker={idx}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenColorPickerIdx(isPickerOpen ? null : idx)}
+                        aria-label="Choisir la couleur de l'étape"
+                        aria-expanded={isPickerOpen}
+                        className={`w-6 h-6 rounded-full ${currentColor} shadow-sm ring-1 ring-black/5 hover:scale-110 transition-transform`}
+                      />
+                      {isPickerOpen && (
+                        <div className="absolute left-0 top-full mt-2 z-10 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 grid grid-cols-6 gap-1.5 w-[180px]">
+                          {COLOR_PALETTE.map(c => {
+                            const isSelected = currentColor === c;
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => { setStageColor(idx, c); setOpenColorPickerIdx(null); }}
+                                aria-label={`Couleur ${c}`}
+                                aria-pressed={isSelected}
+                                className={`w-6 h-6 rounded-full ${c} transition-transform hover:scale-110 ${
+                                  isSelected ? 'ring-2 ring-slate-900 ring-offset-1' : ''
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-800 placeholder:text-slate-300"
+                      value={stage}
+                      onChange={(e) => {
+                        const updated = [...editedStages];
+                        updated[idx] = e.target.value;
+                        setEditedStages(updated);
+                      }}
+                    />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => moveStage(idx, 'up')} className="p-1.5 text-slate-400 hover:text-emerald-600"><ArrowUp size={14} /></button>
+                      <button onClick={() => moveStage(idx, 'down')} className="p-1.5 text-slate-400 hover:text-emerald-600"><ArrowDown size={14} /></button>
+                      <button onClick={() => removeStage(idx)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button 
                 onClick={addStage}

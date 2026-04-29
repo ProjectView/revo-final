@@ -3,22 +3,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, User, Building2, Mail, Phone, DollarSign, MapPin, Search, MessageSquare, ChevronDown, Loader2, Layout } from 'lucide-react';
 import { PipelineStage } from '../types';
 import { useData } from '../context/DataContext';
+import { useAddressSearch } from '../hooks/useAddressSearch';
 
 interface NewLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddLead?: (lead: any) => void;
-}
-
-interface AddressSuggestion {
-  label: string;
-  id: string;
-  name: string;
-  postcode: string;
-  city: string;
-  geometry: {
-    coordinates: [number, number];
-  };
 }
 
 const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
@@ -38,19 +28,33 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     comment: '',
     stage: '',
     priority: 'Moyenne' as 'Haute' | 'Moyenne' | 'Basse',
-    clientId: undefined as string | undefined
+    clientId: undefined as string | undefined,
+    dueDate: ''
   });
 
-  const [addressSearch, setAddressSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showContactSuggestions, setShowContactSuggestions] = useState(false);
   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
-  const suggestionRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
   const companyRef = useRef<HTMLDivElement>(null);
+
+  const {
+    addressSearch,
+    setAddressSearch,
+    suggestions,
+    isLoadingAddress,
+    showSuggestions,
+    suggestionRef,
+    handleAddressChange,
+    selectAddress,
+  } = useAddressSearch({
+    onChange: (val) => setFormData(prev => ({ ...prev, address: val })),
+    onSelect: (s) => setFormData(prev => ({
+      ...prev,
+      address: s.label,
+      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]],
+    })),
+  });
 
   useEffect(() => {
     if (stages.length > 0 && !formData.stage) {
@@ -60,9 +64,6 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
       if (contactRef.current && !contactRef.current.contains(event.target as Node)) {
         setShowContactSuggestions(false);
       }
@@ -73,38 +74,6 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleAddressChange = async (val: string) => {
-    setAddressSearch(val);
-    setFormData(prev => ({ ...prev, address: val }));
-    
-    if (val.length > 3) {
-      setIsLoadingAddress(true);
-      try {
-        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features.map((f: any) => ({ ...f.properties, geometry: f.geometry })));
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error("Erreur recherche adresse:", error);
-      } finally {
-        setIsLoadingAddress(false);
-      }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectAddress = (s: AddressSuggestion) => {
-    setAddressSearch(s.label);
-    setFormData(prev => ({
-      ...prev,
-      address: s.label,
-      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]] // [lat, lng]
-    }));
-    setShowSuggestions(false);
-  };
 
   const getContactSuggestions = () => {
     const search = formData.leadName.toLowerCase().trim();
@@ -198,13 +167,19 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
         delete leadData.clientId;
       }
 
+      // Empty dueDate must be omitted (Firestore rejects undefined, and
+      // we want this field absent rather than stored as "")
+      if (!leadData.dueDate) {
+        delete leadData.dueDate;
+      }
+
       await addLead(leadData);
       onClose();
       // Reset
       setFormData({
         leadName: '', company: '', email: '', phone: '', project: '',
         budget: '', address: '', coordinates: null, source: 'Bouche à oreille', comment: '',
-        stage: stages[0], priority: 'Moyenne', clientId: undefined
+        stage: stages[0], priority: 'Moyenne', clientId: undefined, dueDate: ''
       });
       setAddressSearch('');
     } finally {
@@ -380,6 +355,15 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ isOpen, onClose }) => {
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><ChevronDown size={18} /></div>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Échéance prévue (optionnelle)</label>
+                <input
+                  type="date"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:bg-white transition-all font-bold text-slate-700"
+                  value={formData.dueDate}
+                  onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+                />
               </div>
             </div>
           </form>

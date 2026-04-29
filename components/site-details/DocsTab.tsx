@@ -46,7 +46,8 @@ const DocsTab: React.FC<DocsTabProps> = ({ siteId, site, isReadOnly, onUpdate })
       }
     } catch (error) {
       console.error("Erreur upload:", error);
-      alert("Erreur lors de l'envoi du fichier. Vérifiez les permissions de votre bucket Firebase Storage.");
+      const message = error instanceof Error ? error.message : "Erreur lors de l'envoi du fichier.";
+      alert(message);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

@@ -20,7 +20,6 @@ This project uses environment variables to securely store sensitive credentials 
    - `VITE_FIREBASE_MESSAGING_SENDER_ID` - Firebase messaging sender ID
    - `VITE_FIREBASE_APP_ID` - Firebase app ID
    - `VITE_FIREBASE_MEASUREMENT_ID` - Firebase measurement ID
-   - `VITE_GEMINI_API_KEY` - Your Gemini API key
 
 ## Deploy to GitHub
 
@@ -59,7 +58,7 @@ This project uses environment variables to securely store sensitive credentials 
 4. Add each variable from your `.env.local`:
    - Key: `VITE_FIREBASE_API_KEY`
    - Value: (your Firebase API key)
-   - Repeat for all Firebase variables and `VITE_GEMINI_API_KEY`
+   - Repeat for all Firebase variables
 
 5. For production and preview environments, make sure all variables are set
 

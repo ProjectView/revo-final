@@ -1,17 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import Pipeline from './components/Pipeline';
-import CalendarView from './components/CalendarView';
-import SiteList from './components/SiteList';
-import PrestationList from './components/PrestationList';
-import ClientGrid from './components/ClientGrid';
-import ChecklistManager from './components/ChecklistManager';
-import SettingsView from './components/SettingsView';
-import Login from './components/Login';
-import LandingPage from './components/LandingPage';
 import { View } from './types';
+
+// Code-split the main views: each is loaded only when navigated to.
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Pipeline = lazy(() => import('./components/Pipeline'));
+const CalendarView = lazy(() => import('./components/CalendarView'));
+const SiteList = lazy(() => import('./components/SiteList'));
+const PrestationList = lazy(() => import('./components/PrestationList'));
+const ClientGrid = lazy(() => import('./components/ClientGrid'));
+const ChecklistManager = lazy(() => import('./components/ChecklistManager'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const Login = lazy(() => import('./components/Login'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
 import { EXTERNAL_ALLOWED_VIEWS } from './constants';
 import { Menu, Loader2, AlertTriangle, X } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
@@ -154,20 +156,25 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const PageLoader = (
+    <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="animate-spin text-emerald-900" size={32} />
+    </div>
+  );
+
   // État initial de branchement
   if (isAuthenticated === null) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin text-emerald-900" size={32} />
-      </div>
-    );
+    return PageLoader;
   }
 
   if (!isAuthenticated) {
-    if (showLanding) {
-      return <LandingPage onGoToLogin={() => setShowLanding(false)} />;
-    }
-    return <Login onLogin={handleLogin} onBackToLanding={() => setShowLanding(true)} />;
+    return (
+      <Suspense fallback={PageLoader}>
+        {showLanding
+          ? <LandingPage onGoToLogin={() => setShowLanding(false)} />
+          : <Login onLogin={handleLogin} onBackToLanding={() => setShowLanding(true)} />}
+      </Suspense>
+    );
   }
 
   if (loading) {
@@ -248,7 +255,9 @@ const AppContent: React.FC = () => {
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden h-screen relative scroll-smooth bg-slate-50/50 w-full">
         <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-emerald-50/20 to-transparent pointer-events-none"></div>
         <div className={`relative z-10 w-full pb-20 lg:pb-0 ${permissionError && showErrorBanner ? 'pt-16' : ''}`}>
-          {renderContent()}
+          <Suspense fallback={PageLoader}>
+            {renderContent()}
+          </Suspense>
         </div>
       </main>
     </div>

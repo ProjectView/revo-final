@@ -1,44 +1,15 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { X, Wrench, MapPin, Users, DollarSign, Layout, Clock, Loader2, ChevronDown } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Status, PipelineStage } from '../types';
+import { useAddressSearch } from '../hooks/useAddressSearch';
+import { getRandomPaletteColor as getRandomColor } from '../constants';
 
 interface NewPrestationModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-interface AddressSuggestion {
-  label: string;
-  id: string;
-  name: string;
-  postcode: string;
-  city: string;
-  geometry: {
-    coordinates: [number, number];
-  };
-}
-
-// Palette de couleurs (sans rouge pour éviter "invalidé")
-const COLOR_PALETTE = [
-  'bg-blue-600',
-  'bg-emerald-600',
-  'bg-purple-600',
-  'bg-amber-600',
-  'bg-cyan-600',
-  'bg-indigo-600',
-  'bg-teal-600',
-  'bg-orange-600',
-  'bg-pink-600',
-  'bg-lime-600',
-  'bg-sky-600',
-  'bg-slate-700'
-];
-
-const getRandomColor = (): string => {
-  return COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
-};
 
 const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose }) => {
   const { clients, addPrestation, company } = useData();
@@ -75,52 +46,25 @@ const NewPrestationModal: React.FC<NewPrestationModalProps> = ({ isOpen, onClose
     }
   };
 
-  const [addressSearch, setAddressSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const suggestionRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleAddressChange = async (val: string) => {
-    setAddressSearch(val);
-    setFormData(prev => ({ ...prev, address: val }));
-    
-    if (val.length > 3) {
-      setIsLoadingAddress(true);
-      try {
-        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(val)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features.map((f: any) => ({ ...f.properties, geometry: f.geometry })));
-        setShowSuggestions(true);
-      } catch (error) {
-      } finally {
-        setIsLoadingAddress(false);
-      }
-    } else {
-      setShowSuggestions(false);
-    }
-  };
-
-  const selectAddress = (s: AddressSuggestion) => {
-    setAddressSearch(s.label);
-    setFormData(prev => ({ 
-      ...prev, 
+  const {
+    addressSearch,
+    setAddressSearch,
+    suggestions,
+    isLoadingAddress,
+    showSuggestions,
+    suggestionRef,
+    handleAddressChange,
+    selectAddress,
+  } = useAddressSearch({
+    onChange: (val) => setFormData(prev => ({ ...prev, address: val })),
+    onSelect: (s) => setFormData(prev => ({
+      ...prev,
       address: s.label,
-      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]]
-    }));
-    setShowSuggestions(false);
-  };
+      coordinates: [s.geometry.coordinates[1], s.geometry.coordinates[0]],
+    })),
+  });
 
   if (!isOpen) return null;
 

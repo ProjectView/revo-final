@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag, ChevronDown, Trophy } from 'lucide-react';
+import { X, User, Building2, Mail, Phone, MapPin, DollarSign, MessageSquare, History, Edit3, Save, Trash2, Loader2, Send, Flag, ChevronDown, Trophy, CalendarClock } from 'lucide-react';
 import { Lead, LeadComment, LeadActivity } from '../types';
 import { useData } from '../context/DataContext';
 import LeadLocationMap from './LeadLocationMap';
@@ -18,7 +18,7 @@ interface LeadDetailModalProps {
 type TabType = 'details' | 'comments' | 'history';
 
 const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) => {
-  const { leads, updateLead, deleteLead, addLeadComment, getLeadComments, getLeadActivities, updateLeadStage } = useData();
+  const { leads, updateLead, deleteLead, addLeadComment, getLeadComments, getLeadActivities, updateLeadStage, company } = useData();
   const [activeTab, setActiveTab] = useState<TabType>('details');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +33,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
   const [showSadFace, setShowSadFace] = useState(false);
 
   const lead = leads.find(l => l.id === leadId);
+  const stageColor = (lead && company?.pipelineStageColors?.[lead.stage]) || 'bg-slate-400';
   const [editedLead, setEditedLead] = useState<Partial<Lead>>({});
 
   useEffect(() => {
@@ -181,7 +182,12 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                 ) : (
                   <h2 className="text-xl font-black text-slate-900">{lead.leadName}</h2>
                 )}
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Prospect • {lead.stage}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-1.5">
+                  <span>Prospect</span>
+                  <span className="text-slate-300">•</span>
+                  <span className={`inline-block w-2 h-2 rounded-full ${stageColor}`} aria-hidden="true" />
+                  <span className="text-slate-600">{lead.stage}</span>
+                </p>
               </div>
             </div>
 
@@ -381,6 +387,28 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({ leadId, onClose }) =>
                           lead.priority === 'Moyenne' ? 'text-amber-600' :
                           'text-blue-600'
                         }`}>{lead.priority}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Due date */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Échéance</p>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-400 text-slate-700"
+                        value={editedLead.dueDate || ''}
+                        onChange={e => setEditedLead({ ...editedLead, dueDate: e.target.value || undefined })}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CalendarClock size={12} className="text-slate-400" />
+                        <span className="text-xs font-black text-slate-700">
+                          {lead.dueDate
+                            ? new Date(lead.dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : 'Non définie'}
+                        </span>
                       </div>
                     )}
                   </div>
