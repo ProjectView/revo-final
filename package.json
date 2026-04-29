@@ -19,6 +19,7 @@
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
+    "@netlify/functions": "^2.8.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "sharp": "^0.34.5",
