@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { SUBSCRIPTION_PLANS } from '../constants';
+import { auth } from '../lib/firebase';
 import { ChevronDown, AlertTriangle, CheckCircle, Users, HardHat, Check, X, Mail } from 'lucide-react';
 
 type PlanId = keyof typeof SUBSCRIPTION_PLANS;
@@ -91,13 +92,27 @@ export const AdminSubscriptionManager: React.FC<AdminSubscriptionManagerProps> =
       };
 
       try {
-        await fetch('https://n8n.srv800894.hstgr.cloud/webhook/6e4a8cdc-c895-4457-af44-a1632422f66c', {
+        // The webhook is now proxied by a Netlify Function that:
+        //   1. Verifies the Firebase ID token sent in the Authorization header
+        //   2. Checks the user has the Administrateur role in Firestore
+        //   3. Forwards the payload to n8n with a server-side URL
+        // The n8n URL is no longer present in the client bundle.
+        const idToken = await auth.currentUser?.getIdToken();
+        if (!idToken) throw new Error('Utilisateur non authentifié');
+
+        const response = await fetch('/.netlify/functions/subscription-webhook', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
           },
           body: JSON.stringify(webhookPayload),
         });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorBody.error || `HTTP ${response.status}`);
+        }
       } catch (webhookError) {
         console.error('Erreur envoi webhook:', webhookError);
         // Ne pas bloquer le processus si le webhook échoue
