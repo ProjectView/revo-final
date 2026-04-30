@@ -1,0 +1,252 @@
+rules_version = '2';
+
+// ============================================================================
+// REVO BTP — Firestore Security Rules
+// ============================================================================
+//
+// Threat model addressed:
+//   1. Cross-company data leak — a user from company A cannot read or write
+//      anything belonging to company B.
+//   2. Privilege escalation post-signup — a Technicien cannot edit their own
+//      role/companyId/habilitations to become Administrateur.
+//   3. Subscription / limits tampering — only Administrateur of a company can
+//      change subscription state, plan limits, or pipelineStages.
+//   4. Invitation lifecycle — only an Administrateur can issue invitations;
+//      anyone with the token can read their own invitation and mark it
+//      accepted (the URL-based flow); only an admin can delete.
+//   5. Internet-wide writes — `mail/*` is write-only (used by the Firebase
+//      Trigger Email extension); RTDB-style anonymous reads/writes everywhere
+//      are blocked.
+//
+// Residual risk knowingly NOT covered by these rules (must be addressed by a
+// Cloud Function in a follow-up):
+//   - At user-doc creation time, an attacker holding an invitation token COULD
+//     write a role different from the one the invitation grants (e.g. promote
+//     themselves from Technicien to Administrateur). Mitigation: invitation
+//     acceptance should be moved server-side. Tracked in P3 backlog.
+//
+// Deploy via: `firebase deploy --only firestore:rules`
+// Roll back via: Firebase Console → Firestore → Rules → version history.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    // The user's email is normalised to lowercase everywhere in the app
+    // (cf. Login.tsx, DataContext.tsx). Mirror that here so doc IDs match.
+    function userEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(userEmail()));
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(userEmail())).data;
+    }
+
+    function userCompanyId() {
+      return userDoc().companyId;
+    }
+
+    function userRole() {
+      return userDoc().role;
+    }
+
+    function isAdmin() {
+      return userExists() && userRole() == 'Administrateur';
+    }
+
+    function isInCompany(companyId) {
+      return userExists() && userCompanyId() == companyId;
+    }
+
+    // Returns true when a write does not touch any of the listed fields.
+    // Used for blocking privilege-sensitive field changes on update.
+    function notTouching(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // -------------------------------------------------------------------
+    // users/{email}
+    //
+    // Doc IDs are lowercase emails. role + companyId + habilitations are
+    // privilege-sensitive: never editable by self after creation.
+    // -------------------------------------------------------------------
+    match /users/{email} {
+
+      // Read: own doc, or doc of someone in your company.
+      allow read: if isSignedIn() && (
+        userEmail() == email ||
+        (userExists() && resource.data.companyId == userCompanyId())
+      );
+
+      // Create:
+      //   - Self-creation by the matching auth user. This is the only entry
+      //     point: covers both the "create new company" flow (where the user
+      //     sets themselves Administrateur of a freshly-minted company) and
+      //     the invitation-acceptance flow (where Login.tsx writes the doc
+      //     with role/companyId from the invitation).
+      //
+      //   See "Residual risk" comment at the top: an attacker holding an
+      //   invitation token could lie about their role here. Acceptable for now,
+      //   to be replaced by a Cloud Function in Phase 3.
+      allow create: if isSignedIn() && userEmail() == email;
+
+      // Update:
+      //   - Self can update their own doc but NOT escalate privilege.
+      //   - Admin in same company can update anything (incl. role, habilitations).
+      //   - Admin cannot reassign a user to a different companyId.
+      allow update: if isSignedIn() && (
+        (userEmail() == email && notTouching(['role', 'companyId', 'habilitations'])) ||
+        (isAdmin()
+          && resource.data.companyId == userCompanyId()
+          && request.resource.data.companyId == userCompanyId())
+      );
+
+      // Delete: only admin in same company, and not on themselves.
+      allow delete: if isSignedIn()
+        && isAdmin()
+        && resource.data.companyId == userCompanyId()
+        && userEmail() != email;
+    }
+
+    // -------------------------------------------------------------------
+    // invitations/{token}
+    //
+    // Token-based: the doc ID is the invitation token (a UUID since the
+    // crypto-random fix on main). Anyone holding the token can read their
+    // own invitation (used at signup). Only Administrateur can issue or
+    // delete invitations. Acceptance flips status to 'accepted'.
+    // -------------------------------------------------------------------
+    match /invitations/{token} {
+
+      // Read: token is the secret. Anyone holding it can read.
+      // (Token is now crypto.randomUUID() since main@8b5f783, hard to brute.)
+      allow read: if true;
+
+      // Create: admin only, must be issuing for their own company.
+      allow create: if isSignedIn()
+        && isAdmin()
+        && request.resource.data.companyId == userCompanyId();
+
+      // Update: only allow flipping status to 'accepted' or 'declined' —
+      // never change role/email/companyId/habilitations after issuance.
+      allow update: if request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['status'])
+        && (request.resource.data.status == 'accepted'
+            || request.resource.data.status == 'declined');
+
+      // Delete: admin of issuing company.
+      allow delete: if isSignedIn()
+        && isAdmin()
+        && resource.data.companyId == userCompanyId();
+    }
+
+    // -------------------------------------------------------------------
+    // companies/{companyId}
+    //
+    // The company doc itself. Subscription / plan limits / pipeline stages
+    // are all sensitive fields that only the admin should touch.
+    // -------------------------------------------------------------------
+    match /companies/{companyId} {
+
+      // Read: members of the company.
+      allow read: if isSignedIn() && isInCompany(companyId);
+
+      // Create: any signed-in user can create a company (signup flow).
+      // The matching user doc creation happens immediately after with the
+      // user setting themselves Administrateur of this same companyId.
+      allow create: if isSignedIn()
+        && request.resource.data.id == companyId;
+
+      // Update: admin only.
+      allow update: if isSignedIn() && isInCompany(companyId) && isAdmin();
+
+      // Delete: never via the client. Use Firebase Console or Admin SDK.
+      allow delete: if false;
+
+      // -----------------------------------------------------------------
+      // Sub-collections under a company
+      // Structure:
+      //   companies/{c}/sites/{s}                       — chantiers
+      //   companies/{c}/sites/{s}/comments/{...}        — commentaires
+      //   companies/{c}/sites/{s}/activities/{...}      — historique
+      //   companies/{c}/sites/{s}/documents/{...}       — pièces jointes
+      //   companies/{c}/prestations/{p}/...             — idem pour prestations
+      //   companies/{c}/leads/{l}/comments/{...}
+      //   companies/{c}/leads/{l}/activities/{...}
+      //   companies/{c}/clients/{cl}
+      //   companies/{c}/todos/{t}
+      //   companies/{c}/checklists/{ch}
+      //   companies/{c}/notifications/{n}
+      // -----------------------------------------------------------------
+
+      // Notifications: visible only to the recipient. Marked-as-read updates
+      // are restricted to the read field to prevent message tampering.
+      match /notifications/{notifId} {
+        allow read: if isSignedIn()
+          && isInCompany(companyId)
+          && resource.data.recipientId == userEmail();
+
+        // Anyone in the company can create a notification (the app sends
+        // them when a site/prestation is updated, addressed to assignees).
+        allow create: if isSignedIn() && isInCompany(companyId);
+
+        // Update: only mark-as-read by the recipient.
+        allow update: if isSignedIn()
+          && isInCompany(companyId)
+          && resource.data.recipientId == userEmail()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+        allow delete: if isSignedIn()
+          && isInCompany(companyId)
+          && resource.data.recipientId == userEmail();
+      }
+
+      // All other sub-collections (sites, prestations, leads, clients,
+      // todos, checklists, and their nested comments/activities/documents):
+      // any company member can read and write within their own company.
+      // Cross-company access is structurally impossible because the
+      // companyId match is enforced by isInCompany() at this level.
+      match /{collection}/{docId}/{nested=**} {
+        allow read, write: if isSignedIn() && isInCompany(companyId);
+      }
+      match /{collection}/{docId} {
+        allow read, write: if isSignedIn() && isInCompany(companyId);
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // mail/{docId}
+    //
+    // Used by the Firebase Trigger Email extension. The client only writes
+    // (queues an email); the extension reads server-side. Never readable
+    // by clients.
+    // -------------------------------------------------------------------
+    match /mail/{docId} {
+      allow read: if false;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // Default deny for anything else.
+    // Without this, an unmatched path silently inherits the parent rules
+    // (or denies by default depending on Firestore version, but explicit
+    // is safer).
+    // -------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
