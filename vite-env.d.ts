@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string;
   readonly VITE_FIREBASE_APP_ID: string;
   readonly VITE_FIREBASE_MEASUREMENT_ID: string;
+  /** Sentry DSN. When unset, error monitoring is disabled (no-op). */
+  readonly VITE_SENTRY_DSN?: string;
 }
 
 interface ImportMeta {

@@ -15,11 +15,37 @@ const SettingsView = lazy(() => import('./components/SettingsView'));
 const Login = lazy(() => import('./components/Login'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
 import { EXTERNAL_ALLOWED_VIEWS } from './constants';
-import { Menu, Loader2, AlertTriangle, X } from 'lucide-react';
+import { Menu, Loader2, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import * as Sentry from '@sentry/react';
+import { identifySentryUser, clearSentryUser } from './lib/sentry';
+
+// Shown if React fails to render due to an uncaught exception. Keeps the
+// user from staring at a white screen and gives them a way to recover.
+const ErrorFallback: React.FC<{ resetError: () => void }> = ({ resetError }) => (
+  <div className="h-screen w-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="max-w-md text-center space-y-6">
+      <div className="w-16 h-16 mx-auto bg-rose-50 rounded-2xl flex items-center justify-center">
+        <AlertTriangle className="text-rose-500" size={32} />
+      </div>
+      <div className="space-y-2">
+        <h1 className="text-xl font-black text-slate-900">Une erreur inattendue est survenue</h1>
+        <p className="text-sm text-slate-500">
+          Notre équipe a été automatiquement notifiée. Tu peux réessayer en rechargeant l'application.
+        </p>
+      </div>
+      <button
+        onClick={() => { resetError(); window.location.reload(); }}
+        className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-800 transition-all active:scale-95"
+      >
+        <RefreshCw size={16} /> Recharger l'application
+      </button>
+    </div>
+  </div>
+);
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -43,6 +69,7 @@ const AppContent: React.FC = () => {
         if (compId) {
           localStorage.setItem('revo_auth', user.email);
           setCompanyId(compId);
+          identifySentryUser(user.email);
           setIsAuthenticated(true);
           authCheckRef.current = true;
         } else {
@@ -118,6 +145,7 @@ const AppContent: React.FC = () => {
   const handleLogin = (email: string) => {
     // Store auth email in localStorage (onAuthStateChanged might be skipped by authCheckRef)
     localStorage.setItem('revo_auth', email.toLowerCase());
+    identifySentryUser(email.toLowerCase());
     setIsAuthenticated(true);
   };
 
@@ -143,6 +171,7 @@ const AppContent: React.FC = () => {
       sessionStorage.removeItem('revo_session_id');
       authCheckRef.current = false;
       setCompanyId(null);
+      clearSentryUser();
       setIsAuthenticated(false);
       setShowLanding(true);
     } catch (err) {
@@ -151,6 +180,7 @@ const AppContent: React.FC = () => {
       await signOut(auth);
       localStorage.removeItem('revo_auth');
       sessionStorage.removeItem('revo_session_id');
+      clearSentryUser();
       setIsAuthenticated(false);
       setShowLanding(true);
     }
@@ -265,9 +295,13 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <DataProvider>
-    <AppContent />
-  </DataProvider>
+  <Sentry.ErrorBoundary
+    fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}
+  >
+    <DataProvider>
+      <AppContent />
+    </DataProvider>
+  </Sentry.ErrorBoundary>
 );
 
 export default App;
