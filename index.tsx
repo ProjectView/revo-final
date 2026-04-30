@@ -4,6 +4,10 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
+import { initSentry } from './lib/sentry';
+
+// Must run before React renders so any error during initial mount is captured.
+initSentry();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
